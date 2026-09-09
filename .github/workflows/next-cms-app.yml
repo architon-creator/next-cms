@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/reusable-ci.yml
     with:
       app_name: next-cms
-      app_path: .
+      app_path: apps/frontend
     secrets:
       PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
 
@@ -39,7 +39,7 @@ jobs:
     uses: ./.github/workflows/reusable-app-deploy.yml
     with:
       app_name: next-cms
-      app_path: .
+      app_path: apps/frontend
       environment: production
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

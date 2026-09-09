@@ -10,6 +10,52 @@ overrides:
 importers:
 
   .:
+    devDependencies:
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1(supports-color@7.2.0)
+      eslint-config-next:
+        specifier: ^15.5.25
+        version: 15.5.25(eslint@8.57.1(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@8.57.1(supports-color@7.2.0))
+      prettier:
+        specifier: ^3.9.6
+        version: 3.9.6
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
+  apps/api:
+    dependencies:
+      cors:
+        specifier: ^2.8.5
+        version: 2.8.6
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
+      express:
+        specifier: ^4.21.1
+        version: 4.22.2(supports-color@7.2.0)
+    devDependencies:
+      '@types/cors':
+        specifier: ^2.8.17
+        version: 2.8.19
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.13
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
+  apps/frontend:
     dependencies:
       '@prismicio/client':
         specifier: ^7.12.0
@@ -25,7 +71,7 @@ importers:
         version: 0.7.1
       cms:
         specifier: workspace:*
-        version: link:packages/cms
+        version: link:../../packages/cms
       cn:
         specifier: ^0.2.6
         version: 0.2.6
@@ -93,9 +139,6 @@ importers:
       postcss:
         specifier: ^8.5.28
         version: 8.5.28
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -105,34 +148,6 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@20.19.43)(@vitest/coverage-v8@5.0.0)(jsdom@30.0.1)(vite@8.2.2(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
-
-  apps/api:
-    dependencies:
-      cors:
-        specifier: ^2.8.5
-        version: 2.8.6
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.6.1
-      express:
-        specifier: ^4.21.1
-        version: 4.22.2(supports-color@7.2.0)
-    devDependencies:
-      '@types/cors':
-        specifier: ^2.8.17
-        version: 2.8.19
-      '@types/express':
-        specifier: ^4.17.21
-        version: 4.17.25
-      '@types/node':
-        specifier: ^20.14.0
-        version: 20.19.43
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.13
-      typescript:
-        specifier: ^5.5.4
-        version: 5.9.3
 
   packages/cms:
     dependencies:
