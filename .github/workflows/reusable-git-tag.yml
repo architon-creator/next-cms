@@ -1,0 +1,214 @@
+name: Reusable Git Tag
+
+# Computes a branch-scoped semantic version tag (e.g. master-0.0.7) and
+# pushes it to the repo. Unlike reusable-app-build.yml, this one works
+# for this app today — it's pure git, no Docker/AWS required — as long
+# as include_ecr_tags stays false (the default; nothing in this repo
+# sets it true, since there's no ECR repository to sync against).
+#
+# id-token: write is deliberately left out of the base permissions.
+# reusable-ci.yml's own debugging found this repo's Actions token
+# policy silently kills the whole workflow (startup_failure, no error
+# text anywhere) if a job requests certain scopes at even read level —
+# packages and pull-requests were the confirmed culprits; id-token
+# wasn't tested. If a future caller sets include_ecr_tags: true, add
+# id-token: write back here and verify with a real push (gh run watch)
+# before relying on it, the same way the packages/pull-requests issue
+# was diagnosed.
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      include_ecr_tags:
+        required: false
+        type: boolean
+        default: false
+      aws_region:
+        required: false
+        type: string
+        default: ""
+      aws_oidc_role_arn:
+        required: false
+        type: string
+        default: ""
+      ecr_repository:
+        required: false
+        type: string
+        default: ""
+      major_minor:
+        required: false
+        type: string
+        default: "0.0"
+      force_update:
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      version_tag:
+        description: Branch semantic version tag created by this workflow.
+        value: ${{ jobs.create_tag.outputs.version_tag }}
+
+jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.compute.outputs.version_tag }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Inert today: include_ecr_tags is false for every caller in this
+      # repo. Kept ready for a future app that both builds a Docker image
+      # (reusable-app-build.yml) and wants tag numbering to stay in sync
+      # with what's already in ECR.
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.include_ecr_tags }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Compute next semantic tag
+        id: compute
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SANITIZED_BRANCH="$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH#-}"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH%-}"
+
+          if [ -z "${SANITIZED_BRANCH}" ]; then
+            SANITIZED_BRANCH="branch"
+          fi
+
+          if [[ "${{ inputs.major_minor }}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+            TARGET_MAJOR="${BASH_REMATCH[1]}"
+            TARGET_MINOR="${BASH_REMATCH[2]}"
+          else
+            TARGET_MAJOR="0"
+            TARGET_MINOR="0"
+          fi
+
+          ESCAPED_BRANCH="$(printf '%s' "${SANITIZED_BRANCH}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
+          TAG_REGEX="^${ESCAPED_BRANCH}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
+
+          MAX_PATCH=0
+          FOUND_SERIES=false
+          EXISTING_HEAD_TAG=""
+          EXISTING_HEAD_PATCH=-1
+
+          update_max_patch() {
+            local tag="$1"
+
+            if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
+              local major="${BASH_REMATCH[1]}"
+              local minor="${BASH_REMATCH[2]}"
+              local patch="${BASH_REMATCH[3]}"
+
+              if [ "${major}" -eq "${TARGET_MAJOR}" ] && [ "${minor}" -eq "${TARGET_MINOR}" ]; then
+                FOUND_SERIES=true
+                if [ "${patch}" -gt "${MAX_PATCH}" ]; then
+                  MAX_PATCH="${patch}"
+                fi
+              fi
+            fi
+          }
+
+          git fetch --tags --force
+
+          # Enterprise guard: if this commit already has a matching release tag, reuse it.
+          while IFS= read -r tag; do
+            [ -n "${tag}" ] || continue
+            if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
+              major="${BASH_REMATCH[1]}"
+              minor="${BASH_REMATCH[2]}"
+              patch="${BASH_REMATCH[3]}"
+
+              if [ "${major}" -eq "${TARGET_MAJOR}" ] && [ "${minor}" -eq "${TARGET_MINOR}" ]; then
+                if [ "${patch}" -gt "${EXISTING_HEAD_PATCH}" ]; then
+                  EXISTING_HEAD_PATCH="${patch}"
+                  EXISTING_HEAD_TAG="${tag}"
+                fi
+              fi
+            fi
+          done < <(git tag --points-at HEAD)
+
+          if [ -n "${EXISTING_HEAD_TAG}" ]; then
+            echo "Reusing existing tag on HEAD: ${EXISTING_HEAD_TAG}"
+            echo "version_tag=${EXISTING_HEAD_TAG}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          while IFS= read -r tag; do
+            [ -n "${tag}" ] || continue
+            update_max_patch "${tag}"
+          done < <(git tag -l "${SANITIZED_BRANCH}-*")
+
+          if [ "${{ inputs.include_ecr_tags }}" = "true" ]; then
+            ECR_TAGS="$(aws ecr describe-images \
+              --repository-name "${{ inputs.ecr_repository }}" \
+              --region "${{ inputs.aws_region }}" \
+              --query 'imageDetails[].imageTags' \
+              --output json | jq -r '.[]?[]?' 2>/dev/null || true)"
+
+            for tag in ${ECR_TAGS}; do
+              update_max_patch "${tag}"
+            done
+          fi
+
+          if [ "${FOUND_SERIES}" = "true" ]; then
+            NEXT_PATCH=$((MAX_PATCH + 1))
+          else
+            NEXT_PATCH=1
+          fi
+
+          VERSION_TAG="${SANITIZED_BRANCH}-${TARGET_MAJOR}.${TARGET_MINOR}.${NEXT_PATCH}"
+          echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="${{ steps.compute.outputs.version_tag }}"
+          git fetch --tags --force
+
+          REMOTE_TAG_EXISTS=false
+          if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q "refs/tags/${TAG_NAME}$"; then
+            REMOTE_TAG_EXISTS=true
+          fi
+
+          if [ "${REMOTE_TAG_EXISTS}" = "true" ]; then
+            if [ "${{ inputs.force_update }}" = "true" ]; then
+              git tag -d "${TAG_NAME}" || true
+              git push origin ":refs/tags/${TAG_NAME}" || true
+            else
+              echo "Tag ${TAG_NAME} already exists on remote. Skipping creation."
+              exit 0
+            fi
+          fi
+
+          if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
+            git tag -d "${TAG_NAME}" || true
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+
+          if [ "${{ inputs.force_update }}" = "true" ]; then
+            git push origin "${TAG_NAME}" --force
+          else
+            git push origin "${TAG_NAME}"
+          fi

@@ -15,15 +15,26 @@ jobs:
       PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
 
   # Only runs after ci succeeds, and only on a direct push to master —
+  # PRs get no tag (nothing should be tagged until it merges). Pushes a
+  # real, permanent tag like master-0.0.1 to the repo on every master
+  # push (include_ecr_tags stays false — no ECR repository to sync
+  # numbering against).
+  tag:
+    needs: ci
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    uses: ./.github/workflows/reusable-git-tag.yml
+    with:
+      app_name: next-cms
+
+  # Only runs after tag succeeds, and only on a direct push to master —
   # PRs get no deploy job (Vercel's git integration still owns preview
   # deployments for PRs today; only production deploys are being taken
   # over here). Requires VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID
-  # secrets, which don't exist in this repo yet — see
-  # reusable-app-deploy.yml's header comment for where to get them, and
-  # turn off Vercel's own git-integration auto-deploy for this branch
-  # before enabling this, or every push will deploy twice.
+  # secrets — see reusable-app-deploy.yml's header comment for where to
+  # get them, and turn off Vercel's own git-integration auto-deploy for
+  # this branch before relying on this, or every push will deploy twice.
   deploy:
-    needs: ci
+    needs: tag
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     uses: ./.github/workflows/reusable-app-deploy.yml
     with:
