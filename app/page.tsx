@@ -1,17 +1,11 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { createClient } from "cms";
+import { formatLabel } from "@/lib/format-label";
 
 export const metadata: Metadata = {
   title: "Home",
 };
-
-function formatLabel(uid: string) {
-  return uid
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
 
 export default async function HomePage() {
   const client = createClient();
