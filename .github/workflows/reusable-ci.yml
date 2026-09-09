@@ -52,11 +52,15 @@ jobs:
     env:
       SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
       ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
+    # id-token: write (needed for AWS OIDC) is deliberately omitted — this
+    # repo's token permissions don't grant it, and the AWS steps below are
+    # inert (all conditional on inputs that default to "") until a future
+    # app actually needs real AWS access. Add it back alongside real AWS
+    # wiring, not before.
     permissions:
       contents: read
       packages: read
       pull-requests: read
-      id-token: write
 
     steps:
       - name: Checkout code
