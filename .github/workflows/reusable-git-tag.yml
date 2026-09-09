@@ -6,15 +6,16 @@ name: Reusable Git Tag
 # as include_ecr_tags stays false (the default; nothing in this repo
 # sets it true, since there's no ECR repository to sync against).
 #
-# id-token: write is deliberately left out of the base permissions.
-# reusable-ci.yml's own debugging found this repo's Actions token
-# policy silently kills the whole workflow (startup_failure, no error
-# text anywhere) if a job requests certain scopes at even read level —
-# packages and pull-requests were the confirmed culprits; id-token
-# wasn't tested. If a future caller sets include_ecr_tags: true, add
-# id-token: write back here and verify with a real push (gh run watch)
-# before relying on it, the same way the packages/pull-requests issue
-# was diagnosed.
+# Needs contents: write to push the tag. This repo's Actions
+# "Workflow permissions" default was originally set to read-only
+# (default_workflow_permissions: "read"), which acts as a hard ceiling —
+# no job's own `permissions:` block can request more than that,
+# regardless of what the YAML says, and doing so silently fails the
+# whole run (startup_failure, no error text anywhere — this cost real
+# debugging time on reusable-ci.yml's packages/pull-requests scopes
+# too, before the actual mechanism was identified). Fixed by setting
+# default_workflow_permissions to "write" via the repo's Actions API/
+# settings; contents: write here now works for real.
 
 on:
   workflow_call:
@@ -57,7 +58,7 @@ jobs:
     outputs:
       version_tag: ${{ steps.compute.outputs.version_tag }}
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout code

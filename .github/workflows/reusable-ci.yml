@@ -43,11 +43,12 @@ jobs:
   ci:
     name: "Quality Gate (Install / Lint / Format / Type Check / Test / Security)"
     runs-on: ubuntu-latest
-    # Only contents:read is granted — this repo's Actions token policy
-    # rejects the whole workflow at startup (startup_failure, before any
-    # job/step runs) if a job requests packages/pull-requests/id-token scopes,
-    # even at read level, confirmed by bisecting a minimal reproduction. None
-    # of those scopes are actually used by anything below.
+    # Only contents:read is requested — nothing below needs more. (Originally
+    # this repo's default_workflow_permissions was capped at "read" repo-wide,
+    # which silently failed the whole run at startup for any job requesting
+    # more than that, with no error text anywhere — since fixed by setting
+    # the repo's Actions default to "write"; see reusable-git-tag.yml's
+    # header comment for the full story.)
     permissions:
       contents: read
 
