@@ -41,7 +41,7 @@ No primary fields.
 
 ## Rendering & behavior
 
-- Built on shadcn's `Button` (`@/components/ui/button`), `variant="outline"`.
+- Built on shadcn's `Button` (`ui`), `variant="outline"`.
 - `isFilled.link(item.file)` decides link-vs-disabled: filled → `Button asChild` wrapping `PrismicNextLink`; empty → plain `Button disabled`.
 - Items stack vertically, `max-w-80` container — intentionally narrow, matching the reference design's compact button column (not full-width buttons).
 - No background/box styling of its own — a plain block on the page background. (An earlier version of this slice tried giving it a `bg-muted` box to visually merge with an adjacent `DisclosureList` box; that approach is deprecated — see [When NOT to use](#when-not-to-use).)

@@ -2,11 +2,11 @@
 
 This project's pages (`content_page` in Prismic) are built entirely from **shared slices** — reusable, independently-editable content blocks. Every slice lives in its own folder here (`slices/<Name>/`) with three co-located files:
 
-| File         | Purpose                                                                                                                                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model.json` | The Prismic schema — field definitions, pushed to the live repo via `npx prismic push`. This is the source of truth; `prismicio-types.d.ts` is generated from it.                          |
-| `index.tsx`  | The React component that renders the slice, built on [shadcn/ui](https://ui.shadcn.com) primitives (`@/components/ui/*`) where one fits, and Tailwind utility classes for everything else. |
-| `README.md`  | Field reference, usage examples, and known limitations for this slice.                                                                                                                     |
+| File         | Purpose                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model.json` | The Prismic schema — field definitions, pushed to the live repo via `npx prismic push`. This is the source of truth; `prismicio-types.d.ts` is generated from it.           |
+| `index.tsx`  | The React component that renders the slice, built on [shadcn/ui](https://ui.shadcn.com) primitives (`ui`) where one fits, and Tailwind utility classes for everything else. |
+| `README.md`  | Field reference, usage examples, and known limitations for this slice.                                                                                                      |
 
 ## How pages are assembled
 
@@ -40,10 +40,10 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 ## Conventions used across every slice
 
 - **`data-slice-type` / `data-slice-variation`** attributes are always present on the slice's root element — useful for debugging which variation rendered, and as CSS/e2e-test hooks.
-- **shadcn primitives** (`Accordion`, `Card`, `Button` from `@/components/ui/*`) are used wherever the design calls for that pattern, rather than hand-rolled markup — see [shadcn/ui docs](https://ui.shadcn.com) for the underlying Radix behavior (keyboard nav, ARIA, animation).
+- **shadcn primitives** (`Accordion`, `Card`, `Button` from `ui`) are used wherever the design calls for that pattern, rather than hand-rolled markup — see [shadcn/ui docs](https://ui.shadcn.com) for the underlying Radix behavior (keyboard nav, ARIA, animation).
 - **Design tokens**: color comes from the shared token set in `app/globals.css` (`text-primary`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-accent`, `border`) — never a raw hex value, except where a design explicitly calls for an off-palette color (e.g. `Callout`'s warning/success tints).
 - **Rich text styling**: `PrismicRichText` renders raw `<p>`/`<h2>`/`<a>` tags that can't take a `className`, so slices style them via Tailwind v4's arbitrary descendant-selector syntax on the wrapping element (`[&_p]:mb-3`, `[&_a]:text-primary`, etc.) rather than global CSS.
-- **Chevron links**: any slice offering a single "read more"-style trailing link (`Accordion`, `DisclosureList`, `LinkList`) renders it via the shared [`ChevronLink`](../components/ui/chevron-link.tsx) component (`font-semibold text-primary`, trailing `›` via `after:content-['\203A']` — pass `chevron={false}` for a plain inline link with no trailing `›`/row spacing, as `DisclosureList` does).
+- **Chevron links**: any slice offering a single "read more"-style trailing link (`Accordion`, `DisclosureList`, `LinkList`) renders it via the shared [`ChevronLink`](../../ui/src/chevron-link.tsx) component (`font-semibold text-primary`, trailing `›` via `after:content-['\203A']` — pass `chevron={false}` for a plain inline link with no trailing `›`/row spacing, as `DisclosureList` does).
 - **Rich-text `label` spans**: any `PrismicRichText` field whose model config has a `labels` list (muted/small/large/accent/highlight/underline) should pass the shared [`richTextLabelComponents`](../lib/rich-text-components.tsx) as its `components` prop — otherwise an editor applying one of those labels in the toolbar renders as an unstyled `<span>` with no visible effect. `RichTextSection` and `Accordion` (`body`/`necessities`) use it today.
 - **Placeholder links**: when authoring content for a slice's `Link` field before the real destination page/asset exists, this project's convention is `#`, not a guessed URL.
 - **Flat-slice limitation**: Prismic shared slices cannot nest a repeatable `Group` field inside another repeatable `items` zone (confirmed by a rejected push — see `FaqQuestionList`'s `footer_grid` variation history). Where a design needs "N categories, each with M links," the fix used here is **one slice instance per category**, all sharing the same zone — never a nested structure. A Group directly on a variation's `primary` is fine, though — `DisclosureList`'s `files` field uses exactly that, which is why that slice has no `items` at all (each instance is already one topic, so there's nothing to repeat at the top level).

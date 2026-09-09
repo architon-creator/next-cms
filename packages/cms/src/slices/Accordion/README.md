@@ -65,7 +65,7 @@ No primary fields — everything lives on repeatable `items`.
 
 ## Rendering & behavior
 
-- Built on shadcn's `Accordion`/`AccordionItem`/`AccordionTrigger`/`AccordionContent` (`@/components/ui/accordion`, Radix underneath).
+- Built on shadcn's `Accordion`/`AccordionItem`/`AccordionTrigger`/`AccordionContent` (`ui`, Radix underneath).
 - `type="multiple"` with `defaultValue` set to **every** item's key — all sections start expanded. This is deliberate (matches the source designs, which showed every step visible), not the Radix default. Users can still individually collapse sections since it's a real accordion, not a static list.
 - Item numbering (`1`, `2`, `3`...) is computed from array index, not stored in Prismic — reordering items in the dashboard automatically renumbers them.
 
@@ -73,7 +73,7 @@ No primary fields — everything lives on repeatable `items`.
 
 - Number: `text-primary font-bold`. Title: `text-foreground font-bold`.
 - `note` box: `bg-muted`. `necessities` box: plain `border`, with `heading4` styled `text-[0.95rem] font-bold` and its paragraphs `text-muted-foreground text-[0.9rem]`.
-- Trailing links: shared [`ChevronLink`](../../components/ui/chevron-link.tsx) component (see [slice library conventions](../README.md#conventions-used-across-every-slice)).
+- Trailing links: shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) component (see [slice library conventions](../README.md#conventions-used-across-every-slice)).
 - shadcn's default `AccordionItem` border classes are overridden (`border-t! border-b-0! last:border-b!`) to get one divider between items instead of Radix's default (which would double up with this slice's own top border).
 
 ## Known limitations

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Content } from "@prismicio/client";
 import { PrismicRichText, SliceComponentProps } from "@prismicio/react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "ui";
 
 export type FaqAnswerSwapProps = SliceComponentProps<Content.FaqAnswerSwapSlice>;
 

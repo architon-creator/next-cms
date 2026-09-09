@@ -1,7 +1,7 @@
 import { Content, isFilled } from "@prismicio/client";
 import { JSXMapSerializer, PrismicRichText, SliceComponentProps } from "@prismicio/react";
 
-import { ChevronLink } from "../../components/ui/chevron-link";
+import { ChevronLink } from "ui";
 
 export type LinkListProps = SliceComponentProps<Content.LinkListSlice>;
 

@@ -66,7 +66,7 @@ Everything lives on primary fields — **one instance holds exactly one topic** 
 
 ## Rendering & behavior
 
-- Built on shadcn's `Accordion` (`@/components/ui/accordion`) — one `Accordion` root per instance, `type="multiple"`, `defaultValue={["item"]}` so it starts open, same "all open by default, individually collapsible" convention as `Accordion`.
+- Built on shadcn's `Accordion` (`ui`) — one `Accordion` root per instance, `type="multiple"`, `defaultValue={["item"]}` so it starts open, same "all open by default, individually collapsible" convention as `Accordion`.
 - An item with an entirely empty `body` (e.g. "Passengers who require a wheelchair" on `special-assistance`) is valid — the panel just renders whatever other fields are filled.
 - **`box_body` + `files`**: both render inside the same `AccordionContent`, so collapsing the topic hides everything — box text and download buttons together. This replaced an earlier approach that used a separate `FileDownloadList` slice instance placed after this one: that only ever _looked_ attached (via matching background/rounded-corner CSS tricks) but was a different slice that stayed visible even when this topic was collapsed. Keeping downloads as a `files` group on this slice avoids that gap entirely.
 - Box/files box corner rounding: when both `box_body` and `files` are filled, the box renders `rounded-t-md` and the files block `rounded-b-md` directly below with no gap, so they read as one continuous card. When only one of the two is filled, that one gets full `rounded-md` corners on its own.
@@ -74,7 +74,7 @@ Everything lives on primary fields — **one instance holds exactly one topic** 
 
 ## Styling conventions
 
-- Trailing link uses the shared [`ChevronLink`](../../components/ui/chevron-link.tsx) component with `chevron={false}` — same `font-semibold text-primary` color/weight as `Accordion`'s links, but _without_ the trailing `›` or row spacing (a plain inline link, not a stacked row).
+- Trailing link uses the shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) component with `chevron={false}` — same `font-semibold text-primary` color/weight as `Accordion`'s links, but _without_ the trailing `›` or row spacing (a plain inline link, not a stacked row).
 - `box_body` paragraphs render at `text-[0.9rem]` — visibly smaller than the main `body` text above it (matches the reference design's two font sizes).
 - `files` buttons reuse `FileDownloadList`'s exact button treatment (`border-primary! text-primary! hover:bg-accent!` outline `Button`, disabled state for an empty `file` link) — see [`FileDownloadList`'s styling conventions](../FileDownloadList/README.md#styling-conventions) for the shared look, even though the markup isn't literally shared code between the two slices.
 - Same `AccordionItem` border override pattern (`border-t! border-b-0! last:border-b!`) as `Accordion` for a single divider between items.

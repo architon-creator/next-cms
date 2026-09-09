@@ -61,7 +61,7 @@ A client-side Q&A card: one "active" question + its rich-text answer, plus a "Re
 ## Rendering & behavior
 
 - `"use client"` component — the only client component in the slice library. Holds `activeIndex` in local `useState`, defaulting to `0` (the first item).
-- Card 1 (`Card`/`CardHeader`/`CardTitle`/`CardContent` from `@/components/ui/card`): `items[activeIndex]`'s `question` as the title, `answer` rendered via `PrismicRichText`.
+- Card 1 (`Card`/`CardHeader`/`CardTitle`/`CardContent` from `ui`): `items[activeIndex]`'s `question` as the title, `answer` rendered via `PrismicRichText`.
 - Card 2: rendered only when there's more than one item (`items.length > 1`). Lists every item **except** the active one as a `<button type="button">` (not a link — clicking never navigates or changes the URL), each calling `setActiveIndex(index)`.
 - Because all answers ship in the initial page payload (there's no per-question fetch), keep the number of items and answer length reasonable for one page load — this isn't built for dozens of long-form answers in one group.
 

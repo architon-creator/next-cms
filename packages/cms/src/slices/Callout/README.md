@@ -45,7 +45,7 @@ No item fields.
 
 ## Rendering & behavior
 
-- Built on shadcn's `Card`/`CardHeader`/`CardTitle`/`CardContent` (`@/components/ui/card`).
+- Built on shadcn's `Card`/`CardHeader`/`CardTitle`/`CardContent` (`ui`).
 - `heading` only renders (with its `CardHeader`) if `isFilled.richText(slice.primary.heading)` — an empty heading doesn't leave a blank header bar.
 
 ## Styling conventions

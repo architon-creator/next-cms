@@ -1,7 +1,7 @@
 import { Content, isFilled } from "@prismicio/client";
 import { PrismicRichText, SliceComponentProps } from "@prismicio/react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "ui";
 import { cn } from "../../lib/utils";
 
 export type CalloutProps = SliceComponentProps<Content.CalloutSlice>;

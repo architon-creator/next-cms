@@ -117,6 +117,40 @@ importers:
       '@prismicio/react':
         specifier: ^2.9.0
         version: 2.9.2(@prismicio/client@7.22.0)(react@18.3.1)
+      cn:
+        specifier: ^0.2.6
+        version: 0.2.6
+      lucide-react:
+        specifier: ^1.42.0
+        version: 1.42.0(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      ui:
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.5
+        version: 18.3.31
+      next:
+        specifier: ^15.5.25
+        version: 15.5.25(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      prismic:
+        specifier: ^1.16.0
+        version: 1.16.0
+      prismic-ts-codegen:
+        specifier: ^0.1.20
+        version: 0.1.30(@prismicio/client@7.22.0)(@prismicio/types@0.2.9)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      '@prismicio/next':
+        specifier: ^1.7.1
+        version: 1.7.2(@prismicio/client@7.22.0)(next@15.5.25(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -136,15 +170,6 @@ importers:
       '@types/react':
         specifier: ^18.3.5
         version: 18.3.31
-      next:
-        specifier: ^15.5.25
-        version: 15.5.25(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      prismic:
-        specifier: ^1.16.0
-        version: 1.16.0
-      prismic-ts-codegen:
-        specifier: ^0.1.20
-        version: 0.1.30(@prismicio/client@7.22.0)(@prismicio/types@0.2.9)
       typescript:
         specifier: ^5.5.4
         version: 5.9.3

@@ -60,7 +60,7 @@ No primary fields.
 
 ## Rendering & behavior
 
-- Built on shadcn's `Card`/`CardHeader`/`CardTitle`/`CardContent` (`@/components/ui/card`) — one `Card` per item.
+- Built on shadcn's `Card`/`CardHeader`/`CardTitle`/`CardContent` (`ui`) — one `Card` per item.
 - `CardHeader`/`CardTitle` only render if `item.title` is set.
 
 ## Styling conventions

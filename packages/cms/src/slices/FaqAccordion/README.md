@@ -23,7 +23,6 @@ The FAQ topic switcher. `links` (repeatable): `category_title` (Text, repeated o
 ## Known limitations
 
 - Same as the source: first-category-always-expanded default doesn't track `activeTopic`.
-- This copy imports `Accordion` from `../../components/ui/accordion` (this repo's local copy) instead of `@repo/ui/components/accordion` (a separate shared package in the real project) — the only deliberate deviation from the original.
 
 ## Related slices
 

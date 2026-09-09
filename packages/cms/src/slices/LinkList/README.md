@@ -49,7 +49,7 @@ An optional heading followed by a vertical, unlimited-length list of chevron lin
 
 ## Styling conventions
 
-- Uses the shared [`ChevronLink`](../../components/ui/chevron-link.tsx) component (same one `Accordion`'s trailing links use, with its default `chevron={true}`): `font-semibold text-primary`, `after:content-['\203A']`, `mb-2 last:mb-0`.
+- Uses the shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) component (same one `Accordion`'s trailing links use, with its default `chevron={true}`): `font-semibold text-primary`, `after:content-['\203A']`, `mb-2 last:mb-0`.
 - Optional heading uses the same `headingComponents` pattern as `FaqQuestionList` (`mb-3 text-xl font-semibold`).
 
 ## Known limitations

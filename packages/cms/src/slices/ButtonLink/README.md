@@ -38,7 +38,7 @@ No item fields.
 
 ## Rendering & behavior
 
-- Built on shadcn's `Button` (`@/components/ui/button`) via `asChild`, wrapping `PrismicNextLink` — so the actual DOM node is an `<a>`, not a `<button>`, while getting Button's styling/variant system.
+- Built on shadcn's `Button` (`ui`) via `asChild`, wrapping `PrismicNextLink` — so the actual DOM node is an `<a>`, not a `<button>`, while getting Button's styling/variant system.
 - `variant` is chosen from `style`: `"default"` (solid) when `style === "Solid"`, otherwise `"outline"`.
 - `icon_left`/`icon_right` are looked up in a local `icons` map (`ArrowLeft`, `ArrowRight`, `ChevronLeft`, `ChevronRight`, `Download`, `ExternalLink`, `Check` from `lucide-react`) and rendered as siblings of the label text inside the link. Each icon carries `data-icon="inline-start"`/`"inline-end"` — shadcn's Button CSS reads that attribute to tighten the padding on that side (`has-data-[icon=inline-start]:pl-2` etc.), so icons don't need manual margin.
 - To add a new icon option: add it to both `icon_left`/`icon_right`'s `options` array in `model.json` and the `icons` map in `index.tsx` (import it from `lucide-react`, which is already a project dependency).

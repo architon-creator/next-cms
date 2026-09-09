@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { PrismicNextLink } from "@prismicio/next";
 
-import { cn } from "../../lib/utils";
+import { cn } from "cn";
 
 type ChevronLinkProps = {
   field: ComponentProps<typeof PrismicNextLink>["field"];

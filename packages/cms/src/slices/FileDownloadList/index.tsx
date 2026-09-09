@@ -2,7 +2,7 @@ import { Content, isFilled } from "@prismicio/client";
 import { PrismicNextLink } from "@prismicio/next";
 import { SliceComponentProps } from "@prismicio/react";
 
-import { Button } from "../../components/ui/button";
+import { Button } from "ui";
 
 export type FileDownloadListProps = SliceComponentProps<Content.FileDownloadListSlice>;
 
