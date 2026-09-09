@@ -55,6 +55,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # `vercel build` shells out to `pnpm install` once it detects
+      # pnpm-lock.yaml — pnpm isn't preinstalled on the runner the way
+      # Node/npm are, so without this it fails with "spawn pnpm ENOENT".
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install Vercel CLI
         run: npm install --global vercel@42
 

@@ -57,7 +57,7 @@ jobs:
     outputs:
       version_tag: ${{ steps.compute.outputs.version_tag }}
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout code
