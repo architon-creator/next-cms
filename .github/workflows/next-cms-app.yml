@@ -15,3 +15,24 @@ jobs:
       NEXUZ_SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
       ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
       PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
+
+  # Only runs after ci succeeds, and only on a direct push to master —
+  # PRs get no deploy job (Vercel's git integration still owns preview
+  # deployments for PRs today; only production deploys are being taken
+  # over here). Requires VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID
+  # secrets, which don't exist in this repo yet — see
+  # reusable-app-deploy.yml's header comment for where to get them, and
+  # turn off Vercel's own git-integration auto-deploy for this branch
+  # before enabling this, or every push will deploy twice.
+  deploy:
+    needs: ci
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      app_name: next-cms
+      app_path: .
+      environment: production
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

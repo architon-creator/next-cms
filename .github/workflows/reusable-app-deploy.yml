@@ -1,0 +1,86 @@
+name: Reusable App Deploy
+
+# Explicitly triggers a Vercel deployment via the Vercel CLI and waits for
+# it to finish, instead of relying on Vercel's own git-integration
+# auto-deploy. `vercel deploy` blocks until the deployment is built and
+# ready, so no separate "wait" step is needed.
+#
+# Requires VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID as secrets on
+# the calling workflow (none of these exist yet in this repo — see the
+# entry workflow for where to add them). Until Vercel's own git-integration
+# auto-deploy is turned off for this project, running this workflow will
+# produce a second, duplicate deployment for the same push.
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      app_path:
+        required: true
+        type: string
+      environment:
+        required: false
+        type: string
+        default: production
+        description: "'production' or 'preview'"
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      VERCEL_ORG_ID:
+        required: true
+      VERCEL_PROJECT_ID:
+        required: true
+    outputs:
+      deployment_url:
+        description: URL of the deployment produced by this run.
+        value: ${{ jobs.deploy.outputs.deployment_url }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    permissions:
+      contents: read
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.app_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@42
+
+      - name: Pull Vercel environment info
+        run: |
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          else
+            vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          fi
+
+      - name: Build project artifacts
+        run: |
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            vercel build --prod --token="$VERCEL_TOKEN"
+          else
+            vercel build --token="$VERCEL_TOKEN"
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          else
+            URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          fi
+          echo "deployment_url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed ${{ inputs.app_name }} (${{ inputs.environment }}): $URL" >> "$GITHUB_STEP_SUMMARY"
