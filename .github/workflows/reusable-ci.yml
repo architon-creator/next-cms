@@ -3,12 +3,6 @@ name: Reusable CI
 on:
   workflow_call:
     secrets:
-      # Optional: falls back to `pnpm audit` if not provided.
-      NEXUZ_SNYK_TOKEN:
-        required: false
-      # Optional: the accessibility-linting step is skipped entirely if unset.
-      ACCESSIBILITY_API_KEY:
-        required: false
       # Optional: only needed if the Prismic repository queried at build time
       # (generateStaticParams) is private.
       PRISMIC_ACCESS_TOKEN:
@@ -49,9 +43,6 @@ jobs:
   ci:
     name: "Quality Gate (Install / Lint / Format / Type Check / Test / Security)"
     runs-on: ubuntu-latest
-    env:
-      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
-      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
     # Only contents:read is granted — this repo's Actions token policy
     # rejects the whole workflow at startup (startup_failure, before any
     # job/step runs) if a job requests packages/pull-requests/id-token scopes,
@@ -110,29 +101,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Snyk Open Source Scan
-        if: env.SNYK_TOKEN_AVAILABLE == 'true'
-        uses: snyk/actions/node@v1.0.0
-        env:
-          SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
-        with:
-          command: test
-          args: --all-projects --severity-threshold=high
-
-      - name: Run pnpm Audit (Fallback)
-        if: env.SNYK_TOKEN_AVAILABLE != 'true'
+      - name: Run pnpm Audit
         run: pnpm audit --audit-level=high
-
-      # Gated on a key actually being configured (unlike the reference this
-      # is based on) — this repo doesn't have an Axe Monitor key yet, and the
-      # action has no fallback of its own, so running it unconditionally
-      # would just fail every run.
-      - name: Run Axe Linter
-        if: env.ACCESSIBILITY_KEY_AVAILABLE == 'true'
-        uses: dequelabs/axe-linter-action@v2.0.0
-        with:
-          api_key: ${{ secrets.ACCESSIBILITY_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Format check
         run: pnpm run format:check
