@@ -43,12 +43,10 @@ on:
 
 jobs:
   ci:
-    name: "Quality Gate (chunk 1c: permissions only, no env)"
+    name: "Quality Gate (chunk 1d: contents:read only)"
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
-      pull-requests: read
     steps:
       - name: Echo
         run: echo "app=${{ inputs.app_name }} path=${{ inputs.app_path }}"
