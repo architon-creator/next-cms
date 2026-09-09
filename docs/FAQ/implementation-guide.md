@@ -1,8 +1,40 @@
 # FAQ Pages — Implementation Guide (Level 1 / 2 / 3)
 
-> ⚠️ **Superseded by the real project's own FAQ implementation.** This guide documents this sandbox repo's earlier, simpler prototype (per-category slice instances, a `current: Boolean` flag to mark the active one, client-side-only swapping with no URL sync). The real project already has a more advanced, working design: topic-keyed `Select` fields correlating `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a shared `FaqTopicProvider` Context with fully-derived "current" state (no boolean flags to keep in sync), and `router.replace(...?topic=X, {scroll:false})` keeping every click shareable via URL. Do not use this guide (or hand it to Copilot) for the real project — it would be a downgrade from what's already built there. Kept here only as a record of the earlier prototype.
+> ⚠️ **The step-by-step guide below (sections 0–12) describes this sandbox repo's own, simpler prototype** (per-category slice instances, a `current: Boolean` flag to mark the active one, client-side-only swapping with no URL sync). The real project's slice *components* are more advanced — topic-keyed `Select` fields correlating `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a shared `FaqTopicProvider` Context with fully-derived "current" state, and `router.replace(...?topic=X, {scroll:false})` keeping every click shareable via URL — **but as of this writing, the real project has not yet wired those components into actual level 1/2/3 pages.** See [Real-project plan](#real-project-plan-level-123-with-the-topic-key-slices) below for that design. Don't use sections 0–12 (the old step-by-step guide) as a template for the real project — it would be a downgrade from the components already built there.
 
-A step-by-step build guide for the 3-level FAQ system (hub → category → question), extracted from a working reference implementation. Follow the steps in order — later steps assume earlier ones are done. Hand this whole file to a developer or an AI coding assistant (e.g. GitHub Copilot) alongside one existing slice folder as a template; the combination of prose + concrete code is what makes it reproducible without drift.
+## Real-project plan: Level 1/2/3 with the topic-key slices
+
+**Status: proposed, not yet built.** This is a design based on reading `FaqAccordion`, `QuestionList`, `QuestionAnswer`, and `FaqTopicProvider`'s actual code (ported into this repo as reference copies under `packages/cms/src/slices/`) — not a description of something that already exists. Two hard constraints came directly from the code, not from guesswork:
+
+1. **`FaqAccordion`'s `sidebar_nav` variation calls `useFaqTopic()` unconditionally** — it throws if rendered outside a `FaqTopicProvider`. So it can only ever appear on a page that's wrapped in that provider.
+2. **Its click handler never does a full navigation to a different document** — `handleSelect` calls `setActiveTopic(topic)` (client state) and `router.replace(`${pathname}?topic=${topic}`, { scroll: false })` (same-page shallow URL update). There is no code path where clicking a sidebar link sends you to a *different* page.
+
+Together, these mean: **levels 2 and 3 can't be separate documents** the way this sandbox's `FaqQuestionList`/`FaqAnswerSwap` model does it — the sidebar, the question list, and the answer all have to live on **one page**, switching in place. Level 1 (the hub) has to be a genuinely different, separate page, since nothing about the topic-switcher is designed to link *out* to another URL.
+
+### Level 1 — Hub (`/faq`, or similar)
+
+Purpose: a landing page listing every category and its topics, before any topic is picked — the entry point people land on cold, share, or find via search.
+
+- **Not wrapped in `FaqTopicProvider`** — this page never needs `activeTopic`, so don't pay for the client-component boundary here.
+- **Needs a new slice or variation that doesn't exist yet.** `FaqAccordion`'s `sidebar_nav` shape (`links`: `category_title`/`link_label`/`topic`) is exactly the right *data* for this page, but its *component* can't be reused as-is (it requires the provider). The concrete gap to fill: a plain variant that groups the same `category_title`/`link_label`/`topic` data and renders each as a real `<Link href="/faq?topic=${topic}">` — no context, no client component, just navigation. Candidates: a third `FaqAccordion` variation (e.g. `hub_links`), or a separate slice reusing the same field shape.
+- Clicking a topic here is a **full page navigation** to the Level 2/3 page below, landing with that topic pre-selected via the URL.
+
+### Level 2 + 3 — Combined category + question page (one document, e.g. `/faq`)
+
+Purpose: browse a category's topics and read answers, all without a page reload.
+
+- **The whole page is wrapped in `FaqTopicProvider`**, seeded via `initialTopic={searchParams.topic ?? defaultTopic}` (`defaultTopic` read off whichever `QuestionList`/`QuestionAnswer` slice carries a `default_topic` field — same pattern as the real project's existing `page.tsx`).
+- **Aside zone**: `FaqAccordion` (`sidebar_nav`) — the full topic switcher, grouped by category, highlighting `activeTopic`.
+- **Main zone**: `QuestionList` (that topic's question links) and/or `QuestionAnswer` (that topic's main answer + related-question links) — both filter their own content by `activeTopic` already, so no extra wiring needed beyond placing them on the page.
+- Switching topics — via the sidebar, or via a `QuestionList`/`QuestionAnswer` related-question link pointing at `?topic=Y` — updates Main in place. The URL stays in sync throughout, so this single URL is still bookmarkable/shareable at any topic.
+
+### Open decision before building
+
+If you want a specific *question* (not just topic) to have its own real URL (deep-linkable independent of the topic-switcher, indexable per-question) — the current model doesn't support that; `QuestionAnswer` only ever shows one answer per topic (the first `items` entry matching `activeTopic`), not one per question. That would need either a real "one question per topic" rule enforced by convention, or a further schema change. Worth deciding before authoring content at scale.
+
+---
+
+A step-by-step build guide for a **different**, simpler 3-level FAQ system (hub → category → question, one document per question) — this sandbox's own prototype, not the plan above. Follow the steps in order if you want to build *this* version instead; later steps assume earlier ones are done.
 
 ## 0. Prerequisites
 
