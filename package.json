@@ -2,6 +2,10 @@
   "name": "next-cms",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
