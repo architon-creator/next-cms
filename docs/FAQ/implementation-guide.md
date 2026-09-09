@@ -1,5 +1,7 @@
 # FAQ Pages — Implementation Guide (Level 1 / 2 / 3)
 
+> ⚠️ **Superseded by the real project's own FAQ implementation.** This guide documents this sandbox repo's earlier, simpler prototype (per-category slice instances, a `current: Boolean` flag to mark the active one, client-side-only swapping with no URL sync). The real project already has a more advanced, working design: topic-keyed `Select` fields correlating `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a shared `FaqTopicProvider` Context with fully-derived "current" state (no boolean flags to keep in sync), and `router.replace(...?topic=X, {scroll:false})` keeping every click shareable via URL. Do not use this guide (or hand it to Copilot) for the real project — it would be a downgrade from what's already built there. Kept here only as a record of the earlier prototype.
+
 A step-by-step build guide for the 3-level FAQ system (hub → category → question), extracted from a working reference implementation. Follow the steps in order — later steps assume earlier ones are done. Hand this whole file to a developer or an AI coding assistant (e.g. GitHub Copilot) alongside one existing slice folder as a template; the combination of prose + concrete code is what makes it reproducible without drift.
 
 ## 0. Prerequisites

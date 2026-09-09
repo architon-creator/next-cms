@@ -1,8 +1,10 @@
 # FAQ System
 
+> ⚠️ **This document describes this sandbox repo's own FAQ prototype only.** The real production project has a separate, more advanced FAQ implementation (topic-keyed `Select` fields shared across `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a `FaqTopicProvider` React Context driving fully-derived "current" state, and `router.replace(...?topic=X)` keeping the URL in sync on every click — no manual boolean flags anywhere). That real design supersedes everything below; do not port this doc's model back into the real project, and do not treat this as current guidance for it. Kept here only as a record of an earlier, simpler prototype built while learning these patterns.
+
 The FAQ area is not a single page — it's three levels of `content_page` documents, all built from the same slice library, that link into each other. This doc maps **which component (slice + variation) is used in which zone, at each level**, based on the live content in `next-js-ssr`.
 
-See also: [`slices/README.md`](../../slices/README.md) for how zones/pages are assembled in general, and [`slices/FaqQuestionList/README.md`](../../slices/FaqQuestionList/README.md) / [`slices/FaqAnswerSwap/README.md`](../../slices/FaqAnswerSwap/README.md) for full field references. Reference screenshots for the three levels: `level-1.png`, `level-2.png`, `level-3.png` in this folder.
+See also: [`packages/cms/src/slices/README.md`](../../packages/cms/src/slices/README.md) for how zones/pages are assembled in general, and [`FaqQuestionList/README.md`](../../packages/cms/src/slices/FaqQuestionList/README.md) / [`FaqAnswerSwap/README.md`](../../packages/cms/src/slices/FaqAnswerSwap/README.md) for full field references. Reference screenshots for the three levels: `level-1.png`, `level-2.png`, `level-3.png` in this folder.
 
 ## The three levels
 
@@ -33,7 +35,7 @@ The 6 categories (same order everywhere): *About Reservations, Reservation confi
 
 ## Level 3 in detail: why `FaqAnswerSwap` instead of `RichTextSection` + `ButtonLink`
 
-`where-does-zipair-fly-to` originally used `RichTextSection` (the answer) + `ButtonLink` ("See Related Questions List" → back to the level-2 page) in Main. That meant answering a *different* question in the same category required leaving the page entirely. `FaqAnswerSwap` replaces both: Card 1 shows the active question's answer, Card 2 lists the category's other questions as buttons that swap Card 1 in place. See [`slices/FaqAnswerSwap/README.md`](../../slices/FaqAnswerSwap/README.md#known-limitations) for what this trades away (no deep-linking to a specific question within the group, no server-rendered initial selection).
+`where-does-zipair-fly-to` originally used `RichTextSection` (the answer) + `ButtonLink` ("See Related Questions List" → back to the level-2 page) in Main. That meant answering a *different* question in the same category required leaving the page entirely. `FaqAnswerSwap` replaces both: Card 1 shows the active question's answer, Card 2 lists the category's other questions as buttons that swap Card 1 in place. See [`FaqAnswerSwap/README.md`](../../packages/cms/src/slices/FaqAnswerSwap/README.md#known-limitations) for what this trades away (no deep-linking to a specific question within the group, no server-rendered initial selection).
 
 ## Known gaps
 
