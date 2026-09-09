@@ -3,10 +3,14 @@ name: Reusable CI
 on:
   workflow_call:
     secrets:
+      # Optional: falls back to `pnpm audit` if not provided.
       NEXUZ_SNYK_TOKEN:
         required: false
+      # Optional: the accessibility-linting step is skipped entirely if unset.
       ACCESSIBILITY_API_KEY:
         required: false
+      # Optional: only needed if the Prismic repository queried at build time
+      # (generateStaticParams) is private.
       PRISMIC_ACCESS_TOKEN:
         required: false
     inputs:
@@ -43,10 +47,155 @@ on:
 
 jobs:
   ci:
-    name: "Quality Gate (chunk 1d: contents:read only)"
+    name: "Quality Gate (Install / Lint / Format / Type Check / Test / Security)"
     runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
+      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
+    # Only contents:read is granted — this repo's Actions token policy
+    # rejects the whole workflow at startup (startup_failure, before any
+    # job/step runs) if a job requests packages/pull-requests/id-token scopes,
+    # even at read level, confirmed by bisecting a minimal reproduction. None
+    # of those scopes are actually used by anything below.
     permissions:
       contents: read
+
     steps:
-      - name: Echo
-        run: echo "app=${{ inputs.app_name }} path=${{ inputs.app_path }}"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      # AWS OIDC / CodeArtifact: no-ops today — this repo has no AWS account
+      # wired up yet. Kept ready so a future app onboarded here that needs
+      # private packages only has to populate the aws_* inputs, not rewrite
+      # this workflow.
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws_oidc_role_arn != '' && inputs.aws_region != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Configure npm for AWS CodeArtifact
+        if: ${{ inputs.aws_codeartifact_domain != '' && inputs.aws_codeartifact_repository != '' && inputs.aws_account_id != '' && inputs.aws_region != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REGISTRY_HOST="${{ inputs.aws_codeartifact_domain }}-${{ inputs.aws_account_id }}.d.codeartifact.${{ inputs.aws_region }}.amazonaws.com"
+          REGISTRY_PATH="npm/${{ inputs.aws_codeartifact_repository }}/"
+
+          CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain "${{ inputs.aws_codeartifact_domain }}" \
+            --domain-owner "${{ inputs.aws_account_id }}" \
+            --region "${{ inputs.aws_region }}" \
+            --query authorizationToken \
+            --output text)
+
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:_authToken=${CODEARTIFACT_AUTH_TOKEN}" >> ~/.npmrc
+          echo "@nexuz:registry=https://${REGISTRY_HOST}/${REGISTRY_PATH}" >> ~/.npmrc
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:always-auth=true" >> ~/.npmrc
+
+      # --frozen-lockfile (not --no-frozen-lockfile): fails fast if
+      # pnpm-lock.yaml is out of sync with package.json, rather than silently
+      # resolving new versions in CI.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Snyk Open Source Scan
+        if: env.SNYK_TOKEN_AVAILABLE == 'true'
+        uses: snyk/actions/node@v1.0.0
+        env:
+          SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+
+      - name: Run pnpm Audit (Fallback)
+        if: env.SNYK_TOKEN_AVAILABLE != 'true'
+        run: pnpm audit --audit-level=high
+
+      # Gated on a key actually being configured (unlike the reference this
+      # is based on) — this repo doesn't have an Axe Monitor key yet, and the
+      # action has no fallback of its own, so running it unconditionally
+      # would just fail every run.
+      - name: Run Axe Linter
+        if: env.ACCESSIBILITY_KEY_AVAILABLE == 'true'
+        uses: dequelabs/axe-linter-action@v2.0.0
+        with:
+          api_key: ${{ secrets.ACCESSIBILITY_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format check
+        run: pnpm run format:check
+
+      # This repo has no Turborepo, so app_path is used directly as a
+      # working-directory rather than a `--filter` graph selector. Every app
+      # onboarded here is expected to expose the same script names
+      # (lint/typecheck/test:coverage/build) at its own package.json root.
+      - name: Lint
+        working-directory: ${{ inputs.app_path }}
+        run: pnpm run lint
+
+      - name: Type check
+        working-directory: ${{ inputs.app_path }}
+        run: pnpm run typecheck
+
+      # packages/cms is a shared dependency of every app in this workspace,
+      # not something app_path selects on its own — always checked here
+      # regardless of which app triggered the run.
+      - name: Type check shared cms package
+        run: pnpm --filter cms run typecheck
+
+      - name: Run tests with coverage
+        if: ${{ inputs.run_tests }}
+        working-directory: ${{ inputs.app_path }}
+        run: pnpm run test:coverage
+
+      - name: Publish coverage summary
+        if: ${{ inputs.run_tests }}
+        working-directory: ${{ inputs.app_path }}
+        shell: bash
+        run: |
+          COVERAGE_THRESHOLD=80
+          COVERAGE_FILE="coverage/coverage-summary.json"
+
+          if [ -f "$COVERAGE_FILE" ]; then
+            LINES=$(jq '.total.lines.pct' "$COVERAGE_FILE")
+            FUNCTIONS=$(jq '.total.functions.pct' "$COVERAGE_FILE")
+            BRANCHES=$(jq '.total.branches.pct' "$COVERAGE_FILE")
+            STATEMENTS=$(jq '.total.statements.pct' "$COVERAGE_FILE")
+
+            {
+              echo "# Vitest Coverage Report — ${{ inputs.app_name }}"
+              echo ""
+              echo "## Summary"
+              echo ""
+              echo "- Lines: **${LINES}%**"
+              echo "- Functions: **${FUNCTIONS}%**"
+              echo "- Branches: **${BRANCHES}%**"
+              echo "- Statements: **${STATEMENTS}%**"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$(printf '%.0f' "$LINES")" -lt "$COVERAGE_THRESHOLD" ]; then
+              echo "Coverage threshold of ${COVERAGE_THRESHOLD}% was not met." >&2
+              exit 1
+            fi
+          else
+            echo "No coverage-summary.json found — skipping threshold check." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build
+        working-directory: ${{ inputs.app_path }}
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_PRISMIC_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_PRISMIC_ENVIRONMENT }}
+          PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
