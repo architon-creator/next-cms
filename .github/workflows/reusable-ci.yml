@@ -43,11 +43,8 @@ on:
 
 jobs:
   ci:
-    name: "Quality Gate (chunk 1b: env + permissions only)"
+    name: "Quality Gate (chunk 1c: permissions only, no env)"
     runs-on: ubuntu-latest
-    env:
-      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
-      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
     permissions:
       contents: read
       packages: read
