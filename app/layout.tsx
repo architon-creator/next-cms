@@ -1,6 +1,6 @@
 import { PrismicPreview } from "@prismicio/next";
 
-import { repositoryName } from "@/prismicio";
+import { repositoryName } from "cms";
 
 import "./globals.css";
 

@@ -1,9 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { SliceZone } from "@prismicio/react";
+import { createClient, PageContext, SliceRenderer } from "cms";
 
-import { createClient } from "@/prismicio";
-import { components, PageContext } from "@/slices";
 import { cn } from "@/lib/utils";
 
 type PageProps = { params: { uid: string } };
@@ -14,6 +12,8 @@ export default async function Page({ params }: PageProps) {
     .getByUID("content_page", params.uid)
     .catch(() => notFound());
 
+  // Not yet passed to SliceRenderer — it doesn't accept a context prop yet.
+  // Needed once Breadcrumbs (or anything else reading page-level context) is migrated.
   const context: PageContext = {
     breadcrumbs: [
       {
@@ -30,6 +30,7 @@ export default async function Page({ params }: PageProps) {
       },
     ],
   };
+  void context;
 
   const hasAside = page.data.aside.length > 0;
   const hasFooter = page.data.footer.length > 0;
@@ -42,38 +43,30 @@ export default async function Page({ params }: PageProps) {
       )}
     >
       <div className="md:col-span-2">
-        <SliceZone
-          slices={page.data.heading}
-          components={components}
-          context={context}
-        />
+        {page.data.heading.map((slice, index) => (
+          <SliceRenderer key={`heading-${index}`} slice={slice} />
+        ))}
       </div>
 
       <main className={cn("min-w-0", !hasAside && "md:col-span-2")}>
-        <SliceZone
-          slices={page.data.main}
-          components={components}
-          context={context}
-        />
+        {page.data.main.map((slice, index) => (
+          <SliceRenderer key={`main-${index}`} slice={slice} />
+        ))}
       </main>
 
       {hasAside ? (
         <aside className="min-w-0">
-          <SliceZone
-            slices={page.data.aside}
-            components={components}
-            context={context}
-          />
+          {page.data.aside.map((slice, index) => (
+            <SliceRenderer key={`aside-${index}`} slice={slice} />
+          ))}
         </aside>
       ) : null}
 
       {hasFooter ? (
         <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
-          <SliceZone
-            slices={page.data.footer}
-            components={components}
-            context={context}
-          />
+          {page.data.footer.map((slice, index) => (
+            <SliceRenderer key={`footer-${index}`} slice={slice} />
+          ))}
         </footer>
       ) : null}
     </div>
