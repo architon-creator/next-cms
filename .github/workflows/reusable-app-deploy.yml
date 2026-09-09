@@ -80,19 +80,28 @@ jobs:
             vercel build --token="$VERCEL_TOKEN"
           fi
 
-      # Uploads the whole .vercel/ directory, not just .vercel/output —
+      # The .vercel directory MUST travel between jobs as a tarball, not as
+      # loose files. Under pnpm, .vercel/output/functions/*.func/node_modules
+      # is a tree of symlinks (into node_modules/.pnpm/...), and
+      # upload-artifact follows symlinks rather than storing them — any link
+      # whose target resolves outside the upload root is silently dropped.
+      # The deploy job then downloads an output tree with dangling paths and
+      # `vercel deploy --prebuilt` rejects it with:
+      #   Please ensure project dependencies have been installed:
+      #   File does not exist: "node_modules/.pnpm/@next+env@.../dist/index.js"
+      # tar stores symlinks as symlinks, so the round-trip is lossless.
+      #
+      # Tars the whole .vercel/ directory, not just .vercel/output —
       # `vercel deploy --prebuilt` also needs .vercel/project.json (written
       # by `vercel pull` above) to know which project/org it's deploying to.
-      # include-hidden-files is required: upload-artifact excludes
-      # dotfiles/dot-directories by default, so without this .vercel (a
-      # dot-directory) silently uploads zero files even when vercel build
-      # succeeds — confirmed via a real run ("No files were found").
+      - name: Package build output
+        run: tar -czf vercel-build.tar.gz .vercel
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.app_name }}-vercel-build
-          path: ${{ inputs.app_path }}/.vercel
-          include-hidden-files: true
+          path: ${{ inputs.app_path }}/vercel-build.tar.gz
           retention-days: 1
 
   deploy:
@@ -108,11 +117,23 @@ jobs:
       run:
         working-directory: ${{ inputs.app_path }}
     steps:
+      # No checkout: everything `vercel deploy --prebuilt` needs is inside
+      # the tarball. app_path may not exist yet, so create it first.
+      - name: Prepare workspace
+        working-directory: .
+        run: mkdir -p "${{ inputs.app_path }}"
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.app_name }}-vercel-build
-          path: ${{ inputs.app_path }}/.vercel
+          path: ${{ inputs.app_path }}
+
+      - name: Unpack build output
+        run: |
+          tar -xzf vercel-build.tar.gz
+          test -f .vercel/project.json
+          test -d .vercel/output
 
       - name: Install Vercel CLI
         run: npm install --global vercel@42
