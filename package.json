@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "types": "pnpm --filter cms run types"
+    "types": "pnpm --filter cms run types",
+    "prismic": "pnpm --filter cms exec prismic"
   },
   "dependencies": {
     "@prismicio/client": "^7.12.0",
@@ -35,7 +36,6 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.5.5",
     "postcss": "^8.5.28",
-    "prismic": "^1.16.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.5.4"
   }
