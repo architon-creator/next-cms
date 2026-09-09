@@ -16,6 +16,8 @@ The page layout itself (`app/[uid]/page.tsx`) is a responsive grid: Main + Aside
 
 ## Slice index
 
+Entries marked ⚠️ are ported reference copies from the real production project's FAQ system (`FaqAccordion`, `QuestionList`, `QuestionAnswer` + `lib/faq-topic-context.tsx`) — kept here for learning/comparison, **not used on any live page in this repo**. That system is more advanced than this repo's own `FaqQuestionList`/`FaqAnswerSwap` (topic-keyed `Select` fields shared via a `FaqTopicProvider` Context, fully-derived "current" state, URL-synced topic switching) — see [`docs/FAQ/faq-system.md`](../../../../docs/FAQ/faq-system.md) for the full comparison. Don't extend or "fix" the ⚠️ slices here; any real changes belong in the production project.
+
 | Slice | One-line purpose | Variations |
 |---|---|---|
 | [`Accordion`](Accordion/README.md) | Numbered, individually collapsible step-by-step sections | `default` |
@@ -24,12 +26,15 @@ The page layout itself (`app/[uid]/page.tsx`) is a responsive grid: Main + Aside
 | [`Callout`](Callout/README.md) | A bordered, colored box for a note/warning/highlight | `default` |
 | [`DisclosureList`](DisclosureList/README.md) | One collapsible topic with an optional box, download buttons, and a link | `default` |
 | [`FaqAnswerSwap`](FaqAnswerSwap/README.md) | Client-side Q&A card with a related-question switcher (no navigation) | `default` |
+| [`FaqAccordion`](FaqAccordion/README.md) | ⚠️ Ported reference copy — FAQ sidebar topic-switcher + generic Q&A accordion | `default`, `sidebar_nav` |
 | [`FaqQuestionList`](FaqQuestionList/README.md) | FAQ category/question lists — 5 different layouts | `default`, `grid`, `accordion`, `footer_grid`, `withicon` |
 | [`FileDownloadList`](FileDownloadList/README.md) | Outline download buttons with a file-size caption | `default` |
 | [`ImageBlock`](ImageBlock/README.md) | A single image with an optional caption | `default` |
 | [`InfoCardList`](InfoCardList/README.md) | Stacked bordered info cards (title + body) | `default` |
 | [`LinkList`](LinkList/README.md) | An optional heading + a stacked list of chevron links | `default` |
 | [`PageTitle`](PageTitle/README.md) | The page's H1 + optional subtitle | `default` |
+| [`QuestionAnswer`](QuestionAnswer/README.md) | ⚠️ Ported reference copy — topic-filtered answer card + related links | `default` |
+| [`QuestionList`](QuestionList/README.md) | ⚠️ Ported reference copy — topic-filtered question list | `default` |
 | [`RichTextSection`](RichTextSection/README.md) | Heading + body rich text, with per-block/per-line size & color | `default` |
 
 ## Conventions used across every slice
@@ -42,4 +47,4 @@ The page layout itself (`app/[uid]/page.tsx`) is a responsive grid: Main + Aside
 - **Rich-text `label` spans**: any `PrismicRichText` field whose model config has a `labels` list (muted/small/large/accent/highlight/underline) should pass the shared [`richTextLabelComponents`](../lib/rich-text-components.tsx) as its `components` prop — otherwise an editor applying one of those labels in the toolbar renders as an unstyled `<span>` with no visible effect. `RichTextSection` and `Accordion` (`body`/`necessities`) use it today.
 - **Placeholder links**: when authoring content for a slice's `Link` field before the real destination page/asset exists, this project's convention is `#`, not a guessed URL.
 - **Flat-slice limitation**: Prismic shared slices cannot nest a repeatable `Group` field inside another repeatable `items` zone (confirmed by a rejected push — see `FaqQuestionList`'s `footer_grid` variation history). Where a design needs "N categories, each with M links," the fix used here is **one slice instance per category**, all sharing the same zone — never a nested structure. A Group directly on a variation's `primary` is fine, though — `DisclosureList`'s `files` field uses exactly that, which is why that slice has no `items` at all (each instance is already one topic, so there's nothing to repeat at the top level).
-- **Server by default, client only when interactivity requires it**: every slice is a plain server component except [`FaqAnswerSwap`](FaqAnswerSwap/README.md), which needs local `useState` to swap its active item without a page navigation — it's the one slice marked `"use client"`. Default to a server component; reach for a client component only when the design needs in-place state that a link/navigation genuinely can't express.
+- **Server by default, client only when interactivity requires it**: most slices are plain server components. [`FaqAnswerSwap`](FaqAnswerSwap/README.md) needs local `useState`; the ⚠️ ported [`FaqAccordion`](FaqAccordion/README.md)/[`QuestionList`](QuestionList/README.md)/[`QuestionAnswer`](QuestionAnswer/README.md) trio needs `useContext` (via `useFaqTopic()`) to read/write shared topic state. Default to a server component; reach for a client component only when the design needs in-place state that a link/navigation genuinely can't express.

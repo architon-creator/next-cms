@@ -606,6 +606,138 @@ type DisclosureListSliceVariation = DisclosureListSliceDefault
 export type DisclosureListSlice = prismic.SharedSlice<"disclosure_list", DisclosureListSliceVariation>;
 
 /**
+ * Item in *FaqAccordion → Default → Primary → QA*
+ */
+export interface FaqAccordionSliceDefaultPrimaryQaItem {
+	/**
+	 * question field in *FaqAccordion → Default → Primary → QA*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.default.primary.qa[].question
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	question: prismic.KeyTextField;
+	
+	/**
+	 * answer field in *FaqAccordion → Default → Primary → QA*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.default.primary.qa[].answer
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	answer: prismic.RichTextField;
+}
+
+/**
+ * Item in *FaqAccordion → Sidebar Navigation → Primary → links*
+ */
+export interface FaqAccordionSliceSidebarNavPrimaryLinksItem {
+	/**
+	 * Category (e.g. Flight Booking) field in *FaqAccordion → Sidebar Navigation → Primary → links*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.sidebar_nav.primary.links[].category_title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	category_title: prismic.KeyTextField;
+	
+	/**
+	 * Sub-link label (e.g. Routes & Timetable) field in *FaqAccordion → Sidebar Navigation → Primary → links*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.sidebar_nav.primary.links[].link_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link_label: prismic.KeyTextField;
+	
+	/**
+	 * Topic Key field in *FaqAccordion → Sidebar Navigation → Primary → links*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.sidebar_nav.primary.links[].topic
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	topic: prismic.SelectField<"routes-timetable" | "reservation" | "payment" | "fare" | "zipair-point" | "connecting-flights" | "receipt-itinerary" | "purchase-error" | "voucher" | "travel-documents" | "other-errors">;
+}
+
+/**
+ * Primary content in *FaqAccordion → Default → Primary*
+ */
+export interface FaqAccordionSliceDefaultPrimary {
+	/**
+	 * title field in *FaqAccordion → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.default.primary.title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * QA field in *FaqAccordion → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.default.primary.qa[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	qa: prismic.GroupField<Simplify<FaqAccordionSliceDefaultPrimaryQaItem>>;
+}
+
+/**
+ * Default variation for FaqAccordion Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FaqAccordionSliceDefault = prismic.SharedSliceVariation<"default", Simplify<FaqAccordionSliceDefaultPrimary>, never>;
+
+/**
+ * Primary content in *FaqAccordion → Sidebar Navigation → Primary*
+ */
+export interface FaqAccordionSliceSidebarNavPrimary {
+	/**
+	 * links field in *FaqAccordion → Sidebar Navigation → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: faq_accordion.sidebar_nav.primary.links[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	links: prismic.GroupField<Simplify<FaqAccordionSliceSidebarNavPrimaryLinksItem>>;
+}
+
+/**
+ * Sidebar Navigation variation for FaqAccordion Slice
+ *
+ * - **API ID**: `sidebar_nav`
+ * - **Description**: Sidebar Navigation
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FaqAccordionSliceSidebarNav = prismic.SharedSliceVariation<"sidebar_nav", Simplify<FaqAccordionSliceSidebarNavPrimary>, never>;
+
+/**
+ * Slice variation for *FaqAccordion*
+ */
+type FaqAccordionSliceVariation = FaqAccordionSliceDefault | FaqAccordionSliceSidebarNav
+
+/**
+ * FaqAccordion Shared Slice
+ *
+ * - **API ID**: `faq_accordion`
+ * - **Description**: FaqAccordion
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FaqAccordionSlice = prismic.SharedSlice<"faq_accordion", FaqAccordionSliceVariation>;
+
+/**
  * Primary content in *FaqAnswerSwap → Default → Primary*
  */
 export interface FaqAnswerSwapSliceDefaultPrimary {
@@ -1263,6 +1395,202 @@ type PageTitleSliceVariation = PageTitleSliceDefault
 export type PageTitleSlice = prismic.SharedSlice<"page_title", PageTitleSliceVariation>;
 
 /**
+ * Item in *QuestionAnswerSlice → Default → Primary → items*
+ */
+export interface QuestionAnswerSliceSliceDefaultPrimaryItemsItem {
+	/**
+	 * Topic Key (must match FaqAccordion's topic field) field in *QuestionAnswerSlice → Default → Primary → items*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[].topic
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	topic: prismic.SelectField<"routes-timetable" | "reservation" | "payment" | "fare" | "zipair-point" | "connecting-flights" | "receipt-itinerary" | "purchase-error" | "voucher" | "travel-documents" | "other-errors">;
+	
+	/**
+	 * question field in *QuestionAnswerSlice → Default → Primary → items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[].question
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	question: prismic.KeyTextField;
+	
+	/**
+	 * answer field in *QuestionAnswerSlice → Default → Primary → items*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[].answer
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	answer: prismic.RichTextField;
+	
+	/**
+	 * related question label field in *QuestionAnswerSlice → Default → Primary → items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[].related_question_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	related_question_label: prismic.KeyTextField;
+	
+	/**
+	 * related question link field in *QuestionAnswerSlice → Default → Primary → items*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[].related_question_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	related_question_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Primary content in *QuestionAnswerSlice → Default → Primary*
+ */
+export interface QuestionAnswerSliceSliceDefaultPrimary {
+	/**
+	 * Topic shown on initial page load field in *QuestionAnswerSlice → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.default_topic
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	default_topic: prismic.SelectField<"routes-timetable" | "reservation" | "payment" | "fare" | "zipair-point" | "connecting-flights" | "receipt-itinerary" | "purchase-error" | "voucher" | "travel-documents" | "other-errors">;
+	
+	/**
+	 * items field in *QuestionAnswerSlice → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_answer_slice.default.primary.items[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	items: prismic.GroupField<Simplify<QuestionAnswerSliceSliceDefaultPrimaryItemsItem>>;
+}
+
+/**
+ * Default variation for QuestionAnswerSlice Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type QuestionAnswerSliceSliceDefault = prismic.SharedSliceVariation<"default", Simplify<QuestionAnswerSliceSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *QuestionAnswerSlice*
+ */
+type QuestionAnswerSliceSliceVariation = QuestionAnswerSliceSliceDefault
+
+/**
+ * QuestionAnswerSlice Shared Slice
+ *
+ * - **API ID**: `question_answer_slice`
+ * - **Description**: QuestionAnswerSlice
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type QuestionAnswerSliceSlice = prismic.SharedSlice<"question_answer_slice", QuestionAnswerSliceSliceVariation>;
+
+/**
+ * Item in *QuestionListSlice → Default → Primary → questions*
+ */
+export interface QuestionListSliceSliceDefaultPrimaryQuestionsItem {
+	/**
+	 * Topic Key (must match FaqAccordion's topic field) field in *QuestionListSlice → Default → Primary → questions*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.questions[].topic
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	topic: prismic.SelectField<"routes-timetable" | "reservation" | "payment" | "fare" | "zipair-point" | "connecting-flights" | "receipt-itinerary" | "purchase-error" | "voucher" | "travel-documents" | "other-errors">;
+	
+	/**
+	 * heading field in *QuestionListSlice → Default → Primary → questions*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.questions[].heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	heading: prismic.KeyTextField;
+	
+	/**
+	 * question field in *QuestionListSlice → Default → Primary → questions*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.questions[].question
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	question: prismic.KeyTextField;
+	
+	/**
+	 * question link field in *QuestionListSlice → Default → Primary → questions*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.questions[].question_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	question_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Primary content in *QuestionListSlice → Default → Primary*
+ */
+export interface QuestionListSliceSliceDefaultPrimary {
+	/**
+	 * Topic shown on initial page load field in *QuestionListSlice → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.default_topic
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	default_topic: prismic.SelectField<"routes-timetable" | "reservation" | "payment" | "fare" | "zipair-point" | "connecting-flights" | "receipt-itinerary" | "purchase-error" | "voucher" | "travel-documents" | "other-errors">;
+	
+	/**
+	 * questions field in *QuestionListSlice → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: question_list_slice.default.primary.questions[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	questions: prismic.GroupField<Simplify<QuestionListSliceSliceDefaultPrimaryQuestionsItem>>;
+}
+
+/**
+ * Default variation for QuestionListSlice Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type QuestionListSliceSliceDefault = prismic.SharedSliceVariation<"default", Simplify<QuestionListSliceSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *QuestionListSlice*
+ */
+type QuestionListSliceSliceVariation = QuestionListSliceSliceDefault
+
+/**
+ * QuestionListSlice Shared Slice
+ *
+ * - **API ID**: `question_list_slice`
+ * - **Description**: QuestionListSlice
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type QuestionListSliceSlice = prismic.SharedSlice<"question_list_slice", QuestionListSliceSliceVariation>;
+
+/**
  * Primary content in *RichTextSection → Default → Primary*
  */
 export interface RichTextSectionSliceDefaultPrimary {
@@ -1412,6 +1740,14 @@ declare module "@prismicio/client" {
 			DisclosureListSliceDefaultPrimary,
 			DisclosureListSliceVariation,
 			DisclosureListSliceDefault,
+			FaqAccordionSlice,
+			FaqAccordionSliceDefaultPrimaryQaItem,
+			FaqAccordionSliceDefaultPrimary,
+			FaqAccordionSliceSidebarNavPrimaryLinksItem,
+			FaqAccordionSliceSidebarNavPrimary,
+			FaqAccordionSliceVariation,
+			FaqAccordionSliceDefault,
+			FaqAccordionSliceSidebarNav,
 			FaqAnswerSwapSlice,
 			FaqAnswerSwapSliceDefaultPrimary,
 			FaqAnswerSwapSliceDefaultItem,
@@ -1455,6 +1791,16 @@ declare module "@prismicio/client" {
 			PageTitleSliceDefaultPrimary,
 			PageTitleSliceVariation,
 			PageTitleSliceDefault,
+			QuestionAnswerSliceSlice,
+			QuestionAnswerSliceSliceDefaultPrimaryItemsItem,
+			QuestionAnswerSliceSliceDefaultPrimary,
+			QuestionAnswerSliceSliceVariation,
+			QuestionAnswerSliceSliceDefault,
+			QuestionListSliceSlice,
+			QuestionListSliceSliceDefaultPrimaryQuestionsItem,
+			QuestionListSliceSliceDefaultPrimary,
+			QuestionListSliceSliceVariation,
+			QuestionListSliceSliceDefault,
 			RichTextSectionSlice,
 			RichTextSectionSliceDefaultPrimary,
 			RichTextSectionSliceDefaultItem,

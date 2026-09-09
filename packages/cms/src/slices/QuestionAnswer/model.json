@@ -1,0 +1,101 @@
+{
+  "description": "QuestionAnswerSlice",
+  "id": "question_answer_slice",
+  "name": "QuestionAnswerSlice",
+  "type": "SharedSlice",
+  "variations": [
+    {
+      "description": "Default",
+      "docURL": "...",
+      "id": "default",
+      "imageUrl": "",
+      "name": "Default",
+      "primary": {
+        "default_topic": {
+          "config": {
+            "label": "Topic shown on initial page load",
+            "options": [
+              "routes-timetable",
+              "reservation",
+              "payment",
+              "fare",
+              "zipair-point",
+              "connecting-flights",
+              "receipt-itinerary",
+              "purchase-error",
+              "voucher",
+              "travel-documents",
+              "other-errors"
+            ],
+            "placeholder": ""
+          },
+          "type": "Select"
+        },
+        "items": {
+          "config": {
+            "fields": {
+              "topic": {
+                "config": {
+                  "label": "Topic Key (must match FaqAccordion's topic field)",
+                  "options": [
+                    "routes-timetable",
+                    "reservation",
+                    "payment",
+                    "fare",
+                    "zipair-point",
+                    "connecting-flights",
+                    "receipt-itinerary",
+                    "purchase-error",
+                    "voucher",
+                    "travel-documents",
+                    "other-errors"
+                  ],
+                  "placeholder": ""
+                },
+                "type": "Select"
+              },
+              "question": {
+                "config": {
+                  "label": "question",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "answer": {
+                "config": {
+                  "allowTargetBlank": true,
+                  "label": "answer",
+                  "multi": "paragraph,preformatted,heading1,heading2,heading3,heading4,heading5,heading6,strong,em,hyperlink,image,embed,list-item,o-list-item,rtl",
+                  "placeholder": ""
+                },
+                "type": "StructuredText"
+              },
+              "related_question_label": {
+                "config": {
+                  "label": "related question label",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "related_question_link": {
+                "config": {
+                  "allowTargetBlank": true,
+                  "allowText": false,
+                  "label": "related question link",
+                  "placeholder": "",
+                  "repeat": false,
+                  "select": null
+                },
+                "type": "Link"
+              }
+            },
+            "label": "items",
+            "repeat": true
+          },
+          "type": "Group"
+        }
+      },
+      "version": "initial"
+    }
+  ]
+}

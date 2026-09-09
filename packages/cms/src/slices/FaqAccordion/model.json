@@ -1,0 +1,103 @@
+{
+  "description": "FaqAccordion",
+  "id": "faq_accordion",
+  "name": "FaqAccordion",
+  "type": "SharedSlice",
+  "variations": [
+    {
+      "description": "Default",
+      "docURL": "...",
+      "id": "default",
+      "imageUrl": "",
+      "name": "Default",
+      "primary": {
+        "title": {
+          "config": {
+            "label": "title",
+            "placeholder": ""
+          },
+          "type": "Text"
+        },
+        "qa": {
+          "config": {
+            "fields": {
+              "question": {
+                "config": {
+                  "label": "question",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "answer": {
+                "config": {
+                  "allowTargetBlank": true,
+                  "label": "answer",
+                  "multi": "paragraph,preformatted,heading1,heading2,heading3,heading4,heading5,heading6,strong,em,hyperlink,image,embed,list-item,o-list-item,rtl",
+                  "placeholder": ""
+                },
+                "type": "StructuredText"
+              }
+            },
+            "label": "QA",
+            "repeat": true
+          },
+          "type": "Group"
+        }
+      },
+      "version": "initial"
+    },
+    {
+      "description": "Sidebar Navigation",
+      "docURL": "...",
+      "id": "sidebar_nav",
+      "imageUrl": "",
+      "name": "Sidebar Navigation",
+      "primary": {
+        "links": {
+          "config": {
+            "fields": {
+              "category_title": {
+                "config": {
+                  "label": "Category (e.g. Flight Booking)",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "link_label": {
+                "config": {
+                  "label": "Sub-link label (e.g. Routes & Timetable)",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "topic": {
+                "config": {
+                  "label": "Topic Key",
+                  "options": [
+                    "routes-timetable",
+                    "reservation",
+                    "payment",
+                    "fare",
+                    "zipair-point",
+                    "connecting-flights",
+                    "receipt-itinerary",
+                    "purchase-error",
+                    "voucher",
+                    "travel-documents",
+                    "other-errors"
+                  ],
+                  "placeholder": ""
+                },
+                "type": "Select"
+              }
+            },
+            "label": "links",
+            "repeat": true
+          },
+          "type": "Group"
+        }
+      },
+      "version": "initial"
+    }
+  ]
+}

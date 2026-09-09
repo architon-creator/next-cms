@@ -1,0 +1,92 @@
+{
+  "description": "QuestionListSlice",
+  "id": "question_list_slice",
+  "name": "QuestionListSlice",
+  "type": "SharedSlice",
+  "variations": [
+    {
+      "description": "Default",
+      "docURL": "...",
+      "id": "default",
+      "imageUrl": "",
+      "name": "Default",
+      "primary": {
+        "default_topic": {
+          "config": {
+            "label": "Topic shown on initial page load",
+            "options": [
+              "routes-timetable",
+              "reservation",
+              "payment",
+              "fare",
+              "zipair-point",
+              "connecting-flights",
+              "receipt-itinerary",
+              "purchase-error",
+              "voucher",
+              "travel-documents",
+              "other-errors"
+            ],
+            "placeholder": ""
+          },
+          "type": "Select"
+        },
+        "questions": {
+          "config": {
+            "fields": {
+              "topic": {
+                "config": {
+                  "label": "Topic Key (must match FaqAccordion's topic field)",
+                  "options": [
+                    "routes-timetable",
+                    "reservation",
+                    "payment",
+                    "fare",
+                    "zipair-point",
+                    "connecting-flights",
+                    "receipt-itinerary",
+                    "purchase-error",
+                    "voucher",
+                    "travel-documents",
+                    "other-errors"
+                  ],
+                  "placeholder": ""
+                },
+                "type": "Select"
+              },
+              "heading": {
+                "config": {
+                  "label": "heading",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "question": {
+                "config": {
+                  "label": "question",
+                  "placeholder": ""
+                },
+                "type": "Text"
+              },
+              "question_link": {
+                "config": {
+                  "allowTargetBlank": true,
+                  "allowText": false,
+                  "label": "question link",
+                  "placeholder": "",
+                  "repeat": false,
+                  "select": null
+                },
+                "type": "Link"
+              }
+            },
+            "label": "questions",
+            "repeat": true
+          },
+          "type": "Group"
+        }
+      },
+      "version": "initial"
+    }
+  ]
+}
