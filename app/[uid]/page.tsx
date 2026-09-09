@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createClient, PageContext, SliceRenderer } from "cms";
+import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "cms";
 
 import { cn } from "@/lib/utils";
 
@@ -12,8 +12,6 @@ export default async function Page({ params }: PageProps) {
     .getByUID("content_page", params.uid)
     .catch(() => notFound());
 
-  // Not yet passed to SliceRenderer — it doesn't accept a context prop yet.
-  // Needed once Breadcrumbs (or anything else reading page-level context) is migrated.
   const context: PageContext = {
     breadcrumbs: [
       {
@@ -30,46 +28,47 @@ export default async function Page({ params }: PageProps) {
       },
     ],
   };
-  void context;
 
   const hasAside = page.data.aside.length > 0;
   const hasFooter = page.data.footer.length > 0;
 
   return (
-    <div
-      className={cn(
-        "mx-auto grid max-w-[1200px] grid-cols-1 gap-8 p-6",
-        hasAside && "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]",
-      )}
-    >
-      <div className="md:col-span-2">
-        {page.data.heading.map((slice, index) => (
-          <SliceRenderer key={`heading-${index}`} slice={slice} />
-        ))}
+    <BreadcrumbsProvider breadcrumbs={context.breadcrumbs}>
+      <div
+        className={cn(
+          "mx-auto grid max-w-[1200px] grid-cols-1 gap-8 p-6",
+          hasAside && "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]",
+        )}
+      >
+        <div className="md:col-span-2">
+          {page.data.heading.map((slice, index) => (
+            <SliceRenderer key={`heading-${index}`} slice={slice} />
+          ))}
+        </div>
+
+        <main className={cn("min-w-0", !hasAside && "md:col-span-2")}>
+          {page.data.main.map((slice, index) => (
+            <SliceRenderer key={`main-${index}`} slice={slice} />
+          ))}
+        </main>
+
+        {hasAside ? (
+          <aside className="min-w-0">
+            {page.data.aside.map((slice, index) => (
+              <SliceRenderer key={`aside-${index}`} slice={slice} />
+            ))}
+          </aside>
+        ) : null}
+
+        {hasFooter ? (
+          <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
+            {page.data.footer.map((slice, index) => (
+              <SliceRenderer key={`footer-${index}`} slice={slice} />
+            ))}
+          </footer>
+        ) : null}
       </div>
-
-      <main className={cn("min-w-0", !hasAside && "md:col-span-2")}>
-        {page.data.main.map((slice, index) => (
-          <SliceRenderer key={`main-${index}`} slice={slice} />
-        ))}
-      </main>
-
-      {hasAside ? (
-        <aside className="min-w-0">
-          {page.data.aside.map((slice, index) => (
-            <SliceRenderer key={`aside-${index}`} slice={slice} />
-          ))}
-        </aside>
-      ) : null}
-
-      {hasFooter ? (
-        <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
-          {page.data.footer.map((slice, index) => (
-            <SliceRenderer key={`footer-${index}`} slice={slice} />
-          ))}
-        </footer>
-      ) : null}
-    </div>
+    </BreadcrumbsProvider>
   );
 }
 

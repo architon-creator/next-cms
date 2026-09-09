@@ -1,12 +1,11 @@
+"use client";
+
 import { Content } from "@prismicio/client";
 import { SliceComponentProps } from "@prismicio/react";
 
-import { PageContext } from "../types";
+import { useBreadcrumbs } from "../breadcrumbs-context";
 
-export type BreadcrumbsProps = SliceComponentProps<
-  Content.BreadcrumbsSlice,
-  PageContext
->;
+export type BreadcrumbsProps = SliceComponentProps<Content.BreadcrumbsSlice>;
 
 function HomeIcon() {
   return (
@@ -46,8 +45,8 @@ function ChevronSeparator() {
   );
 }
 
-export default function Breadcrumbs({ slice, context }: BreadcrumbsProps) {
-  const crumbs = (context?.breadcrumbs ?? []).filter((crumb) => crumb.label);
+export default function Breadcrumbs({ slice }: BreadcrumbsProps) {
+  const crumbs = useBreadcrumbs().filter((crumb) => crumb.label);
 
   if (crumbs.length === 0) return null;
 
