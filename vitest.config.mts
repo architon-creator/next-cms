@@ -15,5 +15,12 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["lib/**/*.test.{ts,tsx}"],
     exclude: ["**/node_modules/**", "**/.next/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "json"],
+      reportsDirectory: "./coverage",
+      include: ["lib/**/*.{ts,tsx}"],
+      exclude: ["**/*.test.{ts,tsx}"],
+    },
   },
 });

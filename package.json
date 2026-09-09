@@ -15,6 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "types": "pnpm --filter cms run types",
     "prismic": "pnpm --filter cms exec prismic"
   },
@@ -41,6 +42,7 @@
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.0",
     "autoprefixer": "^10.5.5",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
