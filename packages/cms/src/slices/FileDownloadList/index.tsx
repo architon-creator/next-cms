@@ -4,8 +4,7 @@ import { SliceComponentProps } from "@prismicio/react";
 
 import { Button } from "../../components/ui/button";
 
-export type FileDownloadListProps =
-  SliceComponentProps<Content.FileDownloadListSlice>;
+export type FileDownloadListProps = SliceComponentProps<Content.FileDownloadListSlice>;
 
 export default function FileDownloadList({ slice }: FileDownloadListProps) {
   return (

@@ -15,8 +15,7 @@ import { cn } from "../../lib/utils";
 export type DisclosureListProps = SliceComponentProps<Content.DisclosureListSlice>;
 
 export default function DisclosureList({ slice }: DisclosureListProps) {
-  const { title, body, box_heading, box_body, files, link_label, link } =
-    slice.primary;
+  const { title, body, box_heading, box_body, files, link_label, link } = slice.primary;
 
   const hasBox = isFilled.richText(box_body);
   const hasFiles = files.length > 0;

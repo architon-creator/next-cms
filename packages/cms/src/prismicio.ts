@@ -4,9 +4,7 @@ import * as prismicNext from "@prismicio/next";
 export const repositoryName =
   process.env.NEXT_PUBLIC_PRISMIC_ENVIRONMENT || "next-js-ssr";
 
-const routes: prismic.ClientConfig["routes"] = [
-  { type: "content_page", path: "/:uid" },
-];
+const routes: prismic.ClientConfig["routes"] = [{ type: "content_page", path: "/:uid" }];
 
 export function createClient(config: prismicNext.CreateClientConfig = {}) {
   const client = prismic.createClient(repositoryName, {

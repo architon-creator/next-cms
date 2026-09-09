@@ -44,12 +44,13 @@ export default function Accordion({ slice }: AccordionProps) {
             {isFilled.richText(item.necessities) ? (
               <>
                 {item.necessities_heading ? (
-                  <p className="mt-4 mb-2 font-bold">
-                    {item.necessities_heading}
-                  </p>
+                  <p className="mt-4 mb-2 font-bold">{item.necessities_heading}</p>
                 ) : null}
                 <div className="mb-4 rounded border px-5 py-4 [&_h4:not(:first-child)]:mt-4 [&_h4]:mb-1 [&_h4]:text-[0.95rem] [&_h4]:font-bold [&_p]:m-0 [&_p]:text-[0.9rem] [&_p]:text-muted-foreground">
-                  <PrismicRichText field={item.necessities} components={richTextLabelComponents} />
+                  <PrismicRichText
+                    field={item.necessities}
+                    components={richTextLabelComponents}
+                  />
                 </div>
               </>
             ) : null}

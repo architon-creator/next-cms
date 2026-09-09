@@ -1,0 +1,7 @@
+node_modules
+.next
+dist
+pnpm-lock.yaml
+packages/cms/prismicio-types.d.ts
+packages/cms/src/slices/**/model.json
+customtypes/**/index.json

@@ -4,9 +4,7 @@ import { JSXMapSerializer, PrismicRichText, SliceComponentProps } from "@prismic
 export type PageTitleProps = SliceComponentProps<Content.PageTitleSlice>;
 
 const components: JSXMapSerializer = {
-  heading1: ({ children }) => (
-    <h1 className="mb-2 text-4xl font-semibold">{children}</h1>
-  ),
+  heading1: ({ children }) => <h1 className="mb-2 text-4xl font-semibold">{children}</h1>,
 };
 
 export default function PageTitle({ slice }: PageTitleProps) {

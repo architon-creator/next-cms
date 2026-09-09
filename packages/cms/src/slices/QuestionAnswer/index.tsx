@@ -6,7 +6,8 @@ import { PrismicLink, PrismicRichText } from "@prismicio/react";
 import type { FC } from "react";
 import { useFaqTopic } from "../../lib/faq-topic-context";
 
-export type QuestionAnswerSliceProps = SliceComponentProps<Content.QuestionAnswerSliceSlice>;
+export type QuestionAnswerSliceProps =
+  SliceComponentProps<Content.QuestionAnswerSliceSlice>;
 
 /**
  * Component for "QuestionAnswerSlice" Slices.

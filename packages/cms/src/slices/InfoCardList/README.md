@@ -19,10 +19,10 @@ No primary fields.
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | Text | No | Card heading. Card renders without a header at all if left blank. |
-| `body` | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | No | Card content — supports bullet/numbered lists, useful for eligibility-rule-style cards. |
+| Field   | Type                                                                     | Required | Notes                                                                                   |
+| ------- | ------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------- |
+| `title` | Text                                                                     | No       | Card heading. Card renders without a header at all if left blank.                       |
+| `body`  | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | No       | Card content — supports bullet/numbered lists, useful for eligibility-rule-style cards. |
 
 ### Example content
 
@@ -31,13 +31,27 @@ No primary fields.
   "items": [
     {
       "title": "Adult (15 years and older)",
-      "body": [{ "type": "list-item", "content": { "text": "They can travel alone.", "spans": [] } }]
+      "body": [
+        {
+          "type": "list-item",
+          "content": { "text": "They can travel alone.", "spans": [] }
+        }
+      ]
     },
     {
       "title": "Child A (12-14 years old)",
       "body": [
-        { "type": "list-item", "content": { "text": "They cannot travel alone.", "spans": [] } },
-        { "type": "list-item", "content": { "text": "They must be accompanied by another customer aged 15 or older.", "spans": [] } }
+        {
+          "type": "list-item",
+          "content": { "text": "They cannot travel alone.", "spans": [] }
+        },
+        {
+          "type": "list-item",
+          "content": {
+            "text": "They must be accompanied by another customer aged 15 or older.",
+            "spans": []
+          }
+        }
       ]
     }
   ]

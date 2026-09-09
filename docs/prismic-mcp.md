@@ -11,6 +11,7 @@ This project has the Prismic MCP server connected (configured in [.mcp.json](../
 ## Available tools
 
 **Discovery**
+
 - `list_repositories` — list Prismic repositories you have access to.
 - `list_custom_types` — list custom types (e.g. page, blog_post) in the repo.
 - `get_custom_type` — fetch the JSON model for one custom type.
@@ -20,6 +21,7 @@ This project has the Prismic MCP server connected (configured in [.mcp.json](../
 - `list_locales` — list configured locales for the repo.
 
 **Documents**
+
 - `search_documents` — query documents (by type, tag, field values, etc.).
 - `get_document` — fetch a single document by ID.
 - `list_document_versions` — see version history for a document.
@@ -28,15 +30,18 @@ This project has the Prismic MCP server connected (configured in [.mcp.json](../
 - `replace_document` — overwrite a document's full content.
 
 **Releases**
+
 - `list_releases` — list scheduled/draft releases.
 - `create_release` — create a new release (batch of changes to publish together).
 - `publish_release` — publish a release.
 
 **Assets**
+
 - `search_assets` — search the media library.
 - `upload_asset` — upload a new image/file to the media library.
 
 **Other**
+
 - `submit_feedback` — send feedback to the Prismic MCP team.
 
 ## How this maps to the codebase
@@ -48,20 +53,24 @@ This project has the Prismic MCP server connected (configured in [.mcp.json](../
 ## Practical workflows
 
 **Add a new field to a slice and verify it matches Prismic**
+
 1. `get_shared_slice` to pull the current model for the slice.
 2. Compare against the local `slices/<Name>/model.json`.
 3. Edit `model.json` (and the component) to match, or flag the mismatch.
 
 **Check what content already uses a slice/type before changing it**
+
 1. `search_documents` filtered by custom type.
 2. `get_document` on a few results to see real field values in context.
 
 **Publish a batch of content changes together**
+
 1. `create_release`.
 2. `create_document` / `update_document` targeting that release.
 3. `publish_release` once everything's ready.
 
 **Debug a "why doesn't this render" issue**
+
 1. `get_document` for the page in question.
 2. Compare its slice data against what the component in `slices/` expects (check `prismicio-types.d.ts` for the generated type).
 

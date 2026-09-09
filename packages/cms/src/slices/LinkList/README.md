@@ -18,16 +18,16 @@ An optional heading followed by a vertical, unlimited-length list of chevron lin
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | No | Optional section heading above the links. Omit if the preceding slice already supplies a heading (as in the "How to Book" use case, where a separate `RichTextSection` carries "How to Book"). |
+| Field     | Type                                              | Required | Notes                                                                                                                                                                                          |
+| --------- | ------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | No       | Optional section heading above the links. Omit if the preceding slice already supplies a heading (as in the "How to Book" use case, where a separate `RichTextSection` carries "How to Book"). |
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `label` | Text | Yes | Link text. |
-| `link` | Link (target-blank allowed) | Yes (in practice) | Items with an empty link are silently skipped (`isFilled.link` guard) rather than rendered as dead text. |
+| Field   | Type                        | Required          | Notes                                                                                                    |
+| ------- | --------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------- |
+| `label` | Text                        | Yes               | Link text.                                                                                               |
+| `link`  | Link (target-blank allowed) | Yes (in practice) | Items with an empty link are silently skipped (`isFilled.link` guard) rather than rendered as dead text. |
 
 ### Example content
 

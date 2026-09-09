@@ -9,8 +9,7 @@ import {
   AccordionTrigger,
 } from "../../components/ui/accordion";
 
-export type FaqQuestionListProps =
-  SliceComponentProps<Content.FaqQuestionListSlice>;
+export type FaqQuestionListProps = SliceComponentProps<Content.FaqQuestionListSlice>;
 
 function ChevronRight({ className }: { className?: string }) {
   return (
@@ -32,12 +31,8 @@ function ChevronRight({ className }: { className?: string }) {
 }
 
 const headingComponents: JSXMapSerializer = {
-  heading2: ({ children }) => (
-    <h2 className="flex-1 text-base font-bold">{children}</h2>
-  ),
-  heading3: ({ children }) => (
-    <h3 className="flex-1 text-base font-bold">{children}</h3>
-  ),
+  heading2: ({ children }) => <h2 className="flex-1 text-base font-bold">{children}</h2>,
+  heading3: ({ children }) => <h3 className="flex-1 text-base font-bold">{children}</h3>,
 };
 
 export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
@@ -53,14 +48,20 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
       >
         <AccordionItem value="category" className="border-b-0">
           <AccordionTrigger className="items-center! gap-3 py-2!">
-            <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+            <PrismicRichText
+              field={slice.primary.heading}
+              components={headingComponents}
+            />
           </AccordionTrigger>
           <AccordionContent>
             <ul className="mt-3 flex list-none flex-col gap-2 pl-1">
               {slice.items.map((item, index) => (
                 <li key={`${item.question}-${index}`}>
                   {item.href ? (
-                    <Link href={item.href} className="text-primary no-underline hover:underline">
+                    <Link
+                      href={item.href}
+                      className="text-primary no-underline hover:underline"
+                    >
                       {item.question}
                     </Link>
                   ) : (
@@ -81,7 +82,10 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
         {slice.items.map((item, index) => (
           <li key={`${item.question}-${index}`}>
             {item.href ? (
-              <Link href={item.href} className="text-primary no-underline hover:underline">
+              <Link
+                href={item.href}
+                className="text-primary no-underline hover:underline"
+              >
                 {item.question}
               </Link>
             ) : (
@@ -93,14 +97,14 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
     );
 
     return (
-      <div
-        data-slice-type={slice.slice_type}
-        data-slice-variation={slice.variation}
-      >
+      <div data-slice-type={slice.slice_type} data-slice-variation={slice.variation}>
         {/* Desktop/tablet: always-visible title + link list */}
         <div className="hidden sm:block">
           <div className="mb-3 font-bold">
-            <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+            <PrismicRichText
+              field={slice.primary.heading}
+              components={headingComponents}
+            />
           </div>
           {links}
         </div>
@@ -115,7 +119,10 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
           <Accordion type="single" collapsible className="border-b">
             <AccordionItem value="category" className="border-t border-b-0">
               <AccordionTrigger className="items-center! gap-3 py-3!">
-                <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+                <PrismicRichText
+                  field={slice.primary.heading}
+                  components={headingComponents}
+                />
               </AccordionTrigger>
               <AccordionContent>{links}</AccordionContent>
             </AccordionItem>

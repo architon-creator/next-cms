@@ -13,7 +13,10 @@ export default function ImageBlock({ slice }: ImageBlockProps) {
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
-      <PrismicNextImage field={slice.primary.image} className="h-auto w-full rounded-md" />
+      <PrismicNextImage
+        field={slice.primary.image}
+        className="h-auto w-full rounded-md"
+      />
       {slice.primary.caption ? (
         <figcaption className="mt-2 text-sm text-muted-foreground">
           {slice.primary.caption}

@@ -18,7 +18,7 @@ The FAQ topic switcher. `links` (repeatable): `category_title` (Text, repeated o
 
 - Reads/writes `activeTopic` via `useFaqTopic()` (`../../lib/faq-topic-context`). Clicking a link calls **both** `setActiveTopic(topic)` (instant client re-render) **and** `router.replace(`${pathname}?topic=${topic}`, { scroll: false })` — so every topic switch stays reflected in the URL (shareable/bookmarkable), unlike this repo's own `FaqAnswerSwap`, which has no URL sync at all.
 - "Current" highlighting (`aria-current`, styling) is fully derived from `activeTopic === item.topic` — no boolean flag field anywhere, unlike `FaqQuestionList`'s `current` field or `footer_grid`'s `mobile_section_heading`-on-first-item convention.
-- `defaultValue={categories[0]?.[0]}` always expands the *first* category group by default, regardless of which category the active topic actually belongs to — a known, unfixed UX gap in the source implementation, carried over as-is here.
+- `defaultValue={categories[0]?.[0]}` always expands the _first_ category group by default, regardless of which category the active topic actually belongs to — a known, unfixed UX gap in the source implementation, carried over as-is here.
 
 ## Known limitations
 

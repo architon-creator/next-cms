@@ -12,10 +12,10 @@ Once per page, in the Heading zone, alongside [`Breadcrumbs`](../Breadcrumbs/REA
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | Rich Text (single: `heading1`) | Yes | The page's H1. |
-| `subtitle` | Text | No | Rendered as a `<p>` below the title, only if set. |
+| Field      | Type                           | Required | Notes                                             |
+| ---------- | ------------------------------ | -------- | ------------------------------------------------- |
+| `title`    | Rich Text (single: `heading1`) | Yes      | The page's H1.                                    |
+| `subtitle` | Text                           | No       | Rendered as a `<p>` below the title, only if set. |
 
 No item fields.
 
@@ -23,7 +23,9 @@ No item fields.
 
 ```json
 {
-  "title": [{ "type": "heading1", "content": { "text": "Boarding Process", "spans": [] } }],
+  "title": [
+    { "type": "heading1", "content": { "text": "Boarding Process", "spans": [] } }
+  ],
   "subtitle": ""
 }
 ```

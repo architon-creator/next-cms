@@ -8,9 +8,7 @@ type PageProps = { params: { uid: string } };
 
 export default async function Page({ params }: PageProps) {
   const client = createClient();
-  const page = await client
-    .getByUID("content_page", params.uid)
-    .catch(() => notFound());
+  const page = await client.getByUID("content_page", params.uid).catch(() => notFound());
 
   const context: PageContext = {
     breadcrumbs: [
@@ -72,13 +70,9 @@ export default async function Page({ params }: PageProps) {
   );
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const client = createClient();
-  const page = await client
-    .getByUID("content_page", params.uid)
-    .catch(() => notFound());
+  const page = await client.getByUID("content_page", params.uid).catch(() => notFound());
 
   return { title: page.uid };
 }

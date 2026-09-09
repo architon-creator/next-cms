@@ -13,16 +13,16 @@ A client-side Q&A card: one "active" question + its rich-text answer, plus a "Re
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `related_heading` | Text (default `Related question`) | No | Heading on Card 2. Falls back to `"Related question"` at render time if left blank. |
+| Field             | Type                              | Required | Notes                                                                               |
+| ----------------- | --------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `related_heading` | Text (default `Related question`) | No       | Heading on Card 2. Falls back to `"Related question"` at render time if left blank. |
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `question` | Text | Yes | Shown as the active card's title (Card 1) when selected, and as a clickable row in the related list (Card 2) otherwise. |
-| `answer` | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | Yes (in practice) | The active card's body when this item is selected. |
+| Field      | Type                                                                     | Required          | Notes                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `question` | Text                                                                     | Yes               | Shown as the active card's title (Card 1) when selected, and as a clickable row in the related list (Card 2) otherwise. |
+| `answer`   | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | Yes (in practice) | The active card's body when this item is selected.                                                                      |
 
 ### Example content
 
@@ -32,15 +32,27 @@ A client-side Q&A card: one "active" question + its rich-text answer, plus a "Re
   "items": [
     {
       "question": "Where does ZIPAIR fly to?",
-      "answer": [{ "type": "paragraph", "content": { "text": "ZIPAIR currently flies to...", "spans": [] } }]
+      "answer": [
+        {
+          "type": "paragraph",
+          "content": { "text": "ZIPAIR currently flies to...", "spans": [] }
+        }
+      ]
     },
     {
       "question": "Where can I check the flight status?",
-      "answer": [{ "type": "paragraph", "content": { "text": "You can check flight status on...", "spans": [] } }]
+      "answer": [
+        {
+          "type": "paragraph",
+          "content": { "text": "You can check flight status on...", "spans": [] }
+        }
+      ]
     },
     {
       "question": "How many days in advance can I book a flight?",
-      "answer": [{ "type": "paragraph", "content": { "text": "Bookings open...", "spans": [] } }]
+      "answer": [
+        { "type": "paragraph", "content": { "text": "Bookings open...", "spans": [] } }
+      ]
     }
   ]
 }

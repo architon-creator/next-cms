@@ -75,17 +75,22 @@ function UnmappedSlice({ slice }: { slice: SliceType }) {
       className="my-4 w-full rounded-lg border-2 border-yellow-300 bg-yellow-50 p-6"
     >
       <div className="mx-auto max-w-4xl">
-        <h3 className="mb-2 font-semibold text-lg text-yellow-900">Unmapped Slice Component</h3>
+        <h3 className="mb-2 font-semibold text-lg text-yellow-900">
+          Unmapped Slice Component
+        </h3>
         <p className="mb-2 text-yellow-800">
           <strong>Type:</strong>{" "}
           <code className="rounded bg-yellow-100 px-2 py-1">{slice.slice_type}</code>
         </p>
         <p className="mb-4 text-yellow-800">
           <strong>Variation:</strong>{" "}
-          <code className="rounded bg-yellow-100 px-2 py-1">{slice.variation || "default"}</code>
+          <code className="rounded bg-yellow-100 px-2 py-1">
+            {slice.variation || "default"}
+          </code>
         </p>
         <p className="text-sm text-yellow-700">
-          Add this slice type to the <code className="bg-yellow-100 px-1">sliceRegistry</code> in{" "}
+          Add this slice type to the{" "}
+          <code className="bg-yellow-100 px-1">sliceRegistry</code> in{" "}
           <code className="bg-yellow-100 px-1">SliceRenderer.tsx</code>
         </p>
       </div>

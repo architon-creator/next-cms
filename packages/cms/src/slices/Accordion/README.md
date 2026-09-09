@@ -20,17 +20,17 @@ No primary fields — everything lives on repeatable `items`.
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | Text | Yes | The step's heading, shown next to its number. |
-| `note` | Text | No | A single-line highlighted note rendered in a `bg-muted` box above the body (e.g. "From 3 hours to 1 hour before departure"). |
-| `body` | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`; labels: `muted`, `small`) | No | Main step content. The `muted`/`small` toolbar labels are available for de-emphasizing inline text (e.g. an asterisked caveat) — rendered via the shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer. |
-| `necessities_heading` | Text | No | Heading above the "necessities" box (e.g. "Necessities"). Only rendered if `necessities` has content. |
-| `necessities` | Rich Text (multi: `heading4,paragraph,strong,em,hyperlink`) | No | A bordered checklist box. Use `heading4` blocks as sub-item titles followed by a `paragraph` — see example. |
-| `link_label` | Text | No | Label for the first trailing link. |
-| `link` | Link (target-blank allowed) | No | First trailing link. Rendered as a chevron link only if filled. |
-| `link2_label` | Text | No | Label for the second trailing link. |
-| `link2` | Link (target-blank allowed) | No | Second trailing link. |
+| Field                 | Type                                                                                               | Required | Notes                                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `title`               | Text                                                                                               | Yes      | The step's heading, shown next to its number.                                                                                                                                                                                        |
+| `note`                | Text                                                                                               | No       | A single-line highlighted note rendered in a `bg-muted` box above the body (e.g. "From 3 hours to 1 hour before departure").                                                                                                         |
+| `body`                | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`; labels: `muted`, `small`) | No       | Main step content. The `muted`/`small` toolbar labels are available for de-emphasizing inline text (e.g. an asterisked caveat) — rendered via the shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer. |
+| `necessities_heading` | Text                                                                                               | No       | Heading above the "necessities" box (e.g. "Necessities"). Only rendered if `necessities` has content.                                                                                                                                |
+| `necessities`         | Rich Text (multi: `heading4,paragraph,strong,em,hyperlink`)                                        | No       | A bordered checklist box. Use `heading4` blocks as sub-item titles followed by a `paragraph` — see example.                                                                                                                          |
+| `link_label`          | Text                                                                                               | No       | Label for the first trailing link.                                                                                                                                                                                                   |
+| `link`                | Link (target-blank allowed)                                                                        | No       | First trailing link. Rendered as a chevron link only if filled.                                                                                                                                                                      |
+| `link2_label`         | Text                                                                                               | No       | Label for the second trailing link.                                                                                                                                                                                                  |
+| `link2`               | Link (target-blank allowed)                                                                        | No       | Second trailing link.                                                                                                                                                                                                                |
 
 ### Example content (one item)
 
@@ -39,12 +39,24 @@ No primary fields — everything lives on repeatable `items`.
   "title": "Check-in",
   "note": "From 3 hours to 1 hour before departure (check-in may start earlier depending on the number of passengers).",
   "body": [
-    { "type": "paragraph", "content": { "text": "Please check in at the check-in counter one hour before departure...", "spans": [] } }
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Please check in at the check-in counter one hour before departure...",
+        "spans": []
+      }
+    }
   ],
   "necessities_heading": "Necessities",
   "necessities": [
     { "type": "heading4", "content": { "text": "Itinerary", "spans": [] } },
-    { "type": "paragraph", "content": { "text": "Present the printed paper or the electronic version sent by email.", "spans": [] } }
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Present the printed paper or the electronic version sent by email.",
+        "spans": []
+      }
+    }
   ],
   "link_label": "Check-in",
   "link": { "url": "#" }

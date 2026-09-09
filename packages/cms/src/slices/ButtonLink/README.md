@@ -14,13 +14,13 @@ A single, centered button linking to another page or file, with optional left/ri
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `label` | Text | Yes | Button text. |
-| `link` | Link (target-blank allowed) | Yes | If empty, the whole slice renders nothing (`isFilled.link` guard). |
-| `style` | Select: `Solid` \| `Outline` (default `Outline`) | No | `Solid` → shadcn Button's `default` variant (filled `bg-primary`, white text). `Outline` → white background, green border/text (the original look, still the default so existing content is unaffected). |
-| `icon_left` | Select: `ArrowLeft` \| `ArrowRight` \| `ChevronLeft` \| `ChevronRight` \| `Download` \| `ExternalLink` \| `Check` | No | Renders a `lucide-react` icon before the label. Leave unset for no left icon. |
-| `icon_right` | Select: same options as `icon_left` | No | Renders a `lucide-react` icon after the label. Leave unset for no right icon. |
+| Field        | Type                                                                                                              | Required | Notes                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`      | Text                                                                                                              | Yes      | Button text.                                                                                                                                                                                             |
+| `link`       | Link (target-blank allowed)                                                                                       | Yes      | If empty, the whole slice renders nothing (`isFilled.link` guard).                                                                                                                                       |
+| `style`      | Select: `Solid` \| `Outline` (default `Outline`)                                                                  | No       | `Solid` → shadcn Button's `default` variant (filled `bg-primary`, white text). `Outline` → white background, green border/text (the original look, still the default so existing content is unaffected). |
+| `icon_left`  | Select: `ArrowLeft` \| `ArrowRight` \| `ChevronLeft` \| `ChevronRight` \| `Download` \| `ExternalLink` \| `Check` | No       | Renders a `lucide-react` icon before the label. Leave unset for no left icon.                                                                                                                            |
+| `icon_right` | Select: same options as `icon_left`                                                                               | No       | Renders a `lucide-react` icon after the label. Leave unset for no right icon.                                                                                                                            |
 
 No item fields.
 

@@ -13,29 +13,31 @@ A heading + body rich-text block, with independent font-size/font-color controls
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3`; labels: `underline`, `highlight`) | No | Section heading. |
-| `body` | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`; labels: `small`, `large`, `muted`, `accent`, `highlight`) | No | Main content — this is where most content lives. |
-| `font_size` | Select: `Small` \| `Medium` \| `Large` (default `Medium`) | No | Applies to `body` (and inherits down to `heading` unless overridden — see [Rendering & behavior](#rendering--behavior)). |
-| `font_color` | Select: `Default` \| `Muted` \| `Accent` (default `Default`) | No | Same scope as `font_size`. |
+| Field        | Type                                                                                                                               | Required | Notes                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `heading`    | Rich Text (single: `heading2,heading3`; labels: `underline`, `highlight`)                                                          | No       | Section heading.                                                                                                         |
+| `body`       | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`; labels: `small`, `large`, `muted`, `accent`, `highlight`) | No       | Main content — this is where most content lives.                                                                         |
+| `font_size`  | Select: `Small` \| `Medium` \| `Large` (default `Medium`)                                                                          | No       | Applies to `body` (and inherits down to `heading` unless overridden — see [Rendering & behavior](#rendering--behavior)). |
+| `font_color` | Select: `Default` \| `Muted` \| `Accent` (default `Default`)                                                                       | No       | Same scope as `font_size`.                                                                                               |
 
 ### Item fields (repeatable "lines")
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `text` | Rich Text (single: `paragraph,strong,em,hyperlink`) | No | One independent line of content. |
-| `font_size` | Select: `Small` \| `Medium` \| `Large` | No | Per-line override, independent of the primary-level `font_size`. |
-| `font_color` | Select: `Default` \| `Muted` \| `Accent` | No | Per-line override. |
+| Field        | Type                                                | Required | Notes                                                            |
+| ------------ | --------------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| `text`       | Rich Text (single: `paragraph,strong,em,hyperlink`) | No       | One independent line of content.                                 |
+| `font_size`  | Select: `Small` \| `Medium` \| `Large`              | No       | Per-line override, independent of the primary-level `font_size`. |
+| `font_color` | Select: `Default` \| `Muted` \| `Accent`            | No       | Per-line override.                                               |
 
-Use `items` when you need several lines with *different* size/color combinations in one slice instance (e.g. `faq`'s "Inquiry Hours" content mixes a heading line with detail lines) — otherwise just use `body`.
+Use `items` when you need several lines with _different_ size/color combinations in one slice instance (e.g. `faq`'s "Inquiry Hours" content mixes a heading line with detail lines) — otherwise just use `body`.
 
 ### Example content
 
 ```json
 {
   "primary": {
-    "heading": [{ "type": "heading3", "content": { "text": "Chat Inquiries", "spans": [] } }],
+    "heading": [
+      { "type": "heading3", "content": { "text": "Chat Inquiries", "spans": [] } }
+    ],
     "body": [
       {
         "type": "paragraph",
@@ -55,7 +57,7 @@ Use `items` when you need several lines with *different* size/color combinations
 ## Rendering & behavior
 
 - `sizeClasses`/`colorClasses` lookup maps (`Small`→`text-sm`, `Muted`→`text-muted-foreground`, etc.) are applied to the wrapping `<section>` for the primary-level content, and to each per-line `<div>` for `items`. Because CSS `font-size`/`color` inherit, a heading without its own override still gets the section's size/color unless an explicit `[&_h2]:text-xl` (etc.) override wins — which it does, since headings have fixed styling baked into the descendant-selector classes (see next point).
-- The shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer maps Prismic's inline toolbar labels to Tailwind classes: `underline`→`underline`, `small`→`text-[0.875em]`, `large`→`text-[1.125em]`, `muted`→`text-muted-foreground`, `accent`→`text-primary`, `highlight`→`rounded-sm bg-[#fff3b0] px-0.5 py-px`. This is the mechanism content editors use to style a *span* of text differently from the rest of a paragraph (as opposed to `font_size`/`font_color`, which apply to the whole block/line). `Accordion`'s `body`/`necessities` fields also use this serializer — any new field with a `labels` config should too, or the labels silently render unstyled.
+- The shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer maps Prismic's inline toolbar labels to Tailwind classes: `underline`→`underline`, `small`→`text-[0.875em]`, `large`→`text-[1.125em]`, `muted`→`text-muted-foreground`, `accent`→`text-primary`, `highlight`→`rounded-sm bg-[#fff3b0] px-0.5 py-px`. This is the mechanism content editors use to style a _span_ of text differently from the rest of a paragraph (as opposed to `font_size`/`font_color`, which apply to the whole block/line). `Accordion`'s `body`/`necessities` fields also use this serializer — any new field with a `labels` config should too, or the labels silently render unstyled.
 - Links inside rich text always render `text-primary` via `[&_a]:text-primary` on the wrapper — no separate link-color control.
 
 ## Styling conventions

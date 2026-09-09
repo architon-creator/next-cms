@@ -14,7 +14,7 @@ The active answer card for whichever topic is currently selected, plus a "Relate
 ## Rendering & behavior
 
 - Filters `items` to `item.topic === activeTopic`, then destructures `[main, ...related] = visible`.
-- **Only `main` (the first matching item) displays its `question`/`answer`.** The `related` items' own `question`/`answer` are never shown — only their `related_question_label`/`related_question_link` render, as the "Related Questions" list below the answer. In other words: to add a related-question link under a topic's answer, author an *additional* `items` entry with the same `topic`, leave `question`/`answer` blank (or ignore them), and fill only `related_question_label`/`related_question_link`.
+- **Only `main` (the first matching item) displays its `question`/`answer`.** The `related` items' own `question`/`answer` are never shown — only their `related_question_label`/`related_question_link` render, as the "Related Questions" list below the answer. In other words: to add a related-question link under a topic's answer, author an _additional_ `items` entry with the same `topic`, leave `question`/`answer` blank (or ignore them), and fill only `related_question_label`/`related_question_link`.
 - Renders nothing (`null`) if no items match `activeTopic`.
 - `aria-live="polite"` for the same reason as `QuestionList`.
 

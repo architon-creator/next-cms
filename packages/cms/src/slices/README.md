@@ -2,11 +2,11 @@
 
 This project's pages (`content_page` in Prismic) are built entirely from **shared slices** — reusable, independently-editable content blocks. Every slice lives in its own folder here (`slices/<Name>/`) with three co-located files:
 
-| File | Purpose |
-|---|---|
-| `model.json` | The Prismic schema — field definitions, pushed to the live repo via `npx prismic push`. This is the source of truth; `prismicio-types.d.ts` is generated from it. |
-| `index.tsx` | The React component that renders the slice, built on [shadcn/ui](https://ui.shadcn.com) primitives (`@/components/ui/*`) where one fits, and Tailwind utility classes for everything else. |
-| `README.md` | Field reference, usage examples, and known limitations for this slice. |
+| File         | Purpose                                                                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model.json` | The Prismic schema — field definitions, pushed to the live repo via `npx prismic push`. This is the source of truth; `prismicio-types.d.ts` is generated from it.                          |
+| `index.tsx`  | The React component that renders the slice, built on [shadcn/ui](https://ui.shadcn.com) primitives (`@/components/ui/*`) where one fits, and Tailwind utility classes for everything else. |
+| `README.md`  | Field reference, usage examples, and known limitations for this slice.                                                                                                                     |
 
 ## How pages are assembled
 
@@ -18,24 +18,24 @@ The page layout itself (`app/[uid]/page.tsx`) is a responsive grid: Main + Aside
 
 Entries marked ⚠️ are ported reference copies from the real production project's FAQ system (`FaqAccordion`, `QuestionList`, `QuestionAnswer` + `lib/faq-topic-context.tsx`) — kept here for learning/comparison, **not used on any live page in this repo**. That system is more advanced than this repo's own `FaqQuestionList`/`FaqAnswerSwap` (topic-keyed `Select` fields shared via a `FaqTopicProvider` Context, fully-derived "current" state, URL-synced topic switching) — see [`docs/FAQ/faq-system.md`](../../../../docs/FAQ/faq-system.md) for the full comparison. Don't extend or "fix" the ⚠️ slices here; any real changes belong in the production project.
 
-| Slice | One-line purpose | Variations |
-|---|---|---|
-| [`Accordion`](Accordion/README.md) | Numbered, individually collapsible step-by-step sections | `default` |
-| [`Breadcrumbs`](Breadcrumbs/README.md) | Home › Level 1 › Level 2 › Level 3 trail | `default` |
-| [`ButtonLink`](ButtonLink/README.md) | A single centered outline CTA button | `default` |
-| [`Callout`](Callout/README.md) | A bordered, colored box for a note/warning/highlight | `default` |
-| [`DisclosureList`](DisclosureList/README.md) | One collapsible topic with an optional box, download buttons, and a link | `default` |
-| [`FaqAnswerSwap`](FaqAnswerSwap/README.md) | Client-side Q&A card with a related-question switcher (no navigation) | `default` |
-| [`FaqAccordion`](FaqAccordion/README.md) | ⚠️ Ported reference copy — FAQ sidebar topic-switcher + generic Q&A accordion | `default`, `sidebar_nav` |
-| [`FaqQuestionList`](FaqQuestionList/README.md) | FAQ category/question lists — 5 different layouts | `default`, `grid`, `accordion`, `footer_grid`, `withicon` |
-| [`FileDownloadList`](FileDownloadList/README.md) | Outline download buttons with a file-size caption | `default` |
-| [`ImageBlock`](ImageBlock/README.md) | A single image with an optional caption | `default` |
-| [`InfoCardList`](InfoCardList/README.md) | Stacked bordered info cards (title + body) | `default` |
-| [`LinkList`](LinkList/README.md) | An optional heading + a stacked list of chevron links | `default` |
-| [`PageTitle`](PageTitle/README.md) | The page's H1 + optional subtitle | `default` |
-| [`QuestionAnswer`](QuestionAnswer/README.md) | ⚠️ Ported reference copy — topic-filtered answer card + related links | `default` |
-| [`QuestionList`](QuestionList/README.md) | ⚠️ Ported reference copy — topic-filtered question list | `default` |
-| [`RichTextSection`](RichTextSection/README.md) | Heading + body rich text, with per-block/per-line size & color | `default` |
+| Slice                                            | One-line purpose                                                              | Variations                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [`Accordion`](Accordion/README.md)               | Numbered, individually collapsible step-by-step sections                      | `default`                                                 |
+| [`Breadcrumbs`](Breadcrumbs/README.md)           | Home › Level 1 › Level 2 › Level 3 trail                                      | `default`                                                 |
+| [`ButtonLink`](ButtonLink/README.md)             | A single centered outline CTA button                                          | `default`                                                 |
+| [`Callout`](Callout/README.md)                   | A bordered, colored box for a note/warning/highlight                          | `default`                                                 |
+| [`DisclosureList`](DisclosureList/README.md)     | One collapsible topic with an optional box, download buttons, and a link      | `default`                                                 |
+| [`FaqAnswerSwap`](FaqAnswerSwap/README.md)       | Client-side Q&A card with a related-question switcher (no navigation)         | `default`                                                 |
+| [`FaqAccordion`](FaqAccordion/README.md)         | ⚠️ Ported reference copy — FAQ sidebar topic-switcher + generic Q&A accordion | `default`, `sidebar_nav`                                  |
+| [`FaqQuestionList`](FaqQuestionList/README.md)   | FAQ category/question lists — 5 different layouts                             | `default`, `grid`, `accordion`, `footer_grid`, `withicon` |
+| [`FileDownloadList`](FileDownloadList/README.md) | Outline download buttons with a file-size caption                             | `default`                                                 |
+| [`ImageBlock`](ImageBlock/README.md)             | A single image with an optional caption                                       | `default`                                                 |
+| [`InfoCardList`](InfoCardList/README.md)         | Stacked bordered info cards (title + body)                                    | `default`                                                 |
+| [`LinkList`](LinkList/README.md)                 | An optional heading + a stacked list of chevron links                         | `default`                                                 |
+| [`PageTitle`](PageTitle/README.md)               | The page's H1 + optional subtitle                                             | `default`                                                 |
+| [`QuestionAnswer`](QuestionAnswer/README.md)     | ⚠️ Ported reference copy — topic-filtered answer card + related links         | `default`                                                 |
+| [`QuestionList`](QuestionList/README.md)         | ⚠️ Ported reference copy — topic-filtered question list                       | `default`                                                 |
+| [`RichTextSection`](RichTextSection/README.md)   | Heading + body rich text, with per-block/per-line size & color                | `default`                                                 |
 
 ## Conventions used across every slice
 

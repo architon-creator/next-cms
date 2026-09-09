@@ -1,15 +1,15 @@
 # FAQ Pages — Implementation Guide (Level 1 / 2 / 3)
 
-> ⚠️ **The step-by-step guide below (sections 0–12) describes this sandbox repo's own, simpler prototype** (per-category slice instances, a `current: Boolean` flag to mark the active one, client-side-only swapping with no URL sync). The real project's slice *components* are more advanced — topic-keyed `Select` fields correlating `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a shared `FaqTopicProvider` Context with fully-derived "current" state, and `router.replace(...?topic=X, {scroll:false})` keeping every click shareable via URL — **but as of this writing, the real project has not yet wired those components into actual level 1/2/3 pages.** See [Real-project plan](#real-project-plan-level-123-with-the-topic-key-slices) below for that design. Don't use sections 0–12 (the old step-by-step guide) as a template for the real project — it would be a downgrade from the components already built there.
+> ⚠️ **The step-by-step guide below (sections 0–12) describes this sandbox repo's own, simpler prototype** (per-category slice instances, a `current: Boolean` flag to mark the active one, client-side-only swapping with no URL sync). The real project's slice _components_ are more advanced — topic-keyed `Select` fields correlating `FaqAccordion`/`QuestionListSlice`/`QuestionAnswerSlice`, a shared `FaqTopicProvider` Context with fully-derived "current" state, and `router.replace(...?topic=X, {scroll:false})` keeping every click shareable via URL — **but as of this writing, the real project has not yet wired those components into actual level 1/2/3 pages.** See [Real-project plan](#real-project-plan-level-123-with-the-topic-key-slices) below for that design. Don't use sections 0–12 (the old step-by-step guide) as a template for the real project — it would be a downgrade from the components already built there.
 
 ## Real-project plan: Level 1/2/3 with the topic-key slices
 
 **Status: proposed, not yet built.** This is a design based on reading `FaqAccordion`, `QuestionList`, `QuestionAnswer`, and `FaqTopicProvider`'s actual code (ported into this repo as reference copies under `packages/cms/src/slices/`) — not a description of something that already exists. Two hard constraints came directly from the code, not from guesswork:
 
 1. **`FaqAccordion`'s `sidebar_nav` variation calls `useFaqTopic()` unconditionally** — it throws if rendered outside a `FaqTopicProvider`. So it can only ever appear on a page that's wrapped in that provider.
-2. **Its click handler never does a full navigation to a different document** — `handleSelect` calls `setActiveTopic(topic)` (client state) and `router.replace(`${pathname}?topic=${topic}`, { scroll: false })` (same-page shallow URL update). There is no code path where clicking a sidebar link sends you to a *different* page.
+2. **Its click handler never does a full navigation to a different document** — `handleSelect` calls `setActiveTopic(topic)` (client state) and `router.replace(`${pathname}?topic=${topic}`, { scroll: false })` (same-page shallow URL update). There is no code path where clicking a sidebar link sends you to a _different_ page.
 
-Together, these mean: **levels 2 and 3 can't be separate documents** the way this sandbox's `FaqQuestionList`/`FaqAnswerSwap` model does it — the sidebar, the question list, and the answer all have to live on **one page**, switching in place. Level 1 (the hub) has to be a genuinely different, separate page, since nothing about the topic-switcher is designed to link *out* to another URL.
+Together, these mean: **levels 2 and 3 can't be separate documents** the way this sandbox's `FaqQuestionList`/`FaqAnswerSwap` model does it — the sidebar, the question list, and the answer all have to live on **one page**, switching in place. Level 1 (the hub) has to be a genuinely different, separate page, since nothing about the topic-switcher is designed to link _out_ to another URL.
 
 ### Level 1 — Hub (`/faq`, or similar)
 
@@ -31,11 +31,11 @@ Purpose: browse a category's topics and read answers, all without a page reload.
 
 ### Open decision before building
 
-If you want a specific *question* (not just topic) to have its own real URL (deep-linkable independent of the topic-switcher, indexable per-question) — the current model doesn't support that; `QuestionAnswer` only ever shows one answer per topic (the first `items` entry matching `activeTopic`), not one per question. That would need either a real "one question per topic" rule enforced by convention, or a further schema change. Worth deciding before authoring content at scale.
+If you want a specific _question_ (not just topic) to have its own real URL (deep-linkable independent of the topic-switcher, indexable per-question) — the current model doesn't support that; `QuestionAnswer` only ever shows one answer per topic (the first `items` entry matching `activeTopic`), not one per question. That would need either a real "one question per topic" rule enforced by convention, or a further schema change. Worth deciding before authoring content at scale.
 
 ---
 
-A step-by-step build guide for a **different**, simpler 3-level FAQ system (hub → category → question, one document per question) — this sandbox's own prototype, not the plan above. Follow the steps in order if you want to build *this* version instead; later steps assume earlier ones are done.
+A step-by-step build guide for a **different**, simpler 3-level FAQ system (hub → category → question, one document per question) — this sandbox's own prototype, not the plan above. Follow the steps in order if you want to build _this_ version instead; later steps assume earlier ones are done.
 
 ## 0. Prerequisites
 
@@ -52,20 +52,20 @@ If any of these are missing, set them up first; this guide only covers the FAQ-s
 
 Three levels of `content_page` documents, sharing the same zone shape:
 
-| Level | Purpose | Example UID |
-|---|---|---|
-| **1 — Hub** | Lists every category, each with all its questions inline. Entry point (e.g. `/faq`). | `faq` |
-| **2 — Category** | One page per category, listing that category's questions as a nav list. | `network-and-timetable` |
+| Level            | Purpose                                                                                                                 | Example UID                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| **1 — Hub**      | Lists every category, each with all its questions inline. Entry point (e.g. `/faq`).                                    | `faq`                      |
+| **2 — Category** | One page per category, listing that category's questions as a nav list.                                                 | `network-and-timetable`    |
 | **3 — Question** | Shows one question's answer, with a switcher to related questions in the same category — no page reload when switching. | `where-does-zipair-fly-to` |
 
 Zone usage per level:
 
-| Zone | Level 1 | Level 2 | Level 3 |
-|---|---|---|---|
-| **Heading** | *(none — flat hub page)* | `PageTitle` + `Breadcrumbs` | `PageTitle` + `Breadcrumbs` |
-| **Main** | N× `FaqQuestionList` (`grid`) — one per category | 1× `FaqQuestionList` (`default`) | 1× `FaqAnswerSwap` |
-| **Aside** | *(none)* | N× `FaqQuestionList` (`accordion`) — one per category, current one expanded | Same as Level 2 |
-| **Footer** | *(none)* | N× `FaqQuestionList` (`footer_grid`) — one per category, 4-col grid | Same as Level 2 |
+| Zone        | Level 1                                          | Level 2                                                                     | Level 3                     |
+| ----------- | ------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------- |
+| **Heading** | _(none — flat hub page)_                         | `PageTitle` + `Breadcrumbs`                                                 | `PageTitle` + `Breadcrumbs` |
+| **Main**    | N× `FaqQuestionList` (`grid`) — one per category | 1× `FaqQuestionList` (`default`)                                            | 1× `FaqAnswerSwap`          |
+| **Aside**   | _(none)_                                         | N× `FaqQuestionList` (`accordion`) — one per category, current one expanded | Same as Level 2             |
+| **Footer**  | _(none)_                                         | N× `FaqQuestionList` (`footer_grid`) — one per category, 4-col grid         | Same as Level 2             |
 
 All category-list slices (`grid`/`accordion`/`footer_grid`) point at the **same set of URLs** and are independent slice instances with duplicated link data — there's no shared data source. Adding a category means updating it in 3 places (the level-1 `grid` block, and every level-2/3 page's `accordion` + `footer_grid` instances). This is a deliberate consequence of a hard Prismic constraint — see [Pitfall 1](#pitfalls--gotchas).
 
@@ -86,15 +86,22 @@ type PageProps = { params: { uid: string } };
 
 export default async function Page({ params }: PageProps) {
   const client = createClient();
-  const page = await client
-    .getByUID("content_page", params.uid)
-    .catch(() => notFound());
+  const page = await client.getByUID("content_page", params.uid).catch(() => notFound());
 
   const context: PageContext = {
     breadcrumbs: [
-      { label: page.data.breadcrumb_level_1_label, href: page.data.breadcrumb_level_1_href },
-      { label: page.data.breadcrumb_level_2_label, href: page.data.breadcrumb_level_2_href },
-      { label: page.data.breadcrumb_level_3_label, href: page.data.breadcrumb_level_3_href },
+      {
+        label: page.data.breadcrumb_level_1_label,
+        href: page.data.breadcrumb_level_1_href,
+      },
+      {
+        label: page.data.breadcrumb_level_2_label,
+        href: page.data.breadcrumb_level_2_href,
+      },
+      {
+        label: page.data.breadcrumb_level_3_label,
+        href: page.data.breadcrumb_level_3_href,
+      },
     ],
   };
 
@@ -124,7 +131,11 @@ export default async function Page({ params }: PageProps) {
 
       {hasFooter ? (
         <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
-          <SliceZone slices={page.data.footer} components={components} context={context} />
+          <SliceZone
+            slices={page.data.footer}
+            components={components}
+            context={context}
+          />
         </footer>
       ) : null}
     </div>
@@ -202,9 +213,7 @@ import { JSXMapSerializer, PrismicRichText, SliceComponentProps } from "@prismic
 export type PageTitleProps = SliceComponentProps<Content.PageTitleSlice>;
 
 const components: JSXMapSerializer = {
-  heading1: ({ children }) => (
-    <h1 className="mb-2 text-4xl font-semibold">{children}</h1>
-  ),
+  heading1: ({ children }) => <h1 className="mb-2 text-4xl font-semibold">{children}</h1>,
 };
 
 export default function PageTitle({ slice }: PageTitleProps) {
@@ -265,8 +274,17 @@ export type BreadcrumbsProps = SliceComponentProps<Content.BreadcrumbsSlice, Pag
 
 function HomeIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M3 11.5 12 4l9 7.5" />
       <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
     </svg>
@@ -275,9 +293,18 @@ function HomeIcon() {
 
 function ChevronSeparator() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
-      className="text-muted-foreground">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="text-muted-foreground"
+    >
       <path d="m9 6 6 6-6 6" />
     </svg>
   );
@@ -289,7 +316,11 @@ export default function Breadcrumbs({ slice, context }: BreadcrumbsProps) {
   if (crumbs.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" data-slice-type={slice.slice_type} data-slice-variation={slice.variation}>
+    <nav
+      aria-label="Breadcrumb"
+      data-slice-type={slice.slice_type}
+      data-slice-variation={slice.variation}
+    >
       <ol className="m-0 flex list-none items-center gap-1.5 p-0">
         <li className="flex items-center gap-1.5">
           <a href="/" className="inline-flex text-primary" aria-label="Home">
@@ -300,7 +331,10 @@ export default function Breadcrumbs({ slice, context }: BreadcrumbsProps) {
         {crumbs.map((crumb, index) => (
           <li className="flex items-center gap-1.5" key={`${crumb.label}-${index}`}>
             {crumb.href ? (
-              <a href={crumb.href} className="text-muted-foreground no-underline hover:text-primary">
+              <a
+                href={crumb.href}
+                className="text-muted-foreground no-underline hover:text-primary"
+              >
                 {crumb.label}
               </a>
             ) : (
@@ -388,7 +422,10 @@ The workhorse — 4 variations covering every FAQ layout need. All variations sh
         },
         "current": {
           "type": "Boolean",
-          "config": { "label": "Current Category (starts expanded)", "placeholder": "false" }
+          "config": {
+            "label": "Current Category (starts expanded)",
+            "placeholder": "false"
+          }
         }
       },
       "items": {
@@ -443,8 +480,18 @@ export type FaqQuestionListProps = SliceComponentProps<Content.FaqQuestionListSl
 
 function ChevronRight({ className }: { className?: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
       <path d="m9 6 6 6-6 6" />
     </svg>
   );
@@ -468,14 +515,20 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
       >
         <AccordionItem value="category" className="border-b-0">
           <AccordionTrigger className="items-center! gap-3 py-2!">
-            <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+            <PrismicRichText
+              field={slice.primary.heading}
+              components={headingComponents}
+            />
           </AccordionTrigger>
           <AccordionContent>
             <ul className="mt-3 flex list-none flex-col gap-2 pl-1">
               {slice.items.map((item, index) => (
                 <li key={`${item.question}-${index}`}>
                   {item.href ? (
-                    <Link href={item.href} className="text-primary no-underline hover:underline">
+                    <Link
+                      href={item.href}
+                      className="text-primary no-underline hover:underline"
+                    >
                       {item.question}
                     </Link>
                   ) : (
@@ -496,7 +549,10 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
         {slice.items.map((item, index) => (
           <li key={`${item.question}-${index}`}>
             {item.href ? (
-              <Link href={item.href} className="text-primary no-underline hover:underline">
+              <Link
+                href={item.href}
+                className="text-primary no-underline hover:underline"
+              >
                 {item.question}
               </Link>
             ) : (
@@ -511,19 +567,27 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
       <div data-slice-type={slice.slice_type} data-slice-variation={slice.variation}>
         <div className="hidden sm:block">
           <div className="mb-3 font-bold">
-            <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+            <PrismicRichText
+              field={slice.primary.heading}
+              components={headingComponents}
+            />
           </div>
           {links}
         </div>
 
         <div className="sm:hidden">
           {slice.primary.mobile_section_heading ? (
-            <h2 className="mb-2 text-xl font-bold">{slice.primary.mobile_section_heading}</h2>
+            <h2 className="mb-2 text-xl font-bold">
+              {slice.primary.mobile_section_heading}
+            </h2>
           ) : null}
           <Accordion type="single" collapsible className="border-b">
             <AccordionItem value="category" className="border-t border-b-0">
               <AccordionTrigger className="items-center! gap-3 py-3!">
-                <PrismicRichText field={slice.primary.heading} components={headingComponents} />
+                <PrismicRichText
+                  field={slice.primary.heading}
+                  components={headingComponents}
+                />
               </AccordionTrigger>
               <AccordionContent>{links}</AccordionContent>
             </AccordionItem>
@@ -546,7 +610,11 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {slice.items.map((item, index) =>
             item.href ? (
-              <Link key={`${item.question}-${index}`} href={item.href} className="text-primary underline">
+              <Link
+                key={`${item.question}-${index}`}
+                href={item.href}
+                className="text-primary underline"
+              >
                 {item.question}
               </Link>
             ) : (
@@ -559,7 +627,11 @@ export default function FaqQuestionList({ slice }: FaqQuestionListProps) {
   }
 
   return (
-    <section className="mt-6" data-slice-type={slice.slice_type} data-slice-variation={slice.variation}>
+    <section
+      className="mt-6"
+      data-slice-type={slice.slice_type}
+      data-slice-variation={slice.variation}
+    >
       <PrismicRichText field={slice.primary.heading} />
       <PrismicRichText field={slice.primary.description} />
       <ol className="mt-4 list-none p-0">
@@ -618,7 +690,10 @@ The level-3 "active answer + related-question switcher" card. This is the **only
         }
       },
       "items": {
-        "question": { "type": "Text", "config": { "label": "Question", "placeholder": "" } },
+        "question": {
+          "type": "Text",
+          "config": { "label": "Question", "placeholder": "" }
+        },
         "answer": {
           "type": "StructuredText",
           "config": {
@@ -654,7 +729,11 @@ export default function FaqAnswerSwap({ slice }: FaqAnswerSwapProps) {
   if (!active) return null;
 
   return (
-    <div className="mt-6 flex flex-col gap-4" data-slice-type={slice.slice_type} data-slice-variation={slice.variation}>
+    <div
+      className="mt-6 flex flex-col gap-4"
+      data-slice-type={slice.slice_type}
+      data-slice-variation={slice.variation}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">{active.question}</CardTitle>
@@ -742,7 +821,9 @@ Main zone: one `FaqQuestionList` (`grid`) instance per category.
 ```json
 {
   "primary": {
-    "heading": [{ "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }]
+    "heading": [
+      { "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }
+    ]
   },
   "items": [
     { "question": "Network and Timetable", "href": "/network-and-timetable" },
@@ -776,7 +857,9 @@ Repeat for each category, stacked in the same Main zone. No Heading/Aside/Footer
 // Aside — repeat once per category; current:true only on the matching one
 {
   "primary": {
-    "heading": [{ "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }],
+    "heading": [
+      { "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }
+    ],
     "current": true
   },
   "items": [
@@ -799,11 +882,21 @@ Repeat for each category, stacked in the same Main zone. No Heading/Aside/Footer
   "items": [
     {
       "question": "Where does ZIPAIR fly to?",
-      "answer": [{ "type": "paragraph", "content": { "text": "ZIPAIR currently flies to...", "spans": [] } }]
+      "answer": [
+        {
+          "type": "paragraph",
+          "content": { "text": "ZIPAIR currently flies to...", "spans": [] }
+        }
+      ]
     },
     {
       "question": "Where can I check the flight status?",
-      "answer": [{ "type": "paragraph", "content": { "text": "You can check flight status on...", "spans": [] } }]
+      "answer": [
+        {
+          "type": "paragraph",
+          "content": { "text": "You can check flight status on...", "spans": [] }
+        }
+      ]
     }
   ]
 }
@@ -820,12 +913,17 @@ Every one of these was hit for real while building this system — check your im
 5. **Decide deliberately between "separate pages" and "one client-side swap card"** for a group of related questions:
    - Separate pages (`FaqQuestionList` `default`, normal `Link` navigation) — each question gets its own URL/SEO/breadcrumb. Use this whenever questions need to be independently linkable/indexable.
    - One `FaqAnswerSwap` card (client-side state, no navigation) — only the page's own URL exists; switching between questions is invisible to the URL bar, browser history, and search engines. Don't use this for content that needs to be deep-linked or is business-critical for SEO per-question.
-   - Don't try to make a plain link list *look* like it's "inside" a collapsible/interactive element via CSS alone (matching backgrounds, touching border-radii) if it's actually a separate component — it will visually work until someone interacts with the surrounding collapse state, then break. Put related content in the same component/state scope if it needs to behave as one unit.
+   - Don't try to make a plain link list _look_ like it's "inside" a collapsible/interactive element via CSS alone (matching backgrounds, touching border-radii) if it's actually a separate component — it will visually work until someone interacts with the surrounding collapse state, then break. Put related content in the same component/state scope if it needs to behave as one unit.
 6. **A rich-text field's `labels` config (e.g. `muted`, `small`, `accent`, `highlight`) does nothing on its own.** You must also pass a matching `components` prop to `PrismicRichText` that maps each label to a Tailwind class, e.g.:
    ```tsx
    const richTextLabelComponents: JSXMapSerializer = {
      label: ({ node, children }) => (
-       <span className={{ muted: "text-muted-foreground", small: "text-[0.875em]" }[node.data.label] ?? ""}>
+       <span
+         className={
+           { muted: "text-muted-foreground", small: "text-[0.875em]" }[node.data.label] ??
+           ""
+         }
+       >
          {children}
        </span>
      ),

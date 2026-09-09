@@ -10,7 +10,7 @@ A standalone stack of outline download buttons, each with a label and a "File Si
 
 ## When NOT to use
 
-- **Download buttons belong inside a `DisclosureList` topic's box** (the common case — e.g. "submit this form for X topic") → use `DisclosureList`'s own `files` field instead of this slice. A separate `FileDownloadList` instance placed after a `DisclosureList` item is a **different slice, not inside the accordion** — collapsing that topic won't hide the buttons, and no CSS trick changes that (this was tried: matching backgrounds/rounded corners can make two adjacent slices *look* like one box, but they still don't collapse together). This is exactly the mistake that was corrected on `special-assistance`.
+- **Download buttons belong inside a `DisclosureList` topic's box** (the common case — e.g. "submit this form for X topic") → use `DisclosureList`'s own `files` field instead of this slice. A separate `FileDownloadList` instance placed after a `DisclosureList` item is a **different slice, not inside the accordion** — collapsing that topic won't hide the buttons, and no CSS trick changes that (this was tried: matching backgrounds/rounded corners can make two adjacent slices _look_ like one box, but they still don't collapse together). This is exactly the mistake that was corrected on `special-assistance`.
 
 ## Variation: `default`
 
@@ -18,18 +18,22 @@ No primary fields.
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `label` | Text | Yes | Button text. |
-| `file` | Link (target-blank allowed; typically a Media link) | No | If empty, the button renders `disabled` instead of as a link. |
-| `file_size` | Text | No | Freeform, e.g. `504KB`. Caption below the button, only rendered if set. |
+| Field       | Type                                                | Required | Notes                                                                   |
+| ----------- | --------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `label`     | Text                                                | Yes      | Button text.                                                            |
+| `file`      | Link (target-blank allowed; typically a Media link) | No       | If empty, the button renders `disabled` instead of as a link.           |
+| `file_size` | Text                                                | No       | Freeform, e.g. `504KB`. Caption below the button, only rendered if set. |
 
 ### Example content
 
 ```json
 {
   "items": [
-    { "label": "MEDICAL INFORMATION FORM (Questionnaire)", "file": { "url": "#" }, "file_size": "504KB" },
+    {
+      "label": "MEDICAL INFORMATION FORM (Questionnaire)",
+      "file": { "url": "#" },
+      "file_size": "504KB"
+    },
     { "label": "US DOT Form", "file": { "url": "#" }, "file_size": "369KB" }
   ]
 }

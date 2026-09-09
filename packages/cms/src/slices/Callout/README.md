@@ -17,11 +17,11 @@ A bordered, colored box for a multi-line note, warning, or highlighted block.
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `style` | Select: `Neutral` \| `Info` \| `Warning` \| `Success` | No (defaults to `Neutral`) | Controls background/border tint — see [Styling conventions](#styling-conventions). |
-| `heading` | Rich Text (single: `heading3,heading4`) | No | Rendered inside a `CardTitle`; omitted entirely (no empty header) if left blank. |
-| `body` | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | No | Main content. |
+| Field     | Type                                                                     | Required                   | Notes                                                                              |
+| --------- | ------------------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------- |
+| `style`   | Select: `Neutral` \| `Info` \| `Warning` \| `Success`                    | No (defaults to `Neutral`) | Controls background/border tint — see [Styling conventions](#styling-conventions). |
+| `heading` | Rich Text (single: `heading3,heading4`)                                  | No                         | Rendered inside a `CardTitle`; omitted entirely (no empty header) if left blank.   |
+| `body`    | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`) | No                         | Main content.                                                                      |
 
 No item fields.
 
@@ -30,9 +30,14 @@ No item fields.
 ```json
 {
   "style": "Neutral",
-  "heading": [{ "type": "heading3", "content": { "text": "【Special Assistance】", "spans": [] } }],
+  "heading": [
+    { "type": "heading3", "content": { "text": "【Special Assistance】", "spans": [] } }
+  ],
   "body": [
-    { "type": "paragraph", "content": { "text": "If you require support for a wheelchair...", "spans": [] } },
+    {
+      "type": "paragraph",
+      "content": { "text": "If you require support for a wheelchair...", "spans": [] }
+    },
     { "type": "list-item", "content": { "text": "Booking Number", "spans": [] } }
   ]
 }
@@ -47,14 +52,15 @@ No item fields.
 
 - Style-to-class lookup (`styleClasses` in `index.tsx`):
 
-  | `style` | Classes |
-  |---|---|
-  | `Neutral` | `bg-muted border-border` |
-  | `Info` | `bg-[#eaf6f3] border-primary` |
+  | `style`   | Classes                         |
+  | --------- | ------------------------------- |
+  | `Neutral` | `bg-muted border-border`        |
+  | `Info`    | `bg-[#eaf6f3] border-primary`   |
   | `Warning` | `bg-[#fff8e6] border-[#e0a300]` |
   | `Success` | `bg-[#eaf8ee] border-[#2e9e4f]` |
 
   The `Info`/`Warning`/`Success` tints are deliberately off-palette (not `bg-primary`/design tokens) — they're semantic status colors, not brand colors, and don't have a corresponding token in `app/globals.css`.
+
 - `CardTitle` font size overridden to `text-[1.05rem]` (smaller than shadcn's default `Card` title size).
 - Body paragraphs: `[&_p]:mb-2 [&_p:last-child]:mb-0 [&_p]:leading-relaxed`.
 

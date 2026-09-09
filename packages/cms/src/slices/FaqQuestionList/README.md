@@ -6,13 +6,13 @@ The FAQ system's workhorse slice — five variations covering every layout the F
 
 ## Variation quick-reference
 
-| Variation | Zone it belongs in | Shape | Collapsible? |
-|---|---|---|---|
-| `default` | Main | One category's question list (chevron nav rows) | No |
-| `grid` | Main (level-1 hub only) | Category heading + inline-wrapped topic links | No |
-| `accordion` | Aside | One category, collapsed/expanded per the `current` field | Yes (desktop and mobile) |
-| `footer_grid` | Footer | One category tile in a 4-column grid | No on `sm:`+, yes (mobile-only) below `sm:` |
-| `withicon` | — | **Not implemented** — see [Known limitations](#known-limitations) | — |
+| Variation     | Zone it belongs in      | Shape                                                             | Collapsible?                                |
+| ------------- | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| `default`     | Main                    | One category's question list (chevron nav rows)                   | No                                          |
+| `grid`        | Main (level-1 hub only) | Category heading + inline-wrapped topic links                     | No                                          |
+| `accordion`   | Aside                   | One category, collapsed/expanded per the `current` field          | Yes (desktop and mobile)                    |
+| `footer_grid` | Footer                  | One category tile in a 4-column grid                              | No on `sm:`+, yes (mobile-only) below `sm:` |
+| `withicon`    | —                       | **Not implemented** — see [Known limitations](#known-limitations) | —                                           |
 
 Because `accordion` and `footer_grid` each represent **one category**, a page with 6 categories needs **6 slice instances** of that variation, stacked in the same zone (Prismic can't nest a repeatable "questions" group inside a repeatable "categories" group — see the [slice library conventions](../README.md#conventions-used-across-every-slice)).
 
@@ -24,19 +24,19 @@ The question list for whichever category the current level-2/3 page belongs to.
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | No | Rendered above the list if set; usually left blank since the page's `PageTitle` already carries this. |
-| `description` | Rich Text (multi) | No | Rendered below `heading`, above the list. |
-| `number` | Number | No | **Unused legacy field** — not read by the component. |
-| `text` | Text | No | **Unused legacy field** — not read by the component. |
+| Field         | Type                                              | Required | Notes                                                                                                 |
+| ------------- | ------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `heading`     | Rich Text (single: `heading2,heading3,strong,em`) | No       | Rendered above the list if set; usually left blank since the page's `PageTitle` already carries this. |
+| `description` | Rich Text (multi)                                 | No       | Rendered below `heading`, above the list.                                                             |
+| `number`      | Number                                            | No       | **Unused legacy field** — not read by the component.                                                  |
+| `text`        | Text                                              | No       | **Unused legacy field** — not read by the component.                                                  |
 
 ### Item fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `question` | Text | Yes | The row's label. |
-| `href` | Text (plain string) | No | If set, the row is a link; otherwise a static row. |
+| Field      | Type                | Required | Notes                                              |
+| ---------- | ------------------- | -------- | -------------------------------------------------- |
+| `question` | Text                | Yes      | The row's label.                                   |
+| `href`     | Text (plain string) | No       | If set, the row is a link; otherwise a static row. |
 
 ### Example content
 
@@ -61,10 +61,10 @@ The level-1 FAQ hub's per-category block: a bold heading followed by all of that
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | Yes (in practice) | Category name, e.g. "About Reservations". |
-| `description` | Rich Text (multi) | No | Not rendered in the current markup — model carries it for parity with other variations, but the `grid` render branch never reads it. |
+| Field         | Type                                              | Required          | Notes                                                                                                                                |
+| ------------- | ------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `heading`     | Rich Text (single: `heading2,heading3,strong,em`) | Yes (in practice) | Category name, e.g. "About Reservations".                                                                                            |
+| `description` | Rich Text (multi)                                 | No                | Not rendered in the current markup — model carries it for parity with other variations, but the `grid` render branch never reads it. |
 
 ### Item fields
 
@@ -74,7 +74,11 @@ Same as `default` (`question`, `href`).
 
 ```json
 {
-  "primary": { "heading": [{ "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }] },
+  "primary": {
+    "heading": [
+      { "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }
+    ]
+  },
   "items": [
     { "question": "Network and Timetable", "href": "/network-and-timetable" },
     { "question": "Booking", "href": "#" }
@@ -94,10 +98,10 @@ One collapsible category, for the level-2/3 pages' Aside sidebar. Six of these (
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | Yes | Category name. |
-| `current` | Boolean | No (defaults false) | `true` on the category matching the page you're viewing — makes it start expanded. All other instances on the same page should be `false`. |
+| Field     | Type                                              | Required            | Notes                                                                                                                                      |
+| --------- | ------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | Yes                 | Category name.                                                                                                                             |
+| `current` | Boolean                                           | No (defaults false) | `true` on the category matching the page you're viewing — makes it start expanded. All other instances on the same page should be `false`. |
 
 ### Item fields
 
@@ -108,7 +112,9 @@ Same as `default` (`question`, `href`) — each item is one topic link inside th
 ```json
 {
   "primary": {
-    "heading": [{ "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }],
+    "heading": [
+      { "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }
+    ],
     "current": true
   },
   "items": [
@@ -131,10 +137,10 @@ One always-visible category tile for the level-2/3 pages' Footer zone, laid out 
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `heading` | Rich Text (single: `heading2,heading3,strong,em`) | Yes | Category name. |
-| `mobile_section_heading` | Text | No | **Set on the first tile only** (e.g. "About Reservations" if it's category #1). Renders as a heading above the whole grid, mobile-only. Leave blank on every other tile in the group. |
+| Field                    | Type                                              | Required | Notes                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heading`                | Rich Text (single: `heading2,heading3,strong,em`) | Yes      | Category name.                                                                                                                                                                        |
+| `mobile_section_heading` | Text                                              | No       | **Set on the first tile only** (e.g. "About Reservations" if it's category #1). Renders as a heading above the whole grid, mobile-only. Leave blank on every other tile in the group. |
 
 ### Item fields
 
@@ -145,12 +151,12 @@ Same as `default`.
 ```json
 {
   "primary": {
-    "heading": [{ "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }],
+    "heading": [
+      { "type": "heading3", "content": { "text": "About Reservations", "spans": [] } }
+    ],
     "mobile_section_heading": "User Guide"
   },
-  "items": [
-    { "question": "Network and Timetable", "href": "/network-and-timetable" }
-  ]
+  "items": [{ "question": "Network and Timetable", "href": "/network-and-timetable" }]
 }
 ```
 

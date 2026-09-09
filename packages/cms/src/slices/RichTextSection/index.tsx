@@ -4,8 +4,7 @@ import { PrismicRichText, SliceComponentProps } from "@prismicio/react";
 import { cn } from "../../lib/utils";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
 
-export type RichTextSectionProps =
-  SliceComponentProps<Content.RichTextSectionSlice>;
+export type RichTextSectionProps = SliceComponentProps<Content.RichTextSectionSlice>;
 
 const sizeClasses: Record<string, string> = {
   Small: "text-sm",
@@ -33,7 +32,10 @@ export default function RichTextSection({ slice }: RichTextSectionProps) {
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
-      <PrismicRichText field={slice.primary.heading} components={richTextLabelComponents} />
+      <PrismicRichText
+        field={slice.primary.heading}
+        components={richTextLabelComponents}
+      />
       <PrismicRichText field={slice.primary.body} components={richTextLabelComponents} />
 
       {slice.items.map((item, index) => {

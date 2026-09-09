@@ -8,11 +8,11 @@ The `Home › Level 1 › Level 2 › Level 3` trail at the top of a page.
 
 Unlike every other slice, **the actual crumb labels/links are not slice fields**. They come from four **top-level fields on the `content_page` document itself** (Heading tab):
 
-| Document field | Purpose |
-|---|---|
+| Document field                                         | Purpose                 |
+| ------------------------------------------------------ | ----------------------- |
 | `breadcrumb_level_1_label` / `breadcrumb_level_1_href` | First crumb after Home. |
-| `breadcrumb_level_2_label` / `breadcrumb_level_2_href` | Second crumb. |
-| `breadcrumb_level_3_label` / `breadcrumb_level_3_href` | Third crumb. |
+| `breadcrumb_level_2_label` / `breadcrumb_level_2_href` | Second crumb.           |
+| `breadcrumb_level_3_label` / `breadcrumb_level_3_href` | Third crumb.            |
 
 `app/[uid]/page.tsx` reads these four document fields and threads them into every slice on the page as `context.breadcrumbs` (see `PageContext` in `slices/index.ts`). The `Breadcrumbs` component reads `context.breadcrumbs`, not `slice.primary`/`slice.items`.
 
@@ -30,9 +30,9 @@ Once per page, in the Heading zone. There's no reason to have more than one.
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `separator` | Text | No | **Defined in the schema but not currently read by the component** — see [Known limitations](#known-limitations). Placeholder is `/`. |
+| Field       | Type | Required | Notes                                                                                                                                |
+| ----------- | ---- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `separator` | Text | No       | **Defined in the schema but not currently read by the component** — see [Known limitations](#known-limitations). Placeholder is `/`. |
 
 No item fields.
 

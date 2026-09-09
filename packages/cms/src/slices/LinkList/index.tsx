@@ -6,12 +6,8 @@ import { ChevronLink } from "../../components/ui/chevron-link";
 export type LinkListProps = SliceComponentProps<Content.LinkListSlice>;
 
 const headingComponents: JSXMapSerializer = {
-  heading2: ({ children }) => (
-    <h2 className="mb-3 text-xl font-semibold">{children}</h2>
-  ),
-  heading3: ({ children }) => (
-    <h3 className="mb-3 text-xl font-semibold">{children}</h3>
-  ),
+  heading2: ({ children }) => <h2 className="mb-3 text-xl font-semibold">{children}</h2>,
+  heading3: ({ children }) => <h3 className="mb-3 text-xl font-semibold">{children}</h3>,
 };
 
 export default function LinkList({ slice }: LinkListProps) {

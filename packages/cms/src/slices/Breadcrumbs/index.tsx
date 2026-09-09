@@ -58,11 +58,7 @@ export default function Breadcrumbs({ slice }: BreadcrumbsProps) {
     >
       <ol className="m-0 flex list-none items-center gap-1.5 p-0">
         <li className="flex items-center gap-1.5">
-          <a
-            href="/"
-            className="inline-flex text-primary"
-            aria-label="Home"
-          >
+          <a href="/" className="inline-flex text-primary" aria-label="Home">
             <HomeIcon />
           </a>
           <ChevronSeparator />

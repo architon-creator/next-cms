@@ -26,7 +26,11 @@ type SidebarNavLink = {
 /**
  * Sidebar-nav variation: groups links by category, drives `activeTopic` via FaqTopicProvider.
  */
-function FaqAccordionSidebarNav({ slice }: { slice: Content.FaqAccordionSliceSidebarNav }) {
+function FaqAccordionSidebarNav({
+  slice,
+}: {
+  slice: Content.FaqAccordionSliceSidebarNav;
+}) {
   const { activeTopic, setActiveTopic } = useFaqTopic();
   const router = useRouter();
   const pathname = usePathname();
@@ -106,7 +110,10 @@ const FaqAccordion: FC<FaqAccordionProps> = ({ slice }) => {
       ) : null}
       <Accordion type="single" collapsible className="space-y-2">
         {(slice.primary.qa ?? []).map((item) => (
-          <AccordionItem key={`${slice.id ?? "faq"}-${item.question}`} value={item.question ?? ""}>
+          <AccordionItem
+            key={`${slice.id ?? "faq"}-${item.question}`}
+            value={item.question ?? ""}
+          >
             <AccordionTrigger>{item.question}</AccordionTrigger>
             <AccordionContent>
               <PrismicRichText field={item.answer} />

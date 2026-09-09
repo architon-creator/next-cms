@@ -16,10 +16,10 @@ A single image with an optional caption.
 
 ### Primary fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `image` | Image | Yes (in practice) | If empty, the whole slice renders nothing (`isFilled.image` guard). |
-| `caption` | Text | No | Rendered as a `<figcaption>` below the image, only if set. |
+| Field     | Type  | Required          | Notes                                                               |
+| --------- | ----- | ----------------- | ------------------------------------------------------------------- |
+| `image`   | Image | Yes (in practice) | If empty, the whole slice renders nothing (`isFilled.image` guard). |
+| `caption` | Text  | No                | Rendered as a `<figcaption>` below the image, only if set.          |
 
 No item fields.
 
