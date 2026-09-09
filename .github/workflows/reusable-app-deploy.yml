@@ -2,8 +2,10 @@ name: Reusable App Deploy
 
 # Explicitly triggers a Vercel deployment via the Vercel CLI and waits for
 # it to finish, instead of relying on Vercel's own git-integration
-# auto-deploy. `vercel deploy` blocks until the deployment is built and
-# ready, so no separate "wait" step is needed.
+# auto-deploy. Split into separate build and deploy jobs (mirroring the
+# real project's ci -> build -> deploy structure and the artifact-handoff
+# pattern used in reusable-app-build.yml) rather than running `vercel
+# build` and `vercel deploy` back-to-back in one job.
 #
 # Requires VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID as secrets on
 # the calling workflow (none of these exist yet in this repo — see the
@@ -38,10 +40,8 @@ on:
         value: ${{ jobs.deploy.outputs.deployment_url }}
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
     permissions:
       contents: read
     env:
@@ -73,6 +73,38 @@ jobs:
           else
             vercel build --token="$VERCEL_TOKEN"
           fi
+
+      # Uploads the whole .vercel/ directory, not just .vercel/output —
+      # `vercel deploy --prebuilt` also needs .vercel/project.json (written
+      # by `vercel pull` above) to know which project/org it's deploying to.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-vercel-build
+          path: ${{ inputs.app_path }}/.vercel
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    permissions:
+      contents: read
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.app_path }}
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-vercel-build
+          path: ${{ inputs.app_path }}/.vercel
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@42
 
       - name: Deploy to Vercel
         id: deploy
