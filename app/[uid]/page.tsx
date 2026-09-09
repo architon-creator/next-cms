@@ -4,11 +4,12 @@ import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "c
 
 import { cn } from "@/lib/utils";
 
-type PageProps = { params: { uid: string } };
+type PageProps = { params: Promise<{ uid: string }> };
 
 export default async function Page({ params }: PageProps) {
+  const { uid } = await params;
   const client = createClient();
-  const page = await client.getByUID("content_page", params.uid).catch(() => notFound());
+  const page = await client.getByUID("content_page", uid).catch(() => notFound());
 
   const context: PageContext = {
     breadcrumbs: [
@@ -71,8 +72,9 @@ export default async function Page({ params }: PageProps) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { uid } = await params;
   const client = createClient();
-  const page = await client.getByUID("content_page", params.uid).catch(() => notFound());
+  const page = await client.getByUID("content_page", uid).catch(() => notFound());
 
   return { title: page.uid };
 }

@@ -2,6 +2,7 @@
 
 import { Content } from "@prismicio/client";
 import { SliceComponentProps } from "@prismicio/react";
+import Link from "next/link";
 
 import { useBreadcrumbs } from "../breadcrumbs-context";
 
@@ -58,9 +59,9 @@ export default function Breadcrumbs({ slice }: BreadcrumbsProps) {
     >
       <ol className="m-0 flex list-none items-center gap-1.5 p-0">
         <li className="flex items-center gap-1.5">
-          <a href="/" className="inline-flex text-primary" aria-label="Home">
+          <Link href="/" className="inline-flex text-primary" aria-label="Home">
             <HomeIcon />
-          </a>
+          </Link>
           <ChevronSeparator />
         </li>
         {crumbs.map((crumb, index) => (
