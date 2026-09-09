@@ -29,3 +29,7 @@ yarn-error.log*
 next-env.d.ts
 .vercel
 .env*
+!**/.env.example
+
+# build output (apps/*)
+apps/*/dist
