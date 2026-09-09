@@ -43,8 +43,30 @@ on:
 
 jobs:
   ci:
-    name: "Quality Gate (minimal test)"
+    name: "Quality Gate (chunk 1: setup + install)"
     runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
+      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Echo
         run: echo "app=${{ inputs.app_name }} path=${{ inputs.app_path }}"
