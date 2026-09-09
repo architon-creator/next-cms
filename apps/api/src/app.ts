@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
+import { authRouter } from "./routes/auth.routes.js";
 import { cartRouter } from "./routes/cart.routes.js";
 import { flightRouter } from "./routes/flight.routes.js";
 
@@ -15,6 +16,7 @@ export function createApp() {
 
   // Feature routers. Each new domain (payments, users, ...) gets its own
   // routes/*.routes.ts + controllers/*.controller.ts pair mounted here.
+  app.use("/auth", authRouter);
   app.use("/cart", cartRouter);
   app.use("/flights", flightRouter);
 

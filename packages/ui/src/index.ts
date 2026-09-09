@@ -15,3 +15,5 @@ export {
   CardContent,
 } from "./card";
 export { ChevronLink } from "./chevron-link";
+export { Input } from "./input";
+export { Label } from "./label";
