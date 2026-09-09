@@ -39,7 +39,7 @@ function ChevronSeparator() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="breadcrumbs-chevron"
+      className="text-muted-foreground"
     >
       <path d="m9 6 6 6-6 6" />
     </svg>
@@ -54,23 +54,31 @@ export default function Breadcrumbs({ slice, context }: BreadcrumbsProps) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="breadcrumbs"
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
-      <ol>
-        <li>
-          <a href="/" className="breadcrumbs-home" aria-label="Home">
+      <ol className="m-0 flex list-none items-center gap-1.5 p-0">
+        <li className="flex items-center gap-1.5">
+          <a
+            href="/"
+            className="inline-flex text-primary"
+            aria-label="Home"
+          >
             <HomeIcon />
           </a>
           <ChevronSeparator />
         </li>
         {crumbs.map((crumb, index) => (
-          <li key={`${crumb.label}-${index}`}>
+          <li className="flex items-center gap-1.5" key={`${crumb.label}-${index}`}>
             {crumb.href ? (
-              <a href={crumb.href}>{crumb.label}</a>
+              <a
+                href={crumb.href}
+                className="text-muted-foreground no-underline hover:text-primary"
+              >
+                {crumb.label}
+              </a>
             ) : (
-              <span className="breadcrumbs-current">{crumb.label}</span>
+              <span className="text-foreground">{crumb.label}</span>
             )}
             {index < crumbs.length - 1 ? <ChevronSeparator /> : null}
           </li>

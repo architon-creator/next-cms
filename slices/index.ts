@@ -2,15 +2,15 @@ import Accordion from "./Accordion";
 import Breadcrumbs from "./Breadcrumbs";
 import ButtonLink from "./ButtonLink";
 import Callout from "./Callout";
-import CtaBanner from "./CtaBanner";
+import DisclosureList from "./DisclosureList";
+import FaqAnswerSwap from "./FaqAnswerSwap";
 import FaqQuestionList from "./FaqQuestionList";
-import HeroBanner from "./HeroBanner";
+import FileDownloadList from "./FileDownloadList";
 import ImageBlock from "./ImageBlock";
 import InfoCardList from "./InfoCardList";
-import NewsletterSignup from "./NewsletterSignup";
+import LinkList from "./LinkList";
 import PageTitle from "./PageTitle";
 import RichTextSection from "./RichTextSection";
-import SocialLinks from "./SocialLinks";
 
 export type PageContext = {
   breadcrumbs: { label: string | null; href: string | null }[];
@@ -21,13 +21,13 @@ export const components = {
   breadcrumbs: Breadcrumbs,
   button_link: ButtonLink,
   callout: Callout,
-  cta_banner: CtaBanner,
+  disclosure_list: DisclosureList,
+  faq_answer_swap: FaqAnswerSwap,
   faq_question_list: FaqQuestionList,
-  hero_banner: HeroBanner,
+  file_download_list: FileDownloadList,
   image_block: ImageBlock,
   info_card_list: InfoCardList,
-  newsletter_signup: NewsletterSignup,
+  link_list: LinkList,
   page_title: PageTitle,
   rich_text_section: RichTextSection,
-  social_links: SocialLinks,
 };

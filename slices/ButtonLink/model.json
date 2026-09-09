@@ -1,11 +1,11 @@
 {
-  "description": "A single centered outline button linking to another page",
+  "description": "A single centered button linking to another page, with optional left/right icon and solid/outline style",
   "id": "button_link",
   "name": "ButtonLink",
   "type": "SharedSlice",
   "variations": [
     {
-      "description": "Centered outline button",
+      "description": "Centered button (solid or outline) with optional icons",
       "docURL": "https://prismic.io/docs/slices",
       "id": "default",
       "imageUrl": "",
@@ -26,6 +26,47 @@
             "placeholder": ""
           },
           "type": "Link"
+        },
+        "style": {
+          "config": {
+            "label": "Style",
+            "options": ["Solid", "Outline"],
+            "default_value": "Outline",
+            "placeholder": ""
+          },
+          "type": "Select"
+        },
+        "icon_left": {
+          "config": {
+            "label": "Icon left",
+            "options": [
+              "ArrowLeft",
+              "ArrowRight",
+              "ChevronLeft",
+              "ChevronRight",
+              "Download",
+              "ExternalLink",
+              "Check"
+            ],
+            "placeholder": "None"
+          },
+          "type": "Select"
+        },
+        "icon_right": {
+          "config": {
+            "label": "Icon right",
+            "options": [
+              "ArrowLeft",
+              "ArrowRight",
+              "ChevronLeft",
+              "ChevronRight",
+              "Download",
+              "ExternalLink",
+              "Check"
+            ],
+            "placeholder": "None"
+          },
+          "type": "Select"
         }
       },
       "version": "initial"

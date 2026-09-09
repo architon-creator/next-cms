@@ -95,6 +95,82 @@
       "version": "initial"
     },
     {
+      "description": "Collapsible category block for a sidebar list of categories (e.g. FAQ aside navigation)",
+      "docURL": "https://prismic.io/docs/slices",
+      "id": "accordion",
+      "imageUrl": "",
+      "items": {
+        "question": {
+          "config": {
+            "label": "Question"
+          },
+          "type": "Text"
+        },
+        "href": {
+          "config": {
+            "label": "Href"
+          },
+          "type": "Text"
+        }
+      },
+      "name": "accordion",
+      "primary": {
+        "heading": {
+          "config": {
+            "label": "Heading",
+            "single": "heading2,heading3,strong,em"
+          },
+          "type": "StructuredText"
+        },
+        "current": {
+          "config": {
+            "label": "Current Category (starts expanded)",
+            "placeholder": "false"
+          },
+          "type": "Boolean"
+        }
+      },
+      "version": "initial"
+    },
+    {
+      "description": "Always-visible category tile for a multi-column footer grid (title + vertical link list, no collapse)",
+      "docURL": "https://prismic.io/docs/slices",
+      "id": "footer_grid",
+      "imageUrl": "",
+      "items": {
+        "question": {
+          "config": {
+            "label": "Question"
+          },
+          "type": "Text"
+        },
+        "href": {
+          "config": {
+            "label": "Href"
+          },
+          "type": "Text"
+        }
+      },
+      "name": "footer_grid",
+      "primary": {
+        "heading": {
+          "config": {
+            "label": "Heading",
+            "single": "heading2,heading3,strong,em"
+          },
+          "type": "StructuredText"
+        },
+        "mobile_section_heading": {
+          "config": {
+            "label": "Mobile Section Heading",
+            "placeholder": "e.g. User Guide -- set on the first tile only, shown above the whole grid on mobile"
+          },
+          "type": "Text"
+        }
+      },
+      "version": "initial"
+    },
+    {
       "description": "Category page list of FAQ questions",
       "docURL": "https://prismic.io/docs/slices",
       "id": "withicon",

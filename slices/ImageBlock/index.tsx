@@ -9,13 +9,15 @@ export default function ImageBlock({ slice }: ImageBlockProps) {
 
   return (
     <figure
-      className="image-block"
+      className="my-8"
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
-      <PrismicNextImage field={slice.primary.image} />
+      <PrismicNextImage field={slice.primary.image} className="h-auto w-full rounded-md" />
       {slice.primary.caption ? (
-        <figcaption>{slice.primary.caption}</figcaption>
+        <figcaption className="mt-2 text-sm text-muted-foreground">
+          {slice.primary.caption}
+        </figcaption>
       ) : null}
     </figure>
   );

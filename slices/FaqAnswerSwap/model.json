@@ -1,0 +1,42 @@
+{
+  "description": "A Q&A card with a related-question switcher that swaps the active answer client-side, no page navigation",
+  "id": "faq_answer_swap",
+  "name": "FaqAnswerSwap",
+  "type": "SharedSlice",
+  "variations": [
+    {
+      "description": "Active question/answer card + related-question list",
+      "docURL": "https://prismic.io/docs/slices",
+      "id": "default",
+      "imageUrl": "",
+      "items": {
+        "question": {
+          "config": {
+            "label": "Question",
+            "placeholder": ""
+          },
+          "type": "Text"
+        },
+        "answer": {
+          "config": {
+            "label": "Answer",
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "placeholder": ""
+          },
+          "type": "StructuredText"
+        }
+      },
+      "name": "Default",
+      "primary": {
+        "related_heading": {
+          "config": {
+            "label": "Related heading",
+            "placeholder": "Related question"
+          },
+          "type": "Text"
+        }
+      },
+      "version": "initial"
+    }
+  ]
+}

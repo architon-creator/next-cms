@@ -1,0 +1,71 @@
+{
+  "id": "disclosure_list",
+  "type": "SharedSlice",
+  "name": "DisclosureList",
+  "description": "One collapsible topic, with an optional highlighted box, an optional list of download buttons inside that box, and an optional trailing link",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "Toggleable section",
+      "imageUrl": "",
+      "primary": {
+        "title": {
+          "type": "Text",
+          "config": { "label": "Title", "placeholder": "" }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "label": "Body",
+            "placeholder": ""
+          }
+        },
+        "box_heading": {
+          "type": "Text",
+          "config": { "label": "Box Heading", "placeholder": "" }
+        },
+        "box_body": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "label": "Box Body",
+            "placeholder": ""
+          }
+        },
+        "files": {
+          "type": "Group",
+          "config": {
+            "label": "Files",
+            "fields": {
+              "label": {
+                "type": "Text",
+                "config": { "label": "Label", "placeholder": "" }
+              },
+              "file": {
+                "type": "Link",
+                "config": { "label": "File", "placeholder": "", "allowTargetBlank": true }
+              },
+              "file_size": {
+                "type": "Text",
+                "config": { "label": "File Size", "placeholder": "" }
+              }
+            }
+          }
+        },
+        "link_label": {
+          "type": "Text",
+          "config": { "label": "Link Label", "placeholder": "" }
+        },
+        "link": {
+          "type": "Link",
+          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

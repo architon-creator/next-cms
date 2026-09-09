@@ -60,9 +60,6 @@
             },
             "breadcrumbs": {
               "type": "SharedSlice"
-            },
-            "hero_banner": {
-              "type": "SharedSlice"
             }
           }
         },
@@ -74,19 +71,10 @@
       "main": {
         "config": {
           "choices": {
-            "cta_banner": {
+            "accordion": {
               "type": "SharedSlice"
             },
-            "faq_question_list": {
-              "type": "SharedSlice"
-            },
-            "rich_text_section": {
-              "type": "SharedSlice"
-            },
-            "info_card_list": {
-              "type": "SharedSlice"
-            },
-            "image_block": {
+            "breadcrumbs": {
               "type": "SharedSlice"
             },
             "button_link": {
@@ -95,7 +83,31 @@
             "callout": {
               "type": "SharedSlice"
             },
-            "accordion": {
+            "disclosure_list": {
+              "type": "SharedSlice"
+            },
+            "faq_answer_swap": {
+              "type": "SharedSlice"
+            },
+            "faq_question_list": {
+              "type": "SharedSlice"
+            },
+            "file_download_list": {
+              "type": "SharedSlice"
+            },
+            "image_block": {
+              "type": "SharedSlice"
+            },
+            "info_card_list": {
+              "type": "SharedSlice"
+            },
+            "link_list": {
+              "type": "SharedSlice"
+            },
+            "page_title": {
+              "type": "SharedSlice"
+            },
+            "rich_text_section": {
               "type": "SharedSlice"
             }
           }
@@ -108,10 +120,40 @@
       "aside": {
         "config": {
           "choices": {
-            "cta_banner": {
+            "accordion": {
+              "type": "SharedSlice"
+            },
+            "breadcrumbs": {
+              "type": "SharedSlice"
+            },
+            "button_link": {
+              "type": "SharedSlice"
+            },
+            "callout": {
+              "type": "SharedSlice"
+            },
+            "disclosure_list": {
               "type": "SharedSlice"
             },
             "faq_question_list": {
+              "type": "SharedSlice"
+            },
+            "file_download_list": {
+              "type": "SharedSlice"
+            },
+            "image_block": {
+              "type": "SharedSlice"
+            },
+            "info_card_list": {
+              "type": "SharedSlice"
+            },
+            "link_list": {
+              "type": "SharedSlice"
+            },
+            "page_title": {
+              "type": "SharedSlice"
+            },
+            "rich_text_section": {
               "type": "SharedSlice"
             }
           }
@@ -124,10 +166,40 @@
       "footer": {
         "config": {
           "choices": {
-            "newsletter_signup": {
+            "accordion": {
               "type": "SharedSlice"
             },
-            "social_links": {
+            "breadcrumbs": {
+              "type": "SharedSlice"
+            },
+            "button_link": {
+              "type": "SharedSlice"
+            },
+            "callout": {
+              "type": "SharedSlice"
+            },
+            "disclosure_list": {
+              "type": "SharedSlice"
+            },
+            "faq_question_list": {
+              "type": "SharedSlice"
+            },
+            "file_download_list": {
+              "type": "SharedSlice"
+            },
+            "image_block": {
+              "type": "SharedSlice"
+            },
+            "info_card_list": {
+              "type": "SharedSlice"
+            },
+            "link_list": {
+              "type": "SharedSlice"
+            },
+            "page_title": {
+              "type": "SharedSlice"
+            },
+            "rich_text_section": {
               "type": "SharedSlice"
             }
           }

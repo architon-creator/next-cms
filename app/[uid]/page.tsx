@@ -4,6 +4,7 @@ import { SliceZone } from "@prismicio/react";
 
 import { createClient } from "@/prismicio";
 import { components, PageContext } from "@/slices";
+import { cn } from "@/lib/utils";
 
 type PageProps = { params: { uid: string } };
 
@@ -33,17 +34,14 @@ export default async function Page({ params }: PageProps) {
   const hasAside = page.data.aside.length > 0;
   const hasFooter = page.data.footer.length > 0;
 
-  const layoutClassName = [
-    "page-layout",
-    hasAside ? null : "page-layout--no-aside",
-    hasFooter ? null : "page-layout--no-footer",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
-    <div className={layoutClassName}>
-      <div className="page-heading">
+    <div
+      className={cn(
+        "mx-auto grid max-w-[1200px] grid-cols-1 gap-8 p-6",
+        hasAside && "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]",
+      )}
+    >
+      <div className="md:col-span-2">
         <SliceZone
           slices={page.data.heading}
           components={components}
@@ -51,7 +49,7 @@ export default async function Page({ params }: PageProps) {
         />
       </div>
 
-      <main className="page-main">
+      <main className={cn("min-w-0", !hasAside && "md:col-span-2")}>
         <SliceZone
           slices={page.data.main}
           components={components}
@@ -60,7 +58,7 @@ export default async function Page({ params }: PageProps) {
       </main>
 
       {hasAside ? (
-        <aside className="page-aside">
+        <aside className="min-w-0">
           <SliceZone
             slices={page.data.aside}
             components={components}
@@ -70,7 +68,7 @@ export default async function Page({ params }: PageProps) {
       ) : null}
 
       {hasFooter ? (
-        <footer className="page-footer">
+        <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
           <SliceZone
             slices={page.data.footer}
             components={components}

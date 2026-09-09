@@ -1,0 +1,36 @@
+{
+  "id": "link_list",
+  "type": "SharedSlice",
+  "name": "LinkList",
+  "description": "Stacked chevron links (e.g. related links following a text section)",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "An optional heading followed by a vertical list of chevron links",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "Heading",
+            "single": "heading2,heading3,strong,em",
+            "placeholder": ""
+          }
+        }
+      },
+      "items": {
+        "label": {
+          "type": "Text",
+          "config": { "label": "Label", "placeholder": "" }
+        },
+        "link": {
+          "type": "Link",
+          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        }
+      }
+    }
+  ]
+}

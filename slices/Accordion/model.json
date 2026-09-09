@@ -25,6 +25,7 @@
           "type": "StructuredText",
           "config": {
             "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "labels": ["muted", "small"],
             "label": "Body",
             "placeholder": ""
           }
@@ -48,6 +49,14 @@
         "link": {
           "type": "Link",
           "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        },
+        "link2_label": {
+          "type": "Text",
+          "config": { "label": "Second Link Label", "placeholder": "" }
+        },
+        "link2": {
+          "type": "Link",
+          "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
         }
       }
     }

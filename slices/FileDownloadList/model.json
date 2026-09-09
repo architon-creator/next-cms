@@ -1,0 +1,31 @@
+{
+  "id": "file_download_list",
+  "type": "SharedSlice",
+  "name": "FileDownloadList",
+  "description": "A row of outline download buttons, each with a label and file size caption (e.g. downloadable PDF forms)",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "Download buttons with file size",
+      "imageUrl": "",
+      "primary": {},
+      "items": {
+        "label": {
+          "type": "Text",
+          "config": { "label": "Button Label", "placeholder": "" }
+        },
+        "file": {
+          "type": "Link",
+          "config": { "label": "File", "placeholder": "", "allowTargetBlank": true }
+        },
+        "file_size": {
+          "type": "Text",
+          "config": { "label": "File Size", "placeholder": "e.g. 504KB" }
+        }
+      }
+    }
+  ]
+}
