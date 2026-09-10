@@ -2,7 +2,7 @@
 import { config as loadDotenv } from "dotenv";
 import { loadConfig } from "./config.js";
 import { log } from "./lib/logger.js";
-import { PrismicApiError } from "./lib/prismic-http.js";
+import { getDocumentById, getMasterRef, PrismicApiError } from "./lib/prismic-http.js";
 import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
@@ -33,6 +33,7 @@ const COMMANDS = [
   "migrate",
   "reconcile",
   "link",
+  "inspect",
   "retitle",
   "confirm",
   "verify",
@@ -58,6 +59,11 @@ function usage(): never {
       "              `reconcile` couldn't find on its own — the pre-existing",
       "              sit document is an unpublished draft, invisible to the",
       "              content API. Find its id in the dashboard's URL.",
+      "  inspect <devId>",
+      "              Pretty-prints a dev document's raw `data` JSON — for",
+      "              checking the actual shape of an image/media/link field",
+      "              against what lib/rewrite-refs.ts assumes (documented",
+      "              as unverified in the README).",
       "  retitle     One-time fix for documents created with the raw dev id",
       "              as their title (no uid at create time). Only touches",
       "              sit when dev is unchanged since the original migration.",
@@ -134,6 +140,25 @@ async function main(): Promise<void> {
       }
       const linked = await runLink({ config, devId, sitId, dryRun });
       if (!linked) process.exitCode = 1;
+      return;
+    }
+    case "inspect": {
+      const [devId] = rest.filter((arg) => !arg.startsWith("--"));
+      if (!devId) {
+        console.error("Usage: prismic-migration inspect <devId>");
+        process.exitCode = 1;
+        return;
+      }
+      const devRef = await getMasterRef(config.dev);
+      const doc = await getDocumentById(config.dev, devRef, devId);
+      if (!doc) {
+        log("error", "cli.inspect_not_found", { devId });
+        process.exitCode = 1;
+        return;
+      }
+      // Deliberately plain console.log, not the structured logger — this
+      // is for a human to read/paste, not another JSON log line.
+      console.log(JSON.stringify(doc, null, 2));
       return;
     }
     case "retitle":
