@@ -376,14 +376,18 @@ export async function findDocumentsByType(
   const url = new URL(`https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`);
   url.searchParams.set("ref", ref);
   url.searchParams.set("lang", "*");
-  // Multiple predicates are comma-separated INSIDE one bracket pair —
-  // `[[pred1,pred2]]` — not `[[pred1],[pred2]]`. Got this wrong on the
-  // first attempt; Prismic's own parser error was explicit about it
-  // ("']' expected but ',' found" right after the first predicate's
-  // closing paren) on a real run.
+  // Confirmed against Prismic's own technical reference (after two wrong
+  // guesses, both caught by real 400s): each predicate gets its own
+  // `[...]` wrapper, concatenated directly with NO comma between them,
+  // the whole thing wrapped in one outer `[...]` —
+  // `[[pred1][pred2]]`, not `[[pred1],[pred2]]` or `[[pred1,pred2]]`.
+  // A single predicate is just this same shape with one element:
+  // `[[pred1]]`, which is why single-predicate queries elsewhere in this
+  // file (getDocumentById) never hit this — one element looks identical
+  // under either (wrong) scheme.
   const predicates = [`at(document.type,"${type}")`];
   if (lang) predicates.push(`at(document.lang,"${lang}")`);
-  const q = `[[${predicates.join(",")}]]`;
+  const q = `[${predicates.map((p) => `[${p}]`).join("")}]`;
   url.searchParams.set("q", q);
   // Logged unconditionally (not just on failure) — some terminal/tooling
   // setups have been observed truncating the request URL in error output,
