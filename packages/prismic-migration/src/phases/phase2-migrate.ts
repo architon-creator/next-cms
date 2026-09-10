@@ -103,47 +103,63 @@ export async function runPhase2({
 
       const title = doc.uid || doc.id;
 
-      if (existing) {
-        await updateMigrationDocument(
-          config.sit,
-          existing.sit_id,
-          { uid: doc.uid || undefined, data: assetRewritten, tags: doc.tags },
-          fetchImpl,
-        );
-        mapping[doc.id] = {
-          ...existing,
-          dev_hash: devHash,
-          sit_hash: canonicalHash(assetRewritten),
-          status: "pending",
-        };
-        updated += 1;
-        log("info", "phase2.updated", { devId: doc.id, sitId: existing.sit_id });
-      } else {
-        const created_ = await createMigrationDocument(
-          config.sit,
-          {
-            title,
-            type: doc.type,
+      try {
+        if (existing) {
+          await updateMigrationDocument(
+            config.sit,
+            existing.sit_id,
+            { uid: doc.uid || undefined, data: assetRewritten, tags: doc.tags },
+            fetchImpl,
+          );
+          mapping[doc.id] = {
+            ...existing,
+            dev_hash: devHash,
+            sit_hash: canonicalHash(assetRewritten),
+            status: "pending",
+          };
+          updated += 1;
+          log("info", "phase2.updated", { devId: doc.id, sitId: existing.sit_id });
+        } else {
+          const created_ = await createMigrationDocument(
+            config.sit,
+            {
+              title,
+              type: doc.type,
+              uid: doc.uid || undefined,
+              lang: doc.lang,
+              data: assetRewritten,
+              tags: doc.tags,
+            },
+            fetchImpl,
+          );
+          mapping[doc.id] = {
+            sit_id: created_.id,
+            doc_type: doc.type,
             uid: doc.uid || undefined,
             lang: doc.lang,
-            data: assetRewritten,
-            tags: doc.tags,
-          },
-          fetchImpl,
-        );
-        mapping[doc.id] = {
-          sit_id: created_.id,
-          doc_type: doc.type,
-          uid: doc.uid || undefined,
+            dev_hash: devHash,
+            sit_hash: canonicalHash(assetRewritten),
+            last_synced_at: new Date().toISOString(),
+            last_synced_direction: "dev->sit",
+            status: "pending",
+          };
+          created += 1;
+          log("info", "phase2.created", { devId: doc.id, sitId: created_.id });
+        }
+      } catch (err) {
+        // Identifies which document a create/update failure belongs to —
+        // without this, a mid-run failure (like a real one this surfaced:
+        // a 400 on document #7 of a batch) tells you nothing but "it
+        // failed somewhere". The actual cause (a 400's response body) is
+        // logged separately by cli.ts's PrismicApiError handling.
+        log("error", "phase2.write_failed", {
+          devId: doc.id,
+          docType: doc.type,
+          uid: doc.uid,
           lang: doc.lang,
-          dev_hash: devHash,
-          sit_hash: canonicalHash(assetRewritten),
-          last_synced_at: new Date().toISOString(),
-          last_synced_direction: "dev->sit",
-          status: "pending",
-        };
-        created += 1;
-        log("info", "phase2.created", { devId: doc.id, sitId: created_.id });
+          operation: existing ? "update" : "create",
+        });
+        throw err;
       }
     }
     return mapping;

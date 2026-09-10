@@ -5,6 +5,7 @@
 import "dotenv/config";
 import { loadConfig } from "./config.js";
 import { log } from "./lib/logger.js";
+import { PrismicApiError } from "./lib/prismic-http.js";
 import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
@@ -84,8 +85,13 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
+  // A PrismicApiError's `body` is the whole reason this is worth a special
+  // case: Prismic's own 4xx responses are JSON error descriptions (which
+  // field was rejected, and why) — without logging it, a 400 tells you
+  // nothing but "something was wrong with the request".
   log("error", "cli.fatal", {
     message: err instanceof Error ? err.message : String(err),
+    ...(err instanceof PrismicApiError ? { status: err.status, body: err.body } : {}),
   });
   // `process.exitCode = 1` (not `process.exit(1)`) deliberately: a failure
   // here can arrive while a sibling request from the same Promise.all is
