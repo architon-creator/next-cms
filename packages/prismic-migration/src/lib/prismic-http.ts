@@ -376,9 +376,14 @@ export async function findDocumentsByType(
   const url = new URL(`https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`);
   url.searchParams.set("ref", ref);
   url.searchParams.set("lang", "*");
+  // Multiple predicates are comma-separated INSIDE one bracket pair —
+  // `[[pred1,pred2]]` — not `[[pred1],[pred2]]`. Got this wrong on the
+  // first attempt; Prismic's own parser error was explicit about it
+  // ("']' expected but ',' found" right after the first predicate's
+  // closing paren) on a real run.
   const predicates = [`at(document.type,"${type}")`];
   if (lang) predicates.push(`at(document.lang,"${lang}")`);
-  url.searchParams.set("q", `[[${predicates.join("],[")}]]`);
+  url.searchParams.set("q", `[[${predicates.join(",")}]]`);
   url.searchParams.set("pageSize", "20");
   if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
 
