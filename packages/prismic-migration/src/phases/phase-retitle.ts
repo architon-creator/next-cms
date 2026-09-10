@@ -56,8 +56,11 @@ export async function runRetitle({
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);
-  const typeLabels = new Map(
-    (await listCustomTypes(config.dev, fetchImpl)).map((t) => [t.id, t.label]),
+  const typeInfo = new Map(
+    (await listCustomTypes(config.dev, fetchImpl)).map((t) => [
+      t.id,
+      { label: t.label, repeatable: t.repeatable },
+    ]),
   );
 
   const result: RetitleResult = { retitled: 0, skippedChanged: 0, skippedMissing: 0 };
@@ -85,7 +88,7 @@ export async function runRetitle({
       }
 
       const rewritten = rewriteRefs(devDoc.data, { assetIds, documentIds });
-      const title = buildTitle(devDoc, typeLabels);
+      const title = buildTitle(devDoc, typeInfo);
 
       log("info", dryRun ? "retitle.would_retitle" : "retitle.retitled", {
         devId,

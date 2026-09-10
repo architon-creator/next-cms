@@ -61,23 +61,30 @@ function cachePathFor(cacheDir: string, devId: string): string {
   return join(cacheDir, "dev-docs", `${devId}.json`);
 }
 
+export type TypeInfo = { label: string; repeatable: boolean };
+
 /**
  * The Migration API's `title` is purely a display label for the Migration
  * Release list — Prismic doesn't derive it from the document's own
  * content, so something has to be supplied. Prefers `uid` (human-chosen,
- * usually unique); falls back to the custom type's own label ("Transportation
- * Service") with a short id suffix for uniqueness, since a repeatable type
- * with no uid can have many documents that would otherwise all show the
- * same label; falls back to the bare id only if the type's label is
- * somehow unknown (shouldn't happen — schema parity is Phase 0's job).
+ * usually unique); falls back to the custom type's own label
+ * ("Transportation Service"). A short id suffix is added ONLY for a
+ * repeatable type with no uid, where multiple documents actually could
+ * collide on the same label — a non-repeatable type can only ever have
+ * one document, so the suffix would be pure noise there (confirmed
+ * against a real run: every affected type turned out to be
+ * non-repeatable, and the suffix just added clutter). Falls back to the
+ * bare id only if the type is somehow unknown (shouldn't happen — schema
+ * parity is Phase 0's job).
  */
 export function buildTitle(
   doc: { id: string; uid: string | null; type: string },
-  typeLabels: Map<string, string>,
+  typeInfo: Map<string, TypeInfo>,
 ): string {
   if (doc.uid) return doc.uid;
-  const label = typeLabels.get(doc.type);
-  return label ? `${label} (${doc.id.slice(-6)})` : doc.id;
+  const info = typeInfo.get(doc.type);
+  if (!info) return doc.id;
+  return info.repeatable ? `${info.label} (${doc.id.slice(-6)})` : info.label;
 }
 
 /**
@@ -143,8 +150,11 @@ export async function runPhase2({
   // buildTitle below) — a real run surfaced documents whose "Name" in
   // sit's Migration Release list was literally the raw dev document id
   // ("aoWn_hEAAC0AMB8Q"), because that was the fallback here.
-  const typeLabels = new Map(
-    (await listCustomTypes(config.dev, fetchImpl)).map((t) => [t.id, t.label]),
+  const typeInfo = new Map(
+    (await listCustomTypes(config.dev, fetchImpl)).map((t) => [
+      t.id,
+      { label: t.label, repeatable: t.repeatable },
+    ]),
   );
 
   let seen = 0;
@@ -179,7 +189,7 @@ export async function runPhase2({
         continue;
       }
 
-      const title = buildTitle(doc, typeLabels);
+      const title = buildTitle(doc, typeInfo);
 
       try {
         if (existing) {
@@ -303,7 +313,7 @@ export async function runPhase2({
         await updateMigrationDocument(
           config.sit,
           entry.sit_id,
-          { uid: entry.uid, data: fullyRewritten, title: buildTitle(raw, typeLabels) },
+          { uid: entry.uid, data: fullyRewritten, title: buildTitle(raw, typeInfo) },
           fetchImpl,
         );
         mapping[devId] = { ...entry, sit_hash: fullHash };
