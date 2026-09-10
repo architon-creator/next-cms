@@ -64,8 +64,13 @@ export async function runPhase2({
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);
+  log("info", "phase2.dev_ref_resolved", {
+    repository: config.dev.repository,
+    ref: devRef,
+  });
   await mkdir(join(config.cacheDir, "dev-docs"), { recursive: true });
 
+  let seen = 0;
   let created = 0;
   let updated = 0;
   let unchanged = 0;
@@ -73,6 +78,7 @@ export async function runPhase2({
   // ---- Pass 1 ----
   await mappingStore.mutate(async (mapping) => {
     for await (const doc of iterateAllDocuments(config.dev, devRef, fetchImpl)) {
+      seen += 1;
       const devHash = canonicalHash(doc.data);
       const existing = mapping[doc.id];
 
@@ -143,7 +149,19 @@ export async function runPhase2({
     return mapping;
   });
 
-  log("info", "phase2.pass1_done", { created, updated, unchanged, dryRun });
+  log("info", "phase2.pass1_done", { seen, created, updated, unchanged, dryRun });
+
+  if (seen === 0) {
+    // created/updated/unchanged all being 0 is easy to misread as "ran
+    // fine, nothing to do" when it actually means dev's document search
+    // returned zero results at devRef — check DEV_REPOSITORY, whether
+    // DEV_ACCESS_TOKEN is needed (private repo), and whether dev's content
+    // is actually published (this only sees the master ref, not drafts).
+    log("warn", "phase2.no_dev_documents_found", {
+      repository: config.dev.repository,
+      ref: devRef,
+    });
+  }
 
   if (dryRun) {
     log("warn", "phase2.pass2_skipped_dry_run");
