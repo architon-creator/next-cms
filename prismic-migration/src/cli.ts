@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Loads .env from the current working directory — the whole reason a
+// `DEV_REPOSITORY=...` in .env is enough, with no need to export it into
+// the shell first. Must run before loadConfig() reads process.env below.
+import "dotenv/config";
 import { loadConfig } from "./config.js";
 import { log } from "./lib/logger.js";
 import { runPhase0 } from "./phases/phase0-preflight.js";
@@ -65,14 +69,14 @@ async function main(): Promise<void> {
       const report = await runPhase3({ config });
       if (!report.passed) {
         log("error", "cli.verify_failed", { report });
-        process.exit(1);
+        process.exitCode = 1;
       }
       return;
     }
     case "backsync": {
       const result = await runPhase4({ config, dryRun });
       if (result.conflicts.length > 0) {
-        process.exit(1); // halt, don't force-push (Phase 5 rule)
+        process.exitCode = 1; // halt, don't force-push (Phase 5 rule)
       }
       return;
     }
@@ -83,5 +87,16 @@ main().catch((err) => {
   log("error", "cli.fatal", {
     message: err instanceof Error ? err.message : String(err),
   });
-  process.exit(1);
+  // `process.exitCode = 1` (not `process.exit(1)`) deliberately: a failure
+  // here can arrive while a sibling request from the same Promise.all is
+  // still in flight (e.g. Phase 0's parallel custom-type fetches) — forcing
+  // the process down immediately can abort that request's socket mid-flight
+  // and crash the runtime itself (reproduced as a libuv assertion on
+  // Windows). Setting exitCode lets Node exit with the right code once the
+  // event loop actually drains, instead of yanking it out from under
+  // in-flight I/O. The trade-off: a request that hangs forever (no
+  // fetch/AbortController timeout exists anywhere in this codebase yet)
+  // would hang the process instead of crashing it — add a timeout to
+  // lib/prismic-http.ts's `request()` if that becomes a real problem.
+  process.exitCode = 1;
 });

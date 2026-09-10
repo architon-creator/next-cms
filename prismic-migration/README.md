@@ -121,6 +121,15 @@ Migration Release in the sit dashboard.
 - **Document/asset deletions are out of scope.** `verify` and `backsync`
   both silently skip a mapping entry whose dev or sit document has been
   deleted, rather than flagging it.
+- **No request timeout.** `lib/prismic-http.ts`'s `request()` has no
+  `AbortController`/timeout, so a request against an unreachable or
+  black-holing host hangs indefinitely rather than failing fast. This
+  matters more than usual here because `cli.ts` deliberately uses
+  `process.exitCode` rather than `process.exit()` on failure (see the
+  comment there — an immediate `process.exit()` was reproduced crashing
+  the Node runtime on Windows when a sibling in-flight request got yanked
+  mid-socket) — that fix trades "crash on a failure" for "hang forever on
+  a request that never settles." Add a timeout if that trade-off bites.
 
 ## Testing
 
