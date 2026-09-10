@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMigrationDocument, uploadAsset } from "../src/lib/prismic-http.js";
+import {
+  createMigrationDocument,
+  listCustomTypes,
+  uploadAsset,
+} from "../src/lib/prismic-http.js";
 import type { RepoConfig } from "../src/config.js";
 
 const repo: RepoConfig = { repository: "my-repo", migrationToken: "write-token" };
@@ -76,5 +80,59 @@ describe("uploadAsset", () => {
     expect(init.body).toBeInstanceOf(FormData);
     const uploadedFile = (init.body as FormData).get("file") as File;
     expect(uploadedFile.name).toBe("hero.png");
+  });
+});
+
+// Regression coverage for a real-run failure: a plain paginated GET loop
+// against the Asset API was observed hitting 429, and — before this retry
+// logic existed — that aborted the entire run on the very first page.
+describe("retry on 429 / transient gateway errors", () => {
+  it("retries a 429 and succeeds once the server allows it, honoring Retry-After", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("rate limited", { status: 429, headers: { "retry-after": "0" } }),
+      )
+      .mockResolvedValueOnce(jsonResponse([]));
+
+    const result = await listCustomTypes(repo, fetchImpl);
+
+    expect(result).toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries 502/503/504 the same way as 429", async () => {
+    for (const status of [502, 503, 504]) {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response("bad gateway", { status, headers: { "retry-after": "0" } }),
+        )
+        .mockResolvedValueOnce(jsonResponse([]));
+
+      await expect(listCustomTypes(repo, fetchImpl)).resolves.toEqual([]);
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it("gives up after the retry budget and throws PrismicApiError", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("still limited", { status: 429, headers: { "retry-after": "0" } }),
+      );
+
+    await expect(listCustomTypes(repo, fetchImpl)).rejects.toMatchObject({
+      name: "PrismicApiError",
+      status: 429,
+    });
+    // 1 initial attempt + 5 retries = 6 calls before giving up.
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+  });
+
+  it("does not retry a non-retryable status like 401", async () => {
+    const fetchImpl = vi.fn(async () => new Response("bad token", { status: 401 }));
+    await expect(listCustomTypes(repo, fetchImpl)).rejects.toMatchObject({ status: 401 });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,6 @@
 import type { RepoConfig } from "../config.js";
 import type { PrismicAsset, PrismicCustomType, PrismicDocument } from "../types.js";
+import { log } from "./logger.js";
 import { createRateLimiter } from "./rate-limit.js";
 
 const MIGRATION_API = "https://migration.prismic.io";
@@ -25,13 +26,51 @@ export class PrismicApiError extends Error {
 
 type FetchFn = typeof fetch;
 
+// The Migration API's documented "1 req/sec" limit is not the only rate
+// limit Prismic enforces — the Asset API's list endpoint, in particular,
+// has been observed (real run, real repository) rejecting a plain
+// paginated GET loop with 429 even without the migration limiter's help.
+// So every request through this module retries on 429 and on transient
+// 502/503/504 gateway errors, not just the endpoints known in advance to
+// need it — a single rate-limit response should never abort a whole run.
+const MAX_RETRIES = 5;
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
+function retryDelayMs(response: Response, attempt: number): number {
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  }
+  // Exponential backoff with jitter, capped at 10s, when the server didn't
+  // tell us how long to wait.
+  const base = Math.min(500 * 2 ** attempt, 10_000);
+  return base + Math.random() * 250;
+}
+
 async function request(
   url: string,
   init: RequestInit,
   fetchImpl: FetchFn,
 ): Promise<Response> {
-  const response = await fetchImpl(url, init);
-  if (!response.ok) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetchImpl(url, init);
+
+    if (response.ok) return response;
+
+    if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES) {
+      const delay = retryDelayMs(response, attempt);
+      log("warn", "prismic_http.retrying", {
+        url,
+        status: response.status,
+        attempt: attempt + 1,
+        maxRetries: MAX_RETRIES,
+        delayMs: Math.round(delay),
+      });
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
+
     const body = await response.text().catch(() => "");
     throw new PrismicApiError(
       `${init.method || "GET"} ${url} -> ${response.status}`,
@@ -39,7 +78,6 @@ async function request(
       body,
     );
   }
-  return response;
 }
 
 // ---- Custom Types API ----

@@ -108,6 +108,16 @@ poll, so `confirm` asks the question the pipeline actually needs answered:
 entry still `status: "pending"`. Run it after a human publishes the
 Migration Release in the sit dashboard.
 
+**Retry on 429 and transient gateway errors.** Confirmed against a real
+run: Prismic's rate limits aren't limited to the Migration API's
+documented "1 req/sec" — the Asset API's list endpoint rejected a plain
+paginated GET loop with 429 on its own. Every request in
+[`lib/prismic-http.ts`](src/lib/prismic-http.ts) now retries on
+429/502/503/504 (honoring a `Retry-After` header when present, otherwise
+exponential backoff with jitter, capped at 5 attempts), and logs each
+retry as a `prismic_http.retrying` event so a slow run is visible rather
+than looking hung.
+
 ## Known gaps — read before a real run
 
 - **Verify the Migration API's `Authorization` header format** against the
