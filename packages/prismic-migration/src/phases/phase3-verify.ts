@@ -12,6 +12,7 @@ import {
 import {
   findUnresolvedAssetLinks,
   findUnresolvedDocumentLinks,
+  normalizeForComparison,
   rewriteRefs,
 } from "../lib/rewrite-refs.js";
 import type { AssetMapping, DocumentMapping } from "../types.js";
@@ -84,8 +85,21 @@ export async function runPhase3({
     // Compare rewrite(dev) against sit's actual data, not raw dev vs. sit —
     // sit's ids are rewritten, so a direct hash of the two raw payloads
     // would never match even when the migration is entirely correct.
-    const expected = canonicalHash(rewriteRefs(devDoc.data, { assetIds, documentIds }));
-    const actual = canonicalHash(sitDoc.data);
+    //
+    // Both sides go through normalizeForComparison() before hashing: a
+    // Content Relationship or Image field is denormalized by Prismic at
+    // read time with a live snapshot of whatever it currently points at
+    // (publish dates, slug, dimensions, url, ...) — that's expected to
+    // differ between dev's and sit's own document states even when the
+    // reference itself (the `id`) is correctly migrated. The broken-link
+    // scan and asset check below are what actually verify `id` resolves
+    // to something real; this comparison would otherwise flag every
+    // document with a link or image field as a false-positive mismatch
+    // (confirmed on a real run via `inspect <devId> <sitId>`).
+    const expected = canonicalHash(
+      normalizeForComparison(rewriteRefs(devDoc.data, { assetIds, documentIds })),
+    );
+    const actual = canonicalHash(normalizeForComparison(sitDoc.data));
     if (expected !== actual) mismatches.push(devId);
   }
   log("info", "phase3.spot_check", {

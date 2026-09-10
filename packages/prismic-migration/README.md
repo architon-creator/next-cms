@@ -144,22 +144,30 @@ than looking hung.
   the Asset and Custom Types APIs (both explicitly documented as Bearer),
   but that's an assumption, not a confirmed fact — see the comment in
   [`lib/prismic-http.ts`](src/lib/prismic-http.ts).
-- **The Document-link field shape** `{ link_type: "Document", id }`
-  ([`lib/rewrite-refs.ts`](src/lib/rewrite-refs.ts)) is still unconfirmed
-  against a real repository's response — treat it the same way the asset
-  field shape was treated until a real run proved it wrong (see below):
-  as an assumption, not a fact, and check it against `inspect <devId>`
-  output before trusting Pass 2's link fix-up or Phase 3's spot-check on
-  a document that actually has one.
+- **The Document-link field shape** `{ link_type: "Document", id }` was
+  confirmed on a real run, and turned out to have a wrinkle: Prismic
+  denormalizes a live snapshot of the target document's own state onto
+  the field at read time — `type`, `tags`, `lang`, `slug`,
+  `first_publication_date`, `last_publication_date`, `isBroken`. None of
+  that is written or controlled by this toolkit; `rewriteRefs` only ever
+  touches `id`, which is correct — but it means a raw hash comparison of
+  the full field will "mismatch" between dev and sit even on a perfectly
+  correct migration, since each side denormalizes from its own target
+  document's current state. Phase 3's spot-check now runs both sides
+  through `normalizeForComparison()` first, which strips a Document/Media
+  link down to `{ link_type, id }` and an Image field down to `{ id }`
+  before hashing — the broken-link scan and asset check are what actually
+  verify `id` resolves to something real, so the spot-check no longer
+  needs to (and shouldn't) treat denormalized metadata as authoritative.
   <br><br>
-  The asset field shape assumption WAS wrong, confirmed on a real run: a
-  document kept failing "Assets not found" despite its images being
-  fully migrated, because Prismic's plain Image fields (`{ dimensions,
-  alt, copyright, url, id, edit }`, no `link_type` at all) are more
-  common in practice than "Link to Media" fields (`{ link_type: "Media",
-  id }`, the only shape originally assumed here). Both are now handled —
-  Image fields get both `id` and `url` rewritten, since `id` alone would
-  leave the document hot-linking to dev's CDN forever.
+  The asset field shape assumption WAS wrong too, confirmed on the same
+  run: a document kept failing "Assets not found" despite its images
+  being fully migrated, because Prismic's plain Image fields (`{
+  dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
+  are more common in practice than "Link to Media" fields (`{ link_type:
+  "Media", id }`, the only shape originally assumed here). Both are now
+  handled — Image fields get both `id` and `url` rewritten, since `id`
+  alone would leave the document hot-linking to dev's CDN forever.
 - **Asset back-sync isn't implemented.** Phase 1 only migrates assets
   dev → sit. If an editor uploads a new asset directly in sit and it later
   needs to flow back to dev via `backsync`, there's no dev-ward asset

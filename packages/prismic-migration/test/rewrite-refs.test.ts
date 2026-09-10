@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   findUnresolvedAssetLinks,
   findUnresolvedDocumentLinks,
+  normalizeForComparison,
   rewriteRefs,
 } from "../src/lib/rewrite-refs.js";
 
@@ -106,5 +107,64 @@ describe("findUnresolvedAssetLinks", () => {
     expect(findUnresolvedAssetLinks(data, new Set(["sit-asset-1"]))).toEqual([
       "dev-asset-leftover",
     ]);
+  });
+});
+
+describe("normalizeForComparison", () => {
+  it("strips Prismic's read-time-hydrated metadata from a Content Relationship field", () => {
+    // Real shape, confirmed via `inspect` — Prismic denormalizes the
+    // target document's own state onto the link, which legitimately
+    // differs between dev's and sit's copies of "the same" reference.
+    const devSide = {
+      app: {
+        id: "sit-doc-1",
+        type: "app",
+        tags: [],
+        lang: "en-us",
+        slug: "app",
+        first_publication_date: "2026-07-15T14:49:27+0000",
+        last_publication_date: "2026-08-19T13:02:16+0000",
+        link_type: "Document",
+        key: "582490e7-5eef-466b-b935-e98de9a64fd9",
+        isBroken: false,
+      },
+    };
+    const sitSide = {
+      app: {
+        id: "sit-doc-1",
+        type: "app",
+        tags: ["editor-added-this-in-sit"],
+        lang: "en-us",
+        slug: "app",
+        first_publication_date: "2026-09-01T00:00:00+0000",
+        last_publication_date: "2026-09-02T00:00:00+0000",
+        link_type: "Document",
+        key: "a-different-internal-key",
+        isBroken: false,
+      },
+    };
+    expect(normalizeForComparison(devSide)).toEqual(normalizeForComparison(sitSide));
+    expect(normalizeForComparison(devSide)).toEqual({
+      app: { link_type: "Document", id: "sit-doc-1" },
+    });
+  });
+
+  it("strips a plain Image field down to just its id", () => {
+    const data = {
+      hero: {
+        dimensions: { width: 100, height: 50 },
+        alt: null,
+        copyright: null,
+        url: "https://sit/x.png",
+        id: "sit-asset-1",
+        edit: { x: 0, y: 0, zoom: 1, background: "transparent" },
+      },
+    };
+    expect(normalizeForComparison(data)).toEqual({ hero: { id: "sit-asset-1" } });
+  });
+
+  it("leaves ordinary fields untouched", () => {
+    const data = { title: "Home", count: 3 };
+    expect(normalizeForComparison(data)).toEqual(data);
   });
 });

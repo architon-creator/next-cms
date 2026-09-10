@@ -96,6 +96,58 @@ function walk(value: unknown, maps: RefMaps): unknown {
 }
 
 /**
+ * Strips read-time-derived metadata from link/asset fields before a
+ * structural comparison — for Phase 3's spot-check ONLY, never for what's
+ * actually written to sit.
+ *
+ * Confirmed via `inspect <devId> <sitId>` on a real "mismatch" the
+ * spot-check flagged: a Content Relationship field comes back from
+ * Prismic's content API denormalized with a live snapshot of the TARGET
+ * document's own state — `type`, `tags`, `lang`, `slug`,
+ * `first_publication_date`, `last_publication_date`, `isBroken` — none of
+ * which this toolkit writes or controls; Prismic re-derives them at read
+ * time from whichever document `id` currently points at. dev's copy and
+ * sit's copy legitimately show different values here (different publish
+ * dates, etc.) even when the migration is entirely correct, because
+ * they're each hydrated from a different target in a different
+ * repository. A raw hash comparison treats that as a mismatch; it isn't
+ * one — the broken-link scan and asset check (which DO check the `id`
+ * itself resolves to something real) are what actually catch a wrong
+ * reference. Image fields likely have the same issue for `dimensions`/
+ * `url`/`edit` (Prismic/asset-derived, not migration-controlled), so
+ * they're normalized the same way, down to just `id`.
+ */
+export function normalizeForComparison<T>(data: T): T {
+  return normalize(data) as T;
+}
+
+function normalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalize);
+  }
+  if (value !== null && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+
+    if (
+      (obj.link_type === "Document" || obj.link_type === "Media") &&
+      typeof obj.id === "string"
+    ) {
+      return { link_type: obj.link_type, id: obj.id };
+    }
+    if (isImageField(obj)) {
+      return { id: obj.id };
+    }
+
+    const normalized: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(obj)) {
+      normalized[key] = normalize(child);
+    }
+    return normalized;
+  }
+  return value;
+}
+
+/**
  * Scans `data` for any Document-link `id` that isn't a key of `knownIds` —
  * used by Phase 3's broken-link scan (an id left over from before Pass 2
  * ran, or one that never resolved). Returns the offending ids, deduped.
