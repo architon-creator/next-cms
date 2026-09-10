@@ -1,0 +1,25 @@
+{
+  "name": "prismic-migration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable POC toolkit for migrating Prismic content dev to sit, with hash-gated sit to dev back-sync. Self-contained on purpose: copy this whole directory into the target project (e.g. as packages/prismic-migration) and `pnpm install` inside it.",
+  "bin": {
+    "prismic-migration": "./dist/cli.js"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4",
+    "vitest": "^5.0.0"
+  }
+}
