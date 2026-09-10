@@ -8,6 +8,7 @@ import {
   createMigrationDocument,
   getMasterRef,
   iterateAllDocuments,
+  PrismicApiError,
   updateMigrationDocument,
 } from "../lib/prismic-http.js";
 import { rewriteRefs } from "../lib/rewrite-refs.js";
@@ -18,6 +19,42 @@ export type Phase2Options = {
   dryRun: boolean;
   fetchImpl?: typeof fetch;
 };
+
+export type Phase2Failure = {
+  devId: string;
+  docType: string;
+  operation: "create" | "update" | "link_fixup";
+  message: string;
+  status?: number;
+  body?: string;
+};
+
+export type Phase2Result = {
+  seen: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  linkFixups: number;
+  failures: Phase2Failure[];
+};
+
+function toFailure(
+  doc: { id: string; type: string },
+  operation: Phase2Failure["operation"],
+  err: unknown,
+): Phase2Failure {
+  const failure: Phase2Failure = {
+    devId: doc.id,
+    docType: doc.type,
+    operation,
+    message: err instanceof Error ? err.message : String(err),
+  };
+  if (err instanceof PrismicApiError) {
+    failure.status = err.status;
+    failure.body = err.body;
+  }
+  return failure;
+}
 
 function cachePathFor(cacheDir: string, devId: string): string {
   return join(cacheDir, "dev-docs", `${devId}.json`);
@@ -44,12 +81,24 @@ function cachePathFor(cacheDir: string, devId: string): string {
  * entirely in Pass 1 (nothing to sync) — this is what makes forward-sync
  * safely re-runnable, and what a Phase 4 back-sync "pending" verdict
  * (dev changed independently) resolves into: run this again.
+ *
+ * One document's write failure does NOT abort the batch — a real run
+ * surfaced why this matters: a non-repeatable custom type that already
+ * had a document in sit (created outside this tool, so unknown to
+ * mapping.json) rejected a create with a 400, and an earlier version of
+ * this function let that exception propagate out of the whole
+ * `for await` loop, silently abandoning every document after it. Each
+ * document's create/update is now its own try/catch; failures are
+ * collected and returned rather than thrown, so the run processes
+ * everything it can and reports the rest — the caller decides what
+ * "halt" means (see cli.ts, which exits non-zero when failures is
+ * non-empty).
  */
 export async function runPhase2({
   config,
   dryRun,
   fetchImpl = fetch,
-}: Phase2Options): Promise<void> {
+}: Phase2Options): Promise<Phase2Result> {
   log("info", "phase2.start", { dryRun });
 
   const mappingStore = new MappingStore<DocumentMapping>(
@@ -74,6 +123,7 @@ export async function runPhase2({
   let created = 0;
   let updated = 0;
   let unchanged = 0;
+  const failures: Phase2Failure[] = [];
 
   // ---- Pass 1 ----
   await mappingStore.mutate(async (mapping) => {
@@ -147,25 +197,33 @@ export async function runPhase2({
           log("info", "phase2.created", { devId: doc.id, sitId: created_.id });
         }
       } catch (err) {
-        // Identifies which document a create/update failure belongs to —
-        // without this, a mid-run failure (like a real one this surfaced:
-        // a 400 on document #7 of a batch) tells you nothing but "it
-        // failed somewhere". The actual cause (a 400's response body) is
-        // logged separately by cli.ts's PrismicApiError handling.
+        // Recorded rather than thrown — see the doc comment above
+        // runPhase2 for why one document's failure must not abort the
+        // rest of the batch. The actual cause (a 4xx's response body) is
+        // preserved on the failure entry, same as cli.ts's top-level
+        // PrismicApiError handling for an uncaught error elsewhere.
+        const operation = existing ? "update" : "create";
+        failures.push(toFailure(doc, operation, err));
         log("error", "phase2.write_failed", {
           devId: doc.id,
           docType: doc.type,
           uid: doc.uid,
           lang: doc.lang,
-          operation: existing ? "update" : "create",
+          operation,
         });
-        throw err;
       }
     }
     return mapping;
   });
 
-  log("info", "phase2.pass1_done", { seen, created, updated, unchanged, dryRun });
+  log("info", "phase2.pass1_done", {
+    seen,
+    created,
+    updated,
+    unchanged,
+    failed: failures.length,
+    dryRun,
+  });
 
   if (seen === 0) {
     // created/updated/unchanged all being 0 is easy to misread as "ran
@@ -182,7 +240,7 @@ export async function runPhase2({
   if (dryRun) {
     log("warn", "phase2.pass2_skipped_dry_run");
     log("info", "phase2.done", { dryRun });
-    return;
+    return { seen, created, updated, unchanged, linkFixups: 0, failures };
   }
 
   // ---- Pass 2 ----
@@ -211,19 +269,31 @@ export async function runPhase2({
         continue; // no document-link fields needed fixing
       }
 
-      await updateMigrationDocument(
-        config.sit,
-        entry.sit_id,
-        { uid: entry.uid, data: fullyRewritten },
-        fetchImpl,
-      );
-      mapping[devId] = { ...entry, sit_hash: fullHash };
-      linkFixups += 1;
-      log("info", "phase2.link_fixup", { devId, sitId: entry.sit_id });
+      // Same resilience as Pass 1: one document's link fix-up failing
+      // must not stop every other pending document from being fixed up.
+      try {
+        await updateMigrationDocument(
+          config.sit,
+          entry.sit_id,
+          { uid: entry.uid, data: fullyRewritten },
+          fetchImpl,
+        );
+        mapping[devId] = { ...entry, sit_hash: fullHash };
+        linkFixups += 1;
+        log("info", "phase2.link_fixup", { devId, sitId: entry.sit_id });
+      } catch (err) {
+        failures.push(toFailure({ id: devId, type: entry.doc_type }, "link_fixup", err));
+        log("error", "phase2.link_fixup_failed", {
+          devId,
+          sitId: entry.sit_id,
+          docType: entry.doc_type,
+        });
+      }
     }
     return mapping;
   });
 
-  log("info", "phase2.pass2_done", { linkFixups });
-  log("info", "phase2.done", { dryRun });
+  log("info", "phase2.pass2_done", { linkFixups, failed: failures.length });
+  log("info", "phase2.done", { dryRun, totalFailures: failures.length });
+  return { seen, created, updated, unchanged, linkFixups, failures };
 }

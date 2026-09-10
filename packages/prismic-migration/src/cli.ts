@@ -71,9 +71,18 @@ async function main(): Promise<void> {
     case "assets":
       await runPhase1({ config, dryRun });
       return;
-    case "migrate":
-      await runPhase2({ config, dryRun });
+    case "migrate": {
+      const result = await runPhase2({ config, dryRun });
+      if (result.failures.length > 0) {
+        // Every document this run COULD process still got processed —
+        // runPhase2 never aborts the batch on one failure. This is what
+        // decides "halt" for the overall command: exit non-zero so CI
+        // catches it, without pretending the run silently succeeded.
+        log("error", "cli.migrate_had_failures", { failures: result.failures });
+        process.exitCode = 1;
+      }
       return;
+    }
     case "confirm":
       await runConfirm({ config });
       return;
