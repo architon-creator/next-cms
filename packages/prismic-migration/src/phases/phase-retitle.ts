@@ -19,6 +19,8 @@ export type RetitleResult = {
   /** Dev changed since the original migration — needs a real `migrate` re-sync, not just a retitle. */
   skippedChanged: number;
   skippedMissing: number;
+  /** status: "conflict" — see the guard below; never touched here regardless of hash. */
+  skippedConflict: number;
 };
 
 /**
@@ -63,7 +65,12 @@ export async function runRetitle({
     ]),
   );
 
-  const result: RetitleResult = { retitled: 0, skippedChanged: 0, skippedMissing: 0 };
+  const result: RetitleResult = {
+    retitled: 0,
+    skippedChanged: 0,
+    skippedMissing: 0,
+    skippedConflict: 0,
+  };
 
   await mappingStore.mutate(async (mapping) => {
     const documentIds = Object.fromEntries(
@@ -72,6 +79,20 @@ export async function runRetitle({
 
     for (const [devId, entry] of Object.entries(mapping)) {
       if (entry.uid) continue; // only entries that could have hit the bug
+
+      if (entry.status === "conflict") {
+        // A conflict entry (from `link` or `reconcile`) means dev's content
+        // was deliberately never written to this document — sit's current
+        // content is unreviewed and may not match dev at all. dev_hash
+        // matching here proves nothing about that; only that dev hasn't
+        // changed SINCE the entry was linked. Retitling would still send a
+        // PUT carrying dev's full data, silently overwriting whatever is
+        // actually in sit. Skipped unconditionally — resolve the conflict
+        // (or accept it) before this document's title is worth touching.
+        result.skippedConflict += 1;
+        log("warn", "retitle.skipped_conflict", { devId, sitId: entry.sit_id });
+        continue;
+      }
 
       const devDoc = await getDocumentById(config.dev, devRef, devId, fetchImpl);
       if (!devDoc) {
