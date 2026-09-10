@@ -24,6 +24,7 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 | `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
 | `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below) |
 | `link <devId> <sitId>` | — | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL). |
+| `inspect <devId>` | — | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing. |
 | `retitle`   | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration |
 | `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |
 | `verify`    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                              |
@@ -142,11 +143,22 @@ than looking hung.
   the Asset and Custom Types APIs (both explicitly documented as Bearer),
   but that's an assumption, not a confirmed fact — see the comment in
   [`lib/prismic-http.ts`](src/lib/prismic-http.ts).
-- **The link/asset field shape** `{ link_type: "Media" | "Document", id }`
-  ([`lib/rewrite-refs.ts`](src/lib/rewrite-refs.ts)) is the REST API v2
-  shape as commonly documented, but has not been run against a real
-  Prismic repository's actual response. Confirm it matches before trusting
-  Pass 2's link fix-up or Phase 3's spot-check.
+- **The Document-link field shape** `{ link_type: "Document", id }`
+  ([`lib/rewrite-refs.ts`](src/lib/rewrite-refs.ts)) is still unconfirmed
+  against a real repository's response — treat it the same way the asset
+  field shape was treated until a real run proved it wrong (see below):
+  as an assumption, not a fact, and check it against `inspect <devId>`
+  output before trusting Pass 2's link fix-up or Phase 3's spot-check on
+  a document that actually has one.
+  <br><br>
+  The asset field shape assumption WAS wrong, confirmed on a real run: a
+  document kept failing "Assets not found" despite its images being
+  fully migrated, because Prismic's plain Image fields (`{ dimensions,
+  alt, copyright, url, id, edit }`, no `link_type` at all) are more
+  common in practice than "Link to Media" fields (`{ link_type: "Media",
+  id }`, the only shape originally assumed here). Both are now handled —
+  Image fields get both `id` and `url` rewritten, since `id` alone would
+  leave the document hot-linking to dev's CDN forever.
 - **Asset back-sync isn't implemented.** Phase 1 only migrates assets
   dev → sit. If an editor uploads a new asset directly in sit and it later
   needs to flow back to dev via `backsync`, there's no dev-ward asset

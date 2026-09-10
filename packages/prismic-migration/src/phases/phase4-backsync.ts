@@ -83,9 +83,11 @@ export async function runPhase4({
   );
   const assetMapping = await assetMappingStore.load();
   // Reverse direction for sit -> dev asset ids (see the caveat above — this
-  // will be empty for anything only ever migrated dev -> sit).
+  // will be empty for anything only ever migrated dev -> sit). No `url`
+  // here — there's no recorded "dev CDN url" to restore to, unlike the
+  // forward direction's sit_url; only `id` gets rewritten going backward.
   const reverseAssetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [e.sit_asset_id, devId]),
+    Object.entries(assetMapping).map(([devId, e]) => [e.sit_asset_id, { id: devId }]),
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);

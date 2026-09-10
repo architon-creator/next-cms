@@ -3,7 +3,7 @@
  * references according to the given id maps. One function, reused in four
  * places:
  *
- *  - Phase 2 Pass 1: rewrite asset ("Link to Media") ids dev -> sit.
+ *  - Phase 2 Pass 1: rewrite asset ids dev -> sit (both field shapes below).
  *  - Phase 2 Pass 2: rewrite document-link ids dev -> sit, once every dev
  *    doc has a sit_id (documentIds only becomes complete after Pass 1).
  *  - Phase 3: recompute what sit's data *should* look like from dev's raw
@@ -13,21 +13,46 @@
  *    correct check).
  *  - Phase 4: the same rewriter, run in reverse (sit -> dev), for back-sync.
  *
- * ASSUMPTION TO VERIFY before relying on this against a real repository:
- * this targets the Prismic REST API v2 shape, where a "Link to Media" or
- * "Content Relationship" field is an object carrying `link_type`
- * ("Media" | "Document") and `id`. Confirm this against an actual response
- * from the target project's repositories — field shapes have shifted
- * across Prismic API versions and this has not been run against a live
- * Prismic repository.
+ * Two asset field shapes exist and are both handled, confirmed against a
+ * real repository (`inspect <devId>` on a document whose migration was
+ * failing "Assets not found" despite the assets already being uploaded —
+ * the id was never being rewritten because this file didn't recognize
+ * the shape yet):
+ *
+ *  - A "Link to Media" field: `{ link_type: "Media", id }`. This was the
+ *    only shape originally assumed here — unverified at the time, and it
+ *    turned out to be the LESS common one in practice.
+ *  - A plain Image field: `{ dimensions, alt, copyright, url, id, edit }`
+ *    — no `link_type` at all. This is what a real repository's Image
+ *    fields actually look like, and the shape most documents here
+ *    actually use. Detected by the combination of `id` + `url` +
+ *    `dimensions` all being present, which nothing else in Prismic's data
+ *    model produces together. Both `id` AND `url` are rewritten — `id`
+ *    alone would leave the image permanently hot-linking to dev's CDN
+ *    even after "migrating" to sit's own asset library.
+ *
+ * A "Content Relationship" field — `{ link_type: "Document", id }` — is
+ * the one shape still unconfirmed against a real repository's response;
+ * flagged in the README until it's been exercised for real.
  */
+export type AssetRef = { id: string; url?: string };
+
 export type RefMaps = {
-  assetIds?: Record<string, string>;
+  assetIds?: Record<string, AssetRef>;
   documentIds?: Record<string, string>;
 };
 
 export function rewriteRefs<T>(data: T, maps: RefMaps): T {
   return walk(data, maps) as T;
+}
+
+function isImageField(obj: Record<string, unknown>): boolean {
+  return (
+    typeof obj.id === "string" &&
+    typeof obj.url === "string" &&
+    obj.dimensions !== null &&
+    typeof obj.dimensions === "object"
+  );
 }
 
 function walk(value: unknown, maps: RefMaps): unknown {
@@ -38,12 +63,18 @@ function walk(value: unknown, maps: RefMaps): unknown {
   if (value !== null && typeof value === "object") {
     const obj = value as Record<string, unknown>;
 
-    if (
-      obj.link_type === "Media" &&
-      typeof obj.id === "string" &&
-      maps.assetIds?.[obj.id]
-    ) {
-      return { ...obj, id: maps.assetIds[obj.id] };
+    if (obj.link_type === "Media" && typeof obj.id === "string") {
+      const target = maps.assetIds?.[obj.id];
+      if (target) {
+        return { ...obj, id: target.id, ...(target.url ? { url: target.url } : {}) };
+      }
+    }
+
+    if (isImageField(obj)) {
+      const target = maps.assetIds?.[obj.id as string];
+      if (target) {
+        return { ...obj, id: target.id, ...(target.url ? { url: target.url } : {}) };
+      }
     }
 
     if (
@@ -100,7 +131,7 @@ function scanForUnresolved(
   }
 }
 
-/** Same idea as findUnresolvedDocumentLinks, but for Media links vs. sit's asset library. */
+/** Same idea as findUnresolvedDocumentLinks, but for asset references vs. sit's asset library — both field shapes rewriteRefs() handles. */
 export function findUnresolvedAssetLinks(
   data: unknown,
   knownAssetIds: Set<string>,
@@ -121,11 +152,9 @@ function scanForUnresolvedAssets(
   }
   if (value !== null && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    if (
-      obj.link_type === "Media" &&
-      typeof obj.id === "string" &&
-      !knownAssetIds.has(obj.id)
-    ) {
+    const isMediaLink = obj.link_type === "Media" && typeof obj.id === "string";
+    const isImage = isImageField(obj);
+    if ((isMediaLink || isImage) && typeof obj.id === "string" && !knownAssetIds.has(obj.id)) {
       found.add(obj.id);
     }
     for (const child of Object.values(obj))

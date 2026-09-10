@@ -136,7 +136,10 @@ export async function runPhase2({
   );
   const assetMapping = await assetMappingStore.load();
   const assetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, entry]) => [devId, entry.sit_asset_id]),
+    Object.entries(assetMapping).map(([devId, entry]) => [
+      devId,
+      { id: entry.sit_asset_id, url: entry.sit_url },
+    ]),
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);

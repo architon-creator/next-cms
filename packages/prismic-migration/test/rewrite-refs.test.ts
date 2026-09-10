@@ -6,12 +6,43 @@ import {
 } from "../src/lib/rewrite-refs.js";
 
 describe("rewriteRefs", () => {
-  it("rewrites a Media link id using assetIds", () => {
+  it("rewrites a Link-to-Media field's id and url using assetIds", () => {
     const data = {
       hero: { link_type: "Media", id: "dev-asset-1", url: "https://dev/x.png" },
     };
-    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": "sit-asset-1" } });
+    const result = rewriteRefs(data, {
+      assetIds: { "dev-asset-1": { id: "sit-asset-1", url: "https://sit/x.png" } },
+    });
     expect(result.hero.id).toBe("sit-asset-1");
+    expect(result.hero.url).toBe("https://sit/x.png");
+  });
+
+  it("rewrites a plain Image field's id and url (no link_type at all)", () => {
+    // The shape a real repository actually returned — confirmed via
+    // `inspect` after a real "Assets not found" failure traced back to
+    // this field shape never being recognized.
+    const data = {
+      hero: {
+        dimensions: { width: 100, height: 50 },
+        alt: null,
+        copyright: null,
+        url: "https://dev/x.png",
+        id: "dev-asset-1",
+        edit: { x: 0, y: 0, zoom: 1, background: "transparent" },
+      },
+    };
+    const result = rewriteRefs(data, {
+      assetIds: { "dev-asset-1": { id: "sit-asset-1", url: "https://sit/x.png" } },
+    });
+    expect(result.hero.id).toBe("sit-asset-1");
+    expect(result.hero.url).toBe("https://sit/x.png");
+  });
+
+  it("leaves an Image field's url untouched when the map entry has none", () => {
+    const data = { hero: { dimensions: { width: 1, height: 1 }, url: "https://dev/x.png", id: "dev-asset-1" } };
+    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": { id: "sit-asset-1" } } });
+    expect(result.hero.id).toBe("sit-asset-1");
+    expect(result.hero.url).toBe("https://dev/x.png");
   });
 
   it("rewrites a Document link id using documentIds", () => {
@@ -35,7 +66,7 @@ describe("rewriteRefs", () => {
         },
       ],
     };
-    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": "sit-asset-1" } });
+    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": { id: "sit-asset-1" } } });
     expect(result.slices[0].items[0].image.id).toBe("sit-asset-1");
   });
 
@@ -63,6 +94,15 @@ describe("findUnresolvedDocumentLinks", () => {
 describe("findUnresolvedAssetLinks", () => {
   it("flags a Media link id absent from the known asset set", () => {
     const data = { hero: { link_type: "Media", id: "dev-asset-leftover" } };
+    expect(findUnresolvedAssetLinks(data, new Set(["sit-asset-1"]))).toEqual([
+      "dev-asset-leftover",
+    ]);
+  });
+
+  it("flags a plain Image field's id absent from the known asset set", () => {
+    const data = {
+      hero: { dimensions: { width: 1, height: 1 }, url: "https://dev/x.png", id: "dev-asset-leftover" },
+    };
     expect(findUnresolvedAssetLinks(data, new Set(["sit-asset-1"]))).toEqual([
       "dev-asset-leftover",
     ]);

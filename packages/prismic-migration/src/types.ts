@@ -34,6 +34,13 @@ export type DocumentMapping = Record<string, MappingEntry>;
 
 export type AssetMappingEntry = {
   sit_asset_id: string;
+  /**
+   * Sit's own CDN URL for the uploaded asset. Needed alongside sit_asset_id
+   * because an Image field embeds both `id` and `url` — rewriting `id`
+   * alone leaves the document's images permanently hot-linking to dev's
+   * CDN instead of sit's own uploaded copy. See lib/rewrite-refs.ts.
+   */
+  sit_url: string;
   /** Hash of the asset's own metadata (filename + size) — see phase1-assets.ts. */
   dev_hash: string;
   migrated_at: string;

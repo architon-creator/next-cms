@@ -52,7 +52,7 @@ export async function runRetitle({
   const assetMappingStore = new MappingStore<AssetMapping>(join(config.mappingDir, "asset-mapping.json"));
   const assetMapping = await assetMappingStore.load();
   const assetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [devId, e.sit_asset_id]),
+    Object.entries(assetMapping).map(([devId, e]) => [devId, { id: e.sit_asset_id, url: e.sit_url }]),
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);

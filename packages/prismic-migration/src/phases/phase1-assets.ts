@@ -32,8 +32,31 @@ export async function runPhase1({
 
   let migrated = 0;
   let skipped = 0;
+  let backfilled = 0;
 
   await assetMappingStore.mutate(async (mapping) => {
+    // Backfill sit_url on entries from before it was recorded (an earlier
+    // version of this codebase didn't store it) — without a real run,
+    // rewriteRefs correctly rewrites `id` but not `url`, leaving migrated
+    // documents permanently hot-linking to dev's CDN for their images.
+    // Uses listAssets rather than re-uploading: the asset is already in
+    // sit's library, so this only needs to look its URL up, not recreate
+    // it (which would leave the old upload orphaned in sit's library).
+    const needsBackfill = Object.values(mapping).some((entry) => !entry.sit_url);
+    if (needsBackfill && !dryRun) {
+      const sitAssetsById = new Map((await listAssets(config.sit, fetchImpl)).map((a) => [a.id, a.url]));
+      for (const entry of Object.values(mapping)) {
+        if (entry.sit_url) continue;
+        const url = sitAssetsById.get(entry.sit_asset_id);
+        if (url) {
+          entry.sit_url = url;
+          backfilled += 1;
+        } else {
+          log("warn", "phase1.backfill_asset_not_found", { sitAssetId: entry.sit_asset_id });
+        }
+      }
+    }
+
     for (const asset of devAssets) {
       const contentHash = assetContentHash(asset.filename, asset.size);
       const existing = mapping[asset.id];
@@ -66,6 +89,7 @@ export async function runPhase1({
 
       mapping[asset.id] = {
         sit_asset_id: uploaded.id,
+        sit_url: uploaded.url,
         dev_hash: contentHash,
         migrated_at: new Date().toISOString(),
       };
@@ -78,5 +102,5 @@ export async function runPhase1({
     return mapping;
   });
 
-  log("info", "phase1.done", { dryRun, migrated, skipped });
+  log("info", "phase1.done", { dryRun, migrated, skipped, backfilled });
 }
