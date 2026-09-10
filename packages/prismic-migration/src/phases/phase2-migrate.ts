@@ -8,6 +8,7 @@ import {
   createMigrationDocument,
   getMasterRef,
   iterateAllDocuments,
+  listCustomTypes,
   PrismicApiError,
   updateMigrationDocument,
 } from "../lib/prismic-http.js";
@@ -58,6 +59,22 @@ function toFailure(
 
 function cachePathFor(cacheDir: string, devId: string): string {
   return join(cacheDir, "dev-docs", `${devId}.json`);
+}
+
+/**
+ * The Migration API's `title` is purely a display label for the Migration
+ * Release list — Prismic doesn't derive it from the document's own
+ * content, so something has to be supplied. Prefers `uid` (human-chosen,
+ * usually unique); falls back to the custom type's own label ("Transportation
+ * Service") with a short id suffix for uniqueness, since a repeatable type
+ * with no uid can have many documents that would otherwise all show the
+ * same label; falls back to the bare id only if the type's label is
+ * somehow unknown (shouldn't happen — schema parity is Phase 0's job).
+ */
+function buildTitle(doc: { id: string; uid: string | null; type: string }, typeLabels: Map<string, string>): string {
+  if (doc.uid) return doc.uid;
+  const label = typeLabels.get(doc.type);
+  return label ? `${label} (${doc.id.slice(-6)})` : doc.id;
 }
 
 /**
@@ -119,6 +136,14 @@ export async function runPhase2({
   });
   await mkdir(join(config.cacheDir, "dev-docs"), { recursive: true });
 
+  // For a human-readable title on a document that has no uid (see
+  // buildTitle below) — a real run surfaced documents whose "Name" in
+  // sit's Migration Release list was literally the raw dev document id
+  // ("aoWn_hEAAC0AMB8Q"), because that was the fallback here.
+  const typeLabels = new Map(
+    (await listCustomTypes(config.dev, fetchImpl)).map((t) => [t.id, t.label]),
+  );
+
   let seen = 0;
   let created = 0;
   let updated = 0;
@@ -151,14 +176,14 @@ export async function runPhase2({
         continue;
       }
 
-      const title = doc.uid || doc.id;
+      const title = buildTitle(doc, typeLabels);
 
       try {
         if (existing) {
           await updateMigrationDocument(
             config.sit,
             existing.sit_id,
-            { uid: doc.uid || undefined, data: assetRewritten, tags: doc.tags },
+            { uid: doc.uid || undefined, data: assetRewritten, tags: doc.tags, title },
             fetchImpl,
           );
           mapping[doc.id] = {
@@ -275,7 +300,7 @@ export async function runPhase2({
         await updateMigrationDocument(
           config.sit,
           entry.sit_id,
-          { uid: entry.uid, data: fullyRewritten },
+          { uid: entry.uid, data: fullyRewritten, title: buildTitle(raw, typeLabels) },
           fetchImpl,
         );
         mapping[devId] = { ...entry, sit_hash: fullHash };

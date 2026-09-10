@@ -243,6 +243,14 @@ export type MigrationDocumentUpdate = {
   uid?: string;
   data: Record<string, unknown>;
   tags?: string[];
+  // UNVERIFIED: Prismic's technical reference lists `uid` and `data` as the
+  // PUT body's meaningful fields, and explicitly calls out `type`/`lang`/
+  // `alternate_language_id` as ignored on update — it says nothing either
+  // way about `title`. Included so a re-sync CAN correct a bad title
+  // picked up at create time; confirm in the dashboard after a real PUT
+  // whether it actually took effect before relying on this to fix titles
+  // in bulk.
+  title?: string;
 };
 
 export async function updateMigrationDocument(
