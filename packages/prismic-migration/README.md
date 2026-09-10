@@ -23,6 +23,7 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 | `assets`    | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                       |
 | `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
 | `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type, when `migrate` fails with "already exist ... non-repeatable" (see below) |
+| `retitle`   | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration |
 | `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |
 | `verify`    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                              |
 | `backsync`  | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                      |
@@ -125,6 +126,14 @@ than looking hung.
 
 ## Known gaps — read before a real run
 
+- **`retitle` recomputes and re-PUTs dev's data, not just the title** —
+  the safest way this codebase has to correct a title without guessing at
+  a currently-unpublished draft's content (drafts aren't visible via the
+  master-ref-only content API). It only writes when the recomputed hash
+  still matches `dev_hash`, so the write is a no-op on `data` in practice
+  — but this is still a real write to a real document. Run it with
+  `--dry-run` first, and expect it to skip (not force) any document where
+  dev has moved on since the original migration.
 - **Verify the Migration API's `Authorization` header format** against the
   code sample Prismic's own dashboard generates for your repository. Their
   technical reference documents it only as "a permanent token" without a

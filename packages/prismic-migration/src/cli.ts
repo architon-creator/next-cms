@@ -8,6 +8,7 @@ import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
 import { runConfirm } from "./phases/phase2-confirm.js";
 import { runReconcile } from "./phases/phase-reconcile.js";
+import { runRetitle } from "./phases/phase-retitle.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
 import { runPhase4 } from "./phases/phase4-backsync.js";
 
@@ -30,6 +31,7 @@ const COMMANDS = [
   "assets",
   "migrate",
   "reconcile",
+  "retitle",
   "confirm",
   "verify",
   "backsync",
@@ -49,12 +51,15 @@ function usage(): never {
       "              the same non-repeatable type, so migrate stops trying",
       "              to create a duplicate. Run this after migrate reports",
       "              'non-repeatable, already exists' failures.",
+      "  retitle     One-time fix for documents created with the raw dev id",
+      "              as their title (no uid at create time). Only touches",
+      "              sit when dev is unchanged since the original migration.",
       "  confirm     After a human publishes the Migration Release in sit,",
       "              mark the now-live documents 'synced'",
       "  verify      Phase 3 — read-only checks; exits non-zero on any failure",
       "  backsync    Phase 4 — ongoing sit -> dev sync; exits non-zero on any conflict",
       "",
-      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/backsync).",
+      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/retitle/backsync).",
     ].join("\n"),
   );
   process.exit(1);
@@ -96,6 +101,9 @@ async function main(): Promise<void> {
       }
       return;
     }
+    case "retitle":
+      await runRetitle({ config, dryRun });
+      return;
     case "confirm":
       await runConfirm({ config });
       return;

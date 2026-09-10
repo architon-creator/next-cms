@@ -71,7 +71,10 @@ function cachePathFor(cacheDir: string, devId: string): string {
  * same label; falls back to the bare id only if the type's label is
  * somehow unknown (shouldn't happen — schema parity is Phase 0's job).
  */
-function buildTitle(doc: { id: string; uid: string | null; type: string }, typeLabels: Map<string, string>): string {
+export function buildTitle(
+  doc: { id: string; uid: string | null; type: string },
+  typeLabels: Map<string, string>,
+): string {
   if (doc.uid) return doc.uid;
   const label = typeLabels.get(doc.type);
   return label ? `${label} (${doc.id.slice(-6)})` : doc.id;
