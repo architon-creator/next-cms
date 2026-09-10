@@ -40,7 +40,13 @@ export type ReconcileResult = {
    * discard every successful reconciliation this run already made before
    * the failure (mutate() only persists if its callback returns normally).
    */
-  failed: { devId: string; docType: string; message: string; status?: number; body?: string }[];
+  failed: {
+    devId: string;
+    docType: string;
+    message: string;
+    status?: number;
+    body?: string;
+  }[];
 };
 
 /**
@@ -75,7 +81,9 @@ export async function runReconcile({
 }: ReconcileOptions): Promise<ReconcileResult> {
   log("info", "reconcile.start", { dryRun });
 
-  const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
+  const mappingStore = new MappingStore<DocumentMapping>(
+    join(config.mappingDir, "mapping.json"),
+  );
   const devRef = await getMasterRef(config.dev, fetchImpl);
   const sitRef = await getMasterRef(config.sit, fetchImpl);
 
@@ -84,7 +92,12 @@ export async function runReconcile({
     sitCustomTypes.filter((t) => !t.repeatable).map((t) => t.id),
   );
 
-  const result: ReconcileResult = { reconciled: 0, ambiguous: [], notFound: [], failed: [] };
+  const result: ReconcileResult = {
+    reconciled: 0,
+    ambiguous: [],
+    notFound: [],
+    failed: [],
+  };
 
   await mappingStore.mutate(async (mapping) => {
     for await (const doc of iterateAllDocuments(config.dev, devRef, fetchImpl)) {
@@ -92,7 +105,13 @@ export async function runReconcile({
       if (!nonRepeatableTypes.has(doc.type)) continue; // out of scope, see doc comment above
 
       try {
-        const matches = await findDocumentsByType(config.sit, sitRef, doc.type, doc.lang, fetchImpl);
+        const matches = await findDocumentsByType(
+          config.sit,
+          sitRef,
+          doc.type,
+          doc.lang,
+          fetchImpl,
+        );
 
         if (matches.length === 0) {
           // The content API (master-ref only) can't see an unpublished
@@ -100,7 +119,11 @@ export async function runReconcile({
           // can't see it". migrate will keep failing on this one until
           // it's linked by hand.
           result.notFound.push({ devId: doc.id, docType: doc.type, lang: doc.lang });
-          log("warn", "reconcile.not_found", { devId: doc.id, docType: doc.type, lang: doc.lang });
+          log("warn", "reconcile.not_found", {
+            devId: doc.id,
+            docType: doc.type,
+            lang: doc.lang,
+          });
           continue;
         }
 
@@ -158,7 +181,11 @@ export async function runReconcile({
         // already made earlier in the same run, for documents that had
         // nothing wrong with them. See the ReconcileResult.failed comment.
         const message = err instanceof Error ? err.message : String(err);
-        const failure: ReconcileResult["failed"][number] = { devId: doc.id, docType: doc.type, message };
+        const failure: ReconcileResult["failed"][number] = {
+          devId: doc.id,
+          docType: doc.type,
+          message,
+        };
         if (err instanceof PrismicApiError) {
           failure.status = err.status;
           failure.body = err.body;

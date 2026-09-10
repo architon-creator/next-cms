@@ -53,7 +53,10 @@ export async function runPhase3({
   const mapping = await mappingStore.load();
   const assetMapping = await assetMappingStore.load();
   const assetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [devId, { id: e.sit_asset_id, url: e.sit_url }]),
+    Object.entries(assetMapping).map(([devId, e]) => [
+      devId,
+      { id: e.sit_asset_id, url: e.sit_url },
+    ]),
   );
   const documentIds = Object.fromEntries(
     Object.entries(mapping).map(([devId, e]) => [devId, e.sit_id]),

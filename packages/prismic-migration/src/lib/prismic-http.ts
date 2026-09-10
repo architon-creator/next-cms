@@ -373,7 +373,9 @@ export async function findDocumentsByType(
   lang?: string,
   fetchImpl: FetchFn = fetch,
 ): Promise<PrismicDocument[]> {
-  const url = new URL(`https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`);
+  const url = new URL(
+    `https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`,
+  );
   url.searchParams.set("ref", ref);
   // Locale is controlled by the `lang` QUERY PARAMETER, not a predicate —
   // confirmed by a real 400 ("unexpected field 'document.lang'") when
@@ -388,7 +390,12 @@ export async function findDocumentsByType(
   // setups have been observed truncating the request URL in error output,
   // so this is a second, independent way to see exactly what query was
   // sent when diagnosing a 400 here.
-  log("info", "prismic_http.find_documents_by_type_query", { repository: repo.repository, type, lang, q });
+  log("info", "prismic_http.find_documents_by_type_query", {
+    repository: repo.repository,
+    type,
+    lang,
+    q,
+  });
   url.searchParams.set("pageSize", "20");
   if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
 

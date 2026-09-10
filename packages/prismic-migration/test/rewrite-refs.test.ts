@@ -40,8 +40,16 @@ describe("rewriteRefs", () => {
   });
 
   it("leaves an Image field's url untouched when the map entry has none", () => {
-    const data = { hero: { dimensions: { width: 1, height: 1 }, url: "https://dev/x.png", id: "dev-asset-1" } };
-    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": { id: "sit-asset-1" } } });
+    const data = {
+      hero: {
+        dimensions: { width: 1, height: 1 },
+        url: "https://dev/x.png",
+        id: "dev-asset-1",
+      },
+    };
+    const result = rewriteRefs(data, {
+      assetIds: { "dev-asset-1": { id: "sit-asset-1" } },
+    });
     expect(result.hero.id).toBe("sit-asset-1");
     expect(result.hero.url).toBe("https://dev/x.png");
   });
@@ -67,7 +75,9 @@ describe("rewriteRefs", () => {
         },
       ],
     };
-    const result = rewriteRefs(data, { assetIds: { "dev-asset-1": { id: "sit-asset-1" } } });
+    const result = rewriteRefs(data, {
+      assetIds: { "dev-asset-1": { id: "sit-asset-1" } },
+    });
     expect(result.slices[0].items[0].image.id).toBe("sit-asset-1");
   });
 
@@ -102,7 +112,11 @@ describe("findUnresolvedAssetLinks", () => {
 
   it("flags a plain Image field's id absent from the known asset set", () => {
     const data = {
-      hero: { dimensions: { width: 1, height: 1 }, url: "https://dev/x.png", id: "dev-asset-leftover" },
+      hero: {
+        dimensions: { width: 1, height: 1 },
+        url: "https://dev/x.png",
+        id: "dev-asset-leftover",
+      },
     };
     expect(findUnresolvedAssetLinks(data, new Set(["sit-asset-1"]))).toEqual([
       "dev-asset-leftover",

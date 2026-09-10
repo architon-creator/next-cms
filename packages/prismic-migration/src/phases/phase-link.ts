@@ -62,7 +62,9 @@ export async function runLink({
     return false;
   }
 
-  const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
+  const mappingStore = new MappingStore<DocumentMapping>(
+    join(config.mappingDir, "mapping.json"),
+  );
   const devRef = await getMasterRef(config.dev, fetchImpl);
   const sitRef = await getMasterRef(config.sit, fetchImpl);
 
@@ -130,8 +132,14 @@ export type UnlinkOptions = {
  * you're back to the original "already exist, non-repeatable" collision
  * this was linked to get around.
  */
-export async function runUnlink({ config, devId, dryRun }: UnlinkOptions): Promise<boolean> {
-  const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
+export async function runUnlink({
+  config,
+  devId,
+  dryRun,
+}: UnlinkOptions): Promise<boolean> {
+  const mappingStore = new MappingStore<DocumentMapping>(
+    join(config.mappingDir, "mapping.json"),
+  );
   const mapping = await mappingStore.load();
   const entry = mapping[devId];
 

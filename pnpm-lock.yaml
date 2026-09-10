@@ -204,7 +204,7 @@ importers:
   packages/prismic-migration:
     dependencies:
       dotenv:
-        specifier: ^16.6.1
+        specifier: ^16.6.1 || ^17.0.0
         version: 16.6.1
     devDependencies:
       '@types/node':

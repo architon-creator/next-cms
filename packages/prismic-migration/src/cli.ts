@@ -188,7 +188,11 @@ async function main(): Promise<void> {
         const sitRef = await getMasterRef(config.sit);
         const sitDoc = await getDocumentById(config.sit, sitRef, sitId);
         console.log("\n=== sit ===");
-        console.log(sitDoc ? JSON.stringify(sitDoc, null, 2) : "(not found — still unpublished, or wrong id)");
+        console.log(
+          sitDoc
+            ? JSON.stringify(sitDoc, null, 2)
+            : "(not found — still unpublished, or wrong id)",
+        );
       }
       return;
     }

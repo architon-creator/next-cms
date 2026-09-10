@@ -44,7 +44,9 @@ export async function runPhase1({
     // it (which would leave the old upload orphaned in sit's library).
     const needsBackfill = Object.values(mapping).some((entry) => !entry.sit_url);
     if (needsBackfill && !dryRun) {
-      const sitAssetsById = new Map((await listAssets(config.sit, fetchImpl)).map((a) => [a.id, a.url]));
+      const sitAssetsById = new Map(
+        (await listAssets(config.sit, fetchImpl)).map((a) => [a.id, a.url]),
+      );
       for (const entry of Object.values(mapping)) {
         if (entry.sit_url) continue;
         const url = sitAssetsById.get(entry.sit_asset_id);
@@ -52,7 +54,9 @@ export async function runPhase1({
           entry.sit_url = url;
           backfilled += 1;
         } else {
-          log("warn", "phase1.backfill_asset_not_found", { sitAssetId: entry.sit_asset_id });
+          log("warn", "phase1.backfill_asset_not_found", {
+            sitAssetId: entry.sit_asset_id,
+          });
         }
       }
     }

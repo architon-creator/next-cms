@@ -53,6 +53,7 @@ describe("runPhase2 — dev document search returns nothing", () => {
     const fetchImpl = vi.fn(async (input: string | URL) => {
       const url = new URL(input);
       if (url.pathname === "/api/v2") return fakeMasterRefResponse();
+      if (url.pathname === "/customtypes") return jsonResponse([]);
       if (url.pathname === "/api/v2/documents/search") {
         return jsonResponse({ results: [], next_page: null });
       }
@@ -79,6 +80,7 @@ describe("runPhase2 — dev document search returns nothing", () => {
     const fetchImpl = vi.fn(async (input: string | URL) => {
       const url = new URL(input);
       if (url.pathname === "/api/v2") return fakeMasterRefResponse();
+      if (url.pathname === "/customtypes") return jsonResponse([]);
       if (url.pathname === "/api/v2/documents/search") {
         return jsonResponse({
           results: [

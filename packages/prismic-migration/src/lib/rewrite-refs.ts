@@ -206,7 +206,11 @@ function scanForUnresolvedAssets(
     const obj = value as Record<string, unknown>;
     const isMediaLink = obj.link_type === "Media" && typeof obj.id === "string";
     const isImage = isImageField(obj);
-    if ((isMediaLink || isImage) && typeof obj.id === "string" && !knownAssetIds.has(obj.id)) {
+    if (
+      (isMediaLink || isImage) &&
+      typeof obj.id === "string" &&
+      !knownAssetIds.has(obj.id)
+    ) {
       found.add(obj.id);
     }
     for (const child of Object.values(obj))

@@ -17,19 +17,19 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 
 ## What's implemented
 
-| Command     | Plan phase | What it does                                                                                                                                    |
-| ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preflight` | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                       |
-| `assets`    | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                       |
-| `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
-| `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below) |
-| `link <devId> <sitId>` | — | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL). |
-| `unlink <devId>` | — | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch sit. Use when the linked sit document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy. |
-| `inspect <devId>` | — | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing. |
-| `retitle`   | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration |
-| `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |
-| `verify`    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                              |
-| `backsync`  | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                      |
+| Command                | Plan phase | What it does                                                                                                                                                                                                                        |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preflight`            | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                                                                                                           |
+| `assets`               | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                                                                                                           |
+| `migrate`              | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps."                                                        |
+| `reconcile`            | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below)                                                              |
+| `link <devId> <sitId>` | —          | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL).                                |
+| `unlink <devId>`       | —          | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch sit. Use when the linked sit document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy. |
+| `inspect <devId>`      | —          | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing.                                                                                      |
+| `retitle`              | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration                                                                        |
+| `confirm`              | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below)                                                                                     |
+| `verify`               | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                                                                                                                  |
+| `backsync`             | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                                                                                                          |
 
 Every write command accepts `--dry-run` and only logs the planned diff.
 Run these from inside this package's own directory
@@ -163,9 +163,9 @@ than looking hung.
   The asset field shape assumption WAS wrong too, confirmed on the same
   run: a document kept failing "Assets not found" despite its images
   being fully migrated, because Prismic's plain Image fields (`{
-  dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
+dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
   are more common in practice than "Link to Media" fields (`{ link_type:
-  "Media", id }`, the only shape originally assumed here). Both are now
+"Media", id }`, the only shape originally assumed here). Both are now
   handled — Image fields get both `id` and `url` rewritten, since `id`
   alone would leave the document hot-linking to dev's CDN forever.
 - **Asset back-sync isn't implemented.** Phase 1 only migrates assets
@@ -182,7 +182,7 @@ than looking hung.
   both silently skip a mapping entry whose dev or sit document has been
   deleted, rather than flagging it.
 - **`reconcile` only handles non-repeatable types.** If sit already has
-  pre-existing content for a *repeatable* custom type (many possible
+  pre-existing content for a _repeatable_ custom type (many possible
   documents), there's no automated way to guess which sit document
   corresponds to which dev document — that still needs a human decision,
   by hand, in `data/mapping.json`.

@@ -3,7 +3,12 @@ import type { Config } from "../config.js";
 import { canonicalHash } from "../lib/canonical-hash.js";
 import { log } from "../lib/logger.js";
 import { MappingStore } from "../lib/mapping-store.js";
-import { getDocumentById, getMasterRef, listCustomTypes, updateMigrationDocument } from "../lib/prismic-http.js";
+import {
+  getDocumentById,
+  getMasterRef,
+  listCustomTypes,
+  updateMigrationDocument,
+} from "../lib/prismic-http.js";
 import { rewriteRefs } from "../lib/rewrite-refs.js";
 import { buildTitle } from "./phase2-migrate.js";
 import type { AssetMapping, DocumentMapping } from "../types.js";
@@ -50,11 +55,18 @@ export async function runRetitle({
 }: RetitleOptions): Promise<RetitleResult> {
   log("info", "retitle.start", { dryRun });
 
-  const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
-  const assetMappingStore = new MappingStore<AssetMapping>(join(config.mappingDir, "asset-mapping.json"));
+  const mappingStore = new MappingStore<DocumentMapping>(
+    join(config.mappingDir, "mapping.json"),
+  );
+  const assetMappingStore = new MappingStore<AssetMapping>(
+    join(config.mappingDir, "asset-mapping.json"),
+  );
   const assetMapping = await assetMappingStore.load();
   const assetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [devId, { id: e.sit_asset_id, url: e.sit_url }]),
+    Object.entries(assetMapping).map(([devId, e]) => [
+      devId,
+      { id: e.sit_asset_id, url: e.sit_url },
+    ]),
   );
 
   const devRef = await getMasterRef(config.dev, fetchImpl);
@@ -104,7 +116,10 @@ export async function runRetitle({
       const currentDevHash = canonicalHash(devDoc.data);
       if (currentDevHash !== entry.dev_hash) {
         result.skippedChanged += 1;
-        log("warn", "retitle.dev_changed_since_migration", { devId, sitId: entry.sit_id });
+        log("warn", "retitle.dev_changed_since_migration", {
+          devId,
+          sitId: entry.sit_id,
+        });
         continue;
       }
 
