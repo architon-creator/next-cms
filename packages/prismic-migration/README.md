@@ -5,12 +5,15 @@ hash-gated **sit → dev** back-sync — implementing the plan reviewed
 alongside this code (see the plan review this was built from for the full
 design rationale and the gaps called out below).
 
-**This directory is self-contained by design.** It has no dependency on
-whatever monorepo it currently sits in — copy the whole
-`prismic-migration/` folder into the target project (e.g. as
-`packages/prismic-migration` in a Turborepo/pnpm workspace) and
-`pnpm install` (or `npm install`) inside it. Nothing here assumes pnpm,
-Turborepo, or any particular workspace layout.
+**This code is self-contained by design**, even though it now lives as a
+workspace member here (`packages/prismic-migration`, part of this repo's
+own `pnpm-workspace.yaml`) rather than standalone. It has no dependency on
+`next-cms` itself — no imports from `cms`/`ui`, no `workspace:*` deps — so
+lifting the folder back out into any other project (e.g. `packages/`
+in a Turborepo/pnpm workspace, or fully standalone) is still just: copy the
+directory, drop the root-level `pnpm-lock.yaml` reference to it, and
+`pnpm install` (or `npm install`) inside its own folder. Nothing here
+assumes pnpm, Turborepo, or any particular workspace layout.
 
 ## What's implemented
 
@@ -24,6 +27,10 @@ Turborepo, or any particular workspace layout.
 | `backsync`  | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                      |
 
 Every write command accepts `--dry-run` and only logs the planned diff.
+Run these from inside this package's own directory
+(`cd packages/prismic-migration`) — or from the repo root via
+`pnpm --filter prismic-migration run cli <command>`, which pnpm runs with
+this directory as the working directory anyway:
 
 ```bash
 pnpm cli preflight
@@ -36,9 +43,16 @@ pnpm cli backsync
 
 (`pnpm cli <command>` runs the TypeScript source directly via `tsx`, for
 local use. `pnpm build && node dist/cli.js <command>` runs the compiled
-output, for CI.)
+output, for CI. Data paths — `.env`, `./data`, `./snapshots`, `./.cache`,
+`./reports` — are all relative to the working directory the command runs
+from, which is the reason to run it from inside this directory rather
+than the repo root.)
 
 ## Setup
+
+Inside this repo, a root-level `pnpm install` already covers this package —
+no separate install step needed here. Standalone (after copying this
+folder elsewhere):
 
 ```bash
 cp .env.example .env   # fill in DEV_*/SIT_* — see .env.example for what each does

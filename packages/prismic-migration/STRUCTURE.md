@@ -1,14 +1,12 @@
 # prismic-migration — folder structure
 
 ```
-prismic-migration/
+packages/prismic-migration/          Lives here as a workspace member of this repo — see below to lift it out
 ├── README.md                        Overview, setup, design decisions, known gaps to verify
 ├── STRUCTURE.md                     This file
-├── package.json                     Standalone package — its own deps, no workspace dependency
-├── pnpm-lock.yaml                   Lockfile for the deps above (npm/yarn work too, just relock)
+├── package.json                     No dependency on next-cms itself — no cms/ui imports, no workspace:* deps
 ├── tsconfig.json                    NodeNext ESM, strict
 ├── vitest.config.ts                 Points vitest at test/**/*.test.ts
-├── .npmrc                           only-built-dependencies=esbuild (lets pnpm run esbuild's postinstall)
 ├── .env.example                     Copy to .env — DEV_*/SIT_* repo + token config
 ├── .gitignore                       Ignores node_modules, dist, snapshots/, reports/, .cache/, .env
 │
@@ -55,10 +53,12 @@ prismic-migration/
 
 ## To copy this into another project
 
-1. Copy the whole `prismic-migration/` directory as-is (e.g. to `packages/prismic-migration` in a
-   Turborepo/pnpm workspace, or anywhere standalone).
-2. `cd prismic-migration && pnpm install` (or `npm install` — nothing here is pnpm-specific except
-   the lockfile itself; delete `pnpm-lock.yaml` first if the target uses npm/yarn).
+1. Copy the whole `packages/prismic-migration/` directory as-is — into `packages/` in another
+   Turborepo/pnpm workspace, or anywhere standalone (it has no dependency on next-cms: no `cms`/`ui`
+   imports, no `workspace:*` deps).
+2. `cd prismic-migration && pnpm install` (or `npm install` — nothing here is pnpm-specific; there's
+   no lockfile committed in this directory, since inside this repo it relies on the root
+   `pnpm-lock.yaml` — a fresh install in the new location generates its own).
 3. `cp .env.example .env` and fill in `DEV_REPOSITORY`/`DEV_MIGRATION_TOKEN`/`SIT_REPOSITORY`/
    `SIT_MIGRATION_TOKEN` (and the optional `*_ACCESS_TOKEN`s if either repo is private).
 4. `pnpm test` — 31 tests, no live Prismic credentials needed, confirms the copy is intact.
