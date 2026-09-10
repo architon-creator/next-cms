@@ -7,6 +7,7 @@ import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
 import { runConfirm } from "./phases/phase2-confirm.js";
+import { runReconcile } from "./phases/phase-reconcile.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
 import { runPhase4 } from "./phases/phase4-backsync.js";
 
@@ -28,6 +29,7 @@ const COMMANDS = [
   "preflight",
   "assets",
   "migrate",
+  "reconcile",
   "confirm",
   "verify",
   "backsync",
@@ -43,12 +45,16 @@ function usage(): never {
       "  preflight   Phase 0 — schema parity check/push, snapshots, mapping init",
       "  assets      Phase 1 — migrate the dev asset library to sit",
       "  migrate     Phase 2 — two-pass document migration, dev -> sit",
+      "  reconcile   Link dev documents to a pre-existing sit document of",
+      "              the same non-repeatable type, so migrate stops trying",
+      "              to create a duplicate. Run this after migrate reports",
+      "              'non-repeatable, already exists' failures.",
       "  confirm     After a human publishes the Migration Release in sit,",
       "              mark the now-live documents 'synced'",
       "  verify      Phase 3 — read-only checks; exits non-zero on any failure",
       "  backsync    Phase 4 — ongoing sit -> dev sync; exits non-zero on any conflict",
       "",
-      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/backsync).",
+      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/backsync).",
     ].join("\n"),
   );
   process.exit(1);
@@ -80,6 +86,13 @@ async function main(): Promise<void> {
         // catches it, without pretending the run silently succeeded.
         log("error", "cli.migrate_had_failures", { failures: result.failures });
         process.exitCode = 1;
+      }
+      return;
+    }
+    case "reconcile": {
+      const result = await runReconcile({ config, dryRun });
+      if (result.ambiguous.length > 0) {
+        log("warn", "cli.reconcile_ambiguous", { ambiguous: result.ambiguous });
       }
       return;
     }

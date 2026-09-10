@@ -21,7 +21,8 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 | ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `preflight` | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                       |
 | `assets`    | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                       |
-| `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id)                                           |
+| `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
+| `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type, when `migrate` fails with "already exist ... non-repeatable" (see below) |
 | `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |
 | `verify`    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                              |
 | `backsync`  | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                      |
@@ -34,9 +35,13 @@ this directory as the working directory anyway:
 
 ```bash
 pnpm cli preflight
-pnpm cli assets --dry-run
+pnpm cli assets            # NOT --dry-run — dry-run writes nothing, including
+                            # asset-mapping.json, and migrate needs that populated
+                            # or every image/media reference fails "Assets not found"
 pnpm cli migrate
-pnpm cli confirm       # after a human publishes the Migration Release in sit
+pnpm cli reconcile         # only if migrate reported "already exist ... non-repeatable"
+pnpm cli migrate           # re-run — reconciled documents are now skipped, not retried
+pnpm cli confirm           # after a human publishes the Migration Release in sit
 pnpm cli verify
 pnpm cli backsync
 ```
@@ -145,6 +150,17 @@ than looking hung.
 - **Document/asset deletions are out of scope.** `verify` and `backsync`
   both silently skip a mapping entry whose dev or sit document has been
   deleted, rather than flagging it.
+- **`reconcile` only handles non-repeatable types.** If sit already has
+  pre-existing content for a *repeatable* custom type (many possible
+  documents), there's no automated way to guess which sit document
+  corresponds to which dev document — that still needs a human decision,
+  by hand, in `data/mapping.json`.
+- **`reconcile` marks a link as `status: "conflict"`, not `"synced"`,
+  and never overwrites sit's existing content** — it only stops `migrate`
+  from trying to create a duplicate. Whether dev's content actually
+  matches what's already in sit is left for a human to check (or for
+  `backsync`'s hash comparison to catch later); reconciling the link
+  doesn't mean the content is reconciled.
 - **No request timeout.** `lib/prismic-http.ts`'s `request()` has no
   `AbortController`/timeout, so a request against an unreachable or
   black-holing host hangs indefinitely rather than failing fast. This

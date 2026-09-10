@@ -343,3 +343,28 @@ export async function getDocumentById(
   const body = (await res.json()) as SearchResponse;
   return body.results[0] ?? null;
 }
+
+/**
+ * Documents of a given custom type at `ref`. Used by the `reconcile`
+ * command to find a pre-existing sit document for a non-repeatable type
+ * (one created outside this tool, so mapping.json never recorded it) —
+ * `pageSize` is small on purpose: this only needs to tell "zero", "one",
+ * or "more than one" apart, never a full listing.
+ */
+export async function findDocumentsByType(
+  repo: RepoConfig,
+  ref: string,
+  type: string,
+  fetchImpl: FetchFn = fetch,
+): Promise<PrismicDocument[]> {
+  const url = new URL(`https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`);
+  url.searchParams.set("ref", ref);
+  url.searchParams.set("lang", "*");
+  url.searchParams.set("q", `[[at(document.type,"${type}")]]`);
+  url.searchParams.set("pageSize", "20");
+  if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
+
+  const res = await request(url.toString(), {}, fetchImpl);
+  const body = (await res.json()) as SearchResponse;
+  return body.results;
+}
