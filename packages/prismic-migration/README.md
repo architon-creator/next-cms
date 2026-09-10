@@ -5,6 +5,18 @@ hash-gated **sit → dev** back-sync — implementing the plan reviewed
 alongside this code (see the plan review this was built from for the full
 design rationale and the gaps called out below).
 
+**Battle-tested, not just written:** every phase (`preflight` → `assets` →
+`migrate` → `reconcile`/`link` for pre-existing content → `retitle` →
+`confirm` → `verify`) has been run end-to-end against a real dev/sit
+Prismic migration — 26 documents, 49 assets, several non-repeatable-type
+collisions, multi-locale documents, plain Image fields, and Content
+Relationship fields — finishing with `verify` reporting `passed: true`
+(document count match, zero spot-check mismatches, zero broken links, zero
+orphaned assets). Several assumptions below turned out wrong on that run
+and are now fixed and confirmed rather than merely assumed; see "Known
+gaps" and "Prismic API specifics confirmed the hard way" for exactly which
+ones, and what's still genuinely unverified.
+
 **This code is self-contained by design**, even though it now lives as a
 workspace member here (`packages/prismic-migration`, part of this repo's
 own `pnpm-workspace.yaml`) rather than standalone. It has no dependency on
@@ -17,19 +29,19 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 
 ## What's implemented
 
-| Command                | Plan phase | What it does                                                                                                                                                                                                                        |
-| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preflight`            | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                                                                                                           |
-| `assets`               | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                                                                                                           |
-| `migrate`              | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps."                                                        |
-| `reconcile`            | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below)                                                              |
-| `link <devId> <sitId>` | —          | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL).                                |
-| `unlink <devId>`       | —          | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch sit. Use when the linked sit document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy. |
-| `inspect <devId>`      | —          | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing.                                                                                      |
-| `retitle`              | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration                                                                        |
-| `confirm`              | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below)                                                                                     |
-| `verify`               | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                                                                                                                  |
-| `backsync`             | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                                                                                                          |
+| Command                   | Plan phase | What it does                                                                                                                                                                                                                                                 |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `preflight`               | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                                                                                                                                    |
+| `assets`                  | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                                                                                                                                    |
+| `migrate`                 | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps."                                                                                 |
+| `reconcile`               | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below)                                                                                       |
+| `link <devId> <sitId>`    | —          | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL).                                                         |
+| `unlink <devId>`          | —          | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch sit. Use when the linked sit document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy.                          |
+| `inspect <devId> [sitId]` | —          | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing. Pass a sitId too to print sit's live version alongside it, for diffing a `verify` spot-check mismatch by eye. |
+| `retitle`                 | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration                                                                                                 |
+| `confirm`                 | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below)                                                                                                              |
+| `verify`                  | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                                                                                                                                           |
+| `backsync`                | Phase 4    | Ongoing sit → dev sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                                                                                                                                   |
 
 Every write command accepts `--dry-run` and only logs the planned diff.
 Run these from inside this package's own directory
@@ -66,7 +78,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in DEV_*/SIT_* — see .env.example for what each does
 pnpm install
-pnpm test               # 31 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 43 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `DEV_MIGRATION_TOKEN`/`SIT_MIGRATION_TOKEN` are write-scoped permanent
@@ -127,6 +139,40 @@ exponential backoff with jitter, capped at 5 attempts), and logs each
 retry as a `prismic_http.retrying` event so a slow run is visible rather
 than looking hung.
 
+## Prismic API specifics confirmed the hard way
+
+Things a real run got wrong on the first (or second) try, now fixed and
+confirmed — kept here so nobody has to rediscover them by trial and error
+if this code is extended:
+
+- **The Migration API's `Authorization` header is `Bearer <token>`.**
+  Prismic's own technical reference never states this explicitly (it just
+  says "a permanent token"), but dozens of real `createMigrationDocument`/
+  `updateMigrationDocument` calls across this session all succeeded with
+  this format — confirmed, not merely assumed.
+- **Combining predicates in a `q` query is `[[pred1][pred2]]`** — each
+  predicate gets its own `[...]` wrapper, concatenated with **no
+  separator** between them, the whole thing in one outer `[...]`. Two
+  wrong guesses preceded this: `[[pred1],[pred2]]` (a comma between the
+  bracket groups) and `[[pred1,pred2]]` (both predicates crammed into one
+  bracket) each produced a distinct, real `api_parsing_error`. A single
+  predicate — `[[pred1]]` — happens to look identical under all three
+  (wrong and right) schemes, which is why `getDocumentById`'s queries
+  never surfaced this and only a two-predicate query in `reconcile` did.
+- **Locale is a query PARAMETER (`lang=<code>` or `lang=*`), never a
+  predicate.** `at(document.lang, "en-us")` looks like a reasonable
+  predicate to write and fails immediately with `[function at(..)]
+unexpected field 'document.lang'` — locale filtering happens entirely
+  through the `lang` param already used elsewhere in this file for "every
+  locale" (`*`).
+- **Two Prismic-specific field shapes needed real responses to get right**
+  — a plain Image field (`{ dimensions, alt, copyright, url, id, edit }`,
+  no `link_type` at all) versus a "Link to Media" field (`{ link_type:
+"Media", id }`), and a Content Relationship field's read-time
+  denormalization of the target document's own metadata. See "Known gaps"
+  below for the full detail on both — they're significant enough to also
+  live there, not just here.
+
 ## Known gaps — read before a real run
 
 - **`retitle` recomputes and re-PUTs dev's data, not just the title** —
@@ -137,13 +183,18 @@ than looking hung.
   — but this is still a real write to a real document. Run it with
   `--dry-run` first, and expect it to skip (not force) any document where
   dev has moved on since the original migration.
-- **Verify the Migration API's `Authorization` header format** against the
-  code sample Prismic's own dashboard generates for your repository. Their
-  technical reference documents it only as "a permanent token" without a
-  literal example; this code sends `Bearer <token>` for consistency with
-  the Asset and Custom Types APIs (both explicitly documented as Bearer),
-  but that's an assumption, not a confirmed fact — see the comment in
-  [`lib/prismic-http.ts`](src/lib/prismic-http.ts).
+- **`preflight` only syncs the Custom Types API (`/customtypes`) — not a
+  separate Shared Slices library.** If your project manages slices inline
+  within each custom type's own JSON (the dashboard Type Builder's default
+  pattern), a slice change IS covered — it's just part of that type's JSON
+  diff. If instead your slices live in Prismic's separate Shared Slices
+  library (the Slice Machine workflow — slices independently versioned and
+  referenced by id from a type, not embedded in its JSON), `preflight` has
+  no code path to sync that library at all; adding one would need the
+  Shared Slices API, not yet built here. Confirm which pattern your project
+  uses with `pnpm cli preflight --dry-run` after a real slice change in
+  dev: if the affected type shows up under `differing`, you're covered; if
+  not, that's the gap.
 - **The Document-link field shape** `{ link_type: "Document", id }` was
   confirmed on a real run, and turned out to have a wrinkle: Prismic
   denormalizes a live snapshot of the target document's own state onto
@@ -218,10 +269,17 @@ dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
 pnpm test
 ```
 
-31 tests across canonical hashing, the mapping store (including lock
-contention), the link/asset rewriter, the custom-type diff, the 4-quadrant
-conflict matrix, the rate limiter, and the Migration/Asset API request
-shapes (mocked `fetch`, asserting headers/method/body — not a live call).
-None of this has been run against a real Prismic repository; do that as a
-next step, ideally against disposable dev/sit repositories before any real
-content is involved.
+43 tests across canonical hashing, the mapping store (including lock
+contention), the link/asset rewriter (both real field shapes, and the
+denormalization-stripping comparator), the custom-type diff, the
+4-quadrant conflict matrix, the rate limiter, retry/backoff behavior, a
+full `runPhase2` run against a mocked fetch, and the Migration/Asset API
+request shapes — all pure logic or mocked `fetch`, no live call, so no
+credentials are needed to run them.
+
+That's deliberately the fast, no-credentials layer — it is not a
+substitute for a real run. This toolkit HAS since been run end-to-end
+against a real dev/sit Prismic migration (see the top of this README); if
+you're adapting this for a different project, do the same before trusting
+it with real content — ideally against disposable dev/sit repositories
+first, the same way this one was.
