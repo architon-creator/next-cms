@@ -22,7 +22,8 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 | `preflight` | Phase 0    | Diffs dev vs. sit custom types, pushes missing/differing ones to sit, snapshots both repos, initializes the mapping files                       |
 | `assets`    | Phase 1    | Migrates dev's asset library to sit, idempotent on re-run                                                                                       |
 | `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
-| `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type, when `migrate` fails with "already exist ... non-repeatable" (see below) |
+| `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below) |
+| `link <devId> <sitId>` | — | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL). |
 | `retitle`   | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration |
 | `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |
 | `verify`    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                              |
@@ -170,6 +171,16 @@ than looking hung.
   matches what's already in sit is left for a human to check (or for
   `backsync`'s hash comparison to catch later); reconciling the link
   doesn't mean the content is reconciled.
+- **`reconcile` can't find a pre-existing sit document that's still an
+  unpublished draft** — confirmed on a real run: the content API only
+  sees the master ref (published content), so a type/locale that
+  `migrate` proves already exists in sit can still come back with zero
+  matches from `reconcile`. Reported as `notFound` (distinct from
+  `ambiguous`) — resolve those with `link <devId> <sitId>`, supplying
+  the sit id yourself from the dashboard. `link` itself degrades to an
+  empty `sit_hash` if even a known id is unreadable (still a draft);
+  safe, since a `"conflict"` entry's `sit_hash` isn't compared by
+  anything until a human resolves it.
 - **No request timeout.** `lib/prismic-http.ts`'s `request()` has no
   `AbortController`/timeout, so a request against an unreachable or
   black-holing host hangs indefinitely rather than failing fast. This

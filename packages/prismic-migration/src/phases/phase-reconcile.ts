@@ -19,7 +19,17 @@ export type ReconcileOptions = {
 
 export type ReconcileResult = {
   reconciled: number;
-  ambiguous: { devId: string; docType: string; matchCount: number }[];
+  ambiguous: { devId: string; docType: string; lang: string; matchCount: number }[];
+  /**
+   * Non-repeatable, but the content API found zero matching sit documents —
+   * this happens when the pre-existing sit document is itself an
+   * unpublished draft (the content API only sees the master ref, never
+   * drafts), which `migrate`'s "already exist" error will still confirm.
+   * Nothing automated can resolve these: find the document's id in the
+   * sit dashboard and add it to mapping.json by hand (or wire up a manual
+   * `link <devId> <sitId>` command if this becomes a recurring need).
+   */
+  notFound: { devId: string; docType: string; lang: string }[];
 };
 
 /**
@@ -63,30 +73,37 @@ export async function runReconcile({
     sitCustomTypes.filter((t) => !t.repeatable).map((t) => t.id),
   );
 
-  const result: ReconcileResult = { reconciled: 0, ambiguous: [] };
+  const result: ReconcileResult = { reconciled: 0, ambiguous: [], notFound: [] };
 
   await mappingStore.mutate(async (mapping) => {
     for await (const doc of iterateAllDocuments(config.dev, devRef, fetchImpl)) {
       if (mapping[doc.id]) continue; // already linked — nothing to reconcile
       if (!nonRepeatableTypes.has(doc.type)) continue; // out of scope, see doc comment above
 
-      const matches = await findDocumentsByType(config.sit, sitRef, doc.type, fetchImpl);
+      const matches = await findDocumentsByType(config.sit, sitRef, doc.type, doc.lang, fetchImpl);
 
-      if (matches.length !== 1) {
-        // 0 matches: nothing to link yet, `migrate` will just create it
-        // normally. >1 matches shouldn't be possible for a genuinely
-        // non-repeatable type, but if sit's data disagrees with its own
-        // schema, guessing which one is dev's counterpart would be
-        // worse than leaving it for a human — hence "ambiguous", not
-        // "reconciled" either way.
-        if (matches.length > 1) {
-          result.ambiguous.push({ devId: doc.id, docType: doc.type, matchCount: matches.length });
-          log("warn", "reconcile.ambiguous", {
-            devId: doc.id,
-            docType: doc.type,
-            matchCount: matches.length,
-          });
-        }
+      if (matches.length === 0) {
+        // The content API (master-ref only) can't see an unpublished
+        // draft — this is NOT "nothing to reconcile", it's "reconcile
+        // can't see it". migrate will keep failing on this one until it's
+        // linked by hand.
+        result.notFound.push({ devId: doc.id, docType: doc.type, lang: doc.lang });
+        log("warn", "reconcile.not_found", { devId: doc.id, docType: doc.type, lang: doc.lang });
+        continue;
+      }
+
+      if (matches.length > 1) {
+        // Shouldn't be possible for a genuinely non-repeatable type per
+        // locale, but if sit's data disagrees with its own schema,
+        // guessing which one is dev's counterpart would be worse than
+        // leaving it for a human.
+        result.ambiguous.push({ devId: doc.id, docType: doc.type, lang: doc.lang, matchCount: matches.length });
+        log("warn", "reconcile.ambiguous", {
+          devId: doc.id,
+          docType: doc.type,
+          lang: doc.lang,
+          matchCount: matches.length,
+        });
         continue;
       }
 
@@ -124,6 +141,7 @@ export async function runReconcile({
     dryRun,
     reconciled: result.reconciled,
     ambiguous: result.ambiguous.length,
+    notFound: result.notFound.length,
   });
   return result;
 }

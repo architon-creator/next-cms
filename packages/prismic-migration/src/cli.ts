@@ -7,6 +7,7 @@ import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
 import { runConfirm } from "./phases/phase2-confirm.js";
+import { runLink } from "./phases/phase-link.js";
 import { runReconcile } from "./phases/phase-reconcile.js";
 import { runRetitle } from "./phases/phase-retitle.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
@@ -31,6 +32,7 @@ const COMMANDS = [
   "assets",
   "migrate",
   "reconcile",
+  "link",
   "retitle",
   "confirm",
   "verify",
@@ -51,6 +53,11 @@ function usage(): never {
       "              the same non-repeatable type, so migrate stops trying",
       "              to create a duplicate. Run this after migrate reports",
       "              'non-repeatable, already exists' failures.",
+      "  link <devId> <sitId>",
+      "              Manually link a dev document to a sit document that",
+      "              `reconcile` couldn't find on its own — the pre-existing",
+      "              sit document is an unpublished draft, invisible to the",
+      "              content API. Find its id in the dashboard's URL.",
       "  retitle     One-time fix for documents created with the raw dev id",
       "              as their title (no uid at create time). Only touches",
       "              sit when dev is unchanged since the original migration.",
@@ -59,7 +66,7 @@ function usage(): never {
       "  verify      Phase 3 — read-only checks; exits non-zero on any failure",
       "  backsync    Phase 4 — ongoing sit -> dev sync; exits non-zero on any conflict",
       "",
-      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/retitle/backsync).",
+      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/link/retitle/backsync).",
     ].join("\n"),
   );
   process.exit(1);
@@ -99,6 +106,25 @@ async function main(): Promise<void> {
       if (result.ambiguous.length > 0) {
         log("warn", "cli.reconcile_ambiguous", { ambiguous: result.ambiguous });
       }
+      if (result.notFound.length > 0) {
+        // These are non-repeatable types where sit's existing document is
+        // an unpublished draft — invisible to the content API, so nothing
+        // automated can find it. `link` is the manual escape hatch.
+        log("warn", "cli.reconcile_not_found", {
+          notFound: result.notFound,
+          hint: "find each document's id in the sit dashboard, then: pnpm cli link <devId> <sitId>",
+        });
+      }
+      return;
+    }
+    case "link": {
+      const [devId, sitId] = rest.filter((arg) => !arg.startsWith("--"));
+      if (!devId || !sitId) {
+        console.error("Usage: prismic-migration link <devId> <sitId>");
+        process.exitCode = 1;
+        return;
+      }
+      await runLink({ config, devId, sitId, dryRun });
       return;
     }
     case "retitle":

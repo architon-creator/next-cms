@@ -353,22 +353,32 @@ export async function getDocumentById(
 }
 
 /**
- * Documents of a given custom type at `ref`. Used by the `reconcile`
- * command to find a pre-existing sit document for a non-repeatable type
- * (one created outside this tool, so mapping.json never recorded it) —
- * `pageSize` is small on purpose: this only needs to tell "zero", "one",
- * or "more than one" apart, never a full listing.
+ * Documents of a given custom type at `ref`, optionally narrowed to one
+ * locale. Used by the `reconcile` command to find a pre-existing sit
+ * document for a non-repeatable type (one created outside this tool, so
+ * mapping.json never recorded it) — `pageSize` is small on purpose: this
+ * only needs to tell "zero", "one", or "more than one" apart, never a
+ * full listing.
+ *
+ * The `lang` filter matters more than it looks: a real run showed a
+ * non-repeatable type with one document PER LOCALE (5+ languages) —
+ * type-only matching found all of them at once (an unhelpful "6 matches"
+ * instead of the one that actually corresponds to a given dev document's
+ * locale). Pass `lang` whenever the caller has one to disambiguate.
  */
 export async function findDocumentsByType(
   repo: RepoConfig,
   ref: string,
   type: string,
+  lang?: string,
   fetchImpl: FetchFn = fetch,
 ): Promise<PrismicDocument[]> {
   const url = new URL(`https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`);
   url.searchParams.set("ref", ref);
   url.searchParams.set("lang", "*");
-  url.searchParams.set("q", `[[at(document.type,"${type}")]]`);
+  const predicates = [`at(document.type,"${type}")`];
+  if (lang) predicates.push(`at(document.lang,"${lang}")`);
+  url.searchParams.set("q", `[[${predicates.join("],[")}]]`);
   url.searchParams.set("pageSize", "20");
   if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
 
