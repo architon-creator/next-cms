@@ -115,6 +115,14 @@ async function main(): Promise<void> {
           hint: "find each document's id in the sit dashboard, then: pnpm cli link <devId> <sitId>",
         });
       }
+      if (result.failed.length > 0) {
+        // A lookup itself errored (network, an API 4xx) — distinct from
+        // notFound (a clean answer of "zero matches"). Re-running
+        // reconcile is safe and cheap: it only re-processes documents
+        // still unmapped, so a transient failure here just needs a retry.
+        log("error", "cli.reconcile_failed", { failed: result.failed });
+        process.exitCode = 1;
+      }
       return;
     }
     case "link": {

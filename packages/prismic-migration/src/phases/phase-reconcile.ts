@@ -30,6 +30,16 @@ export type ReconcileResult = {
    * `link <devId> <sitId>` command if this becomes a recurring need).
    */
   notFound: { devId: string; docType: string; lang: string }[];
+  /**
+   * A findDocumentsByType call itself threw (network error, an API 4xx
+   * like the query-syntax bug this codebase already hit once) — recorded
+   * rather than thrown, for the same reason phase2-migrate.ts's per-
+   * document try/catch exists: one document's failure must not abort the
+   * whole mappingStore.mutate() callback, which would otherwise silently
+   * discard every successful reconciliation this run already made before
+   * the failure (mutate() only persists if its callback returns normally).
+   */
+  failed: { devId: string; docType: string; message: string }[];
 };
 
 /**
@@ -73,66 +83,83 @@ export async function runReconcile({
     sitCustomTypes.filter((t) => !t.repeatable).map((t) => t.id),
   );
 
-  const result: ReconcileResult = { reconciled: 0, ambiguous: [], notFound: [] };
+  const result: ReconcileResult = { reconciled: 0, ambiguous: [], notFound: [], failed: [] };
 
   await mappingStore.mutate(async (mapping) => {
     for await (const doc of iterateAllDocuments(config.dev, devRef, fetchImpl)) {
       if (mapping[doc.id]) continue; // already linked — nothing to reconcile
       if (!nonRepeatableTypes.has(doc.type)) continue; // out of scope, see doc comment above
 
-      const matches = await findDocumentsByType(config.sit, sitRef, doc.type, doc.lang, fetchImpl);
+      try {
+        const matches = await findDocumentsByType(config.sit, sitRef, doc.type, doc.lang, fetchImpl);
 
-      if (matches.length === 0) {
-        // The content API (master-ref only) can't see an unpublished
-        // draft — this is NOT "nothing to reconcile", it's "reconcile
-        // can't see it". migrate will keep failing on this one until it's
-        // linked by hand.
-        result.notFound.push({ devId: doc.id, docType: doc.type, lang: doc.lang });
-        log("warn", "reconcile.not_found", { devId: doc.id, docType: doc.type, lang: doc.lang });
-        continue;
-      }
+        if (matches.length === 0) {
+          // The content API (master-ref only) can't see an unpublished
+          // draft — this is NOT "nothing to reconcile", it's "reconcile
+          // can't see it". migrate will keep failing on this one until
+          // it's linked by hand.
+          result.notFound.push({ devId: doc.id, docType: doc.type, lang: doc.lang });
+          log("warn", "reconcile.not_found", { devId: doc.id, docType: doc.type, lang: doc.lang });
+          continue;
+        }
 
-      if (matches.length > 1) {
-        // Shouldn't be possible for a genuinely non-repeatable type per
-        // locale, but if sit's data disagrees with its own schema,
-        // guessing which one is dev's counterpart would be worse than
-        // leaving it for a human.
-        result.ambiguous.push({ devId: doc.id, docType: doc.type, lang: doc.lang, matchCount: matches.length });
-        log("warn", "reconcile.ambiguous", {
+        if (matches.length > 1) {
+          // Shouldn't be possible for a genuinely non-repeatable type per
+          // locale, but if sit's data disagrees with its own schema,
+          // guessing which one is dev's counterpart would be worse than
+          // leaving it for a human.
+          result.ambiguous.push({
+            devId: doc.id,
+            docType: doc.type,
+            lang: doc.lang,
+            matchCount: matches.length,
+          });
+          log("warn", "reconcile.ambiguous", {
+            devId: doc.id,
+            docType: doc.type,
+            lang: doc.lang,
+            matchCount: matches.length,
+          });
+          continue;
+        }
+
+        const sitDoc = matches[0];
+        log("info", dryRun ? "reconcile.would_link" : "reconcile.linked", {
           devId: doc.id,
+          sitId: sitDoc.id,
           docType: doc.type,
-          lang: doc.lang,
-          matchCount: matches.length,
         });
-        continue;
+
+        if (dryRun) continue;
+
+        mapping[doc.id] = {
+          sit_id: sitDoc.id,
+          doc_type: doc.type,
+          uid: doc.uid || undefined,
+          lang: doc.lang,
+          dev_hash: canonicalHash(doc.data),
+          sit_hash: canonicalHash(sitDoc.data),
+          last_synced_at: new Date().toISOString(),
+          last_synced_direction: "dev->sit",
+          // Not "synced": dev's content was never written to this
+          // document, so dev and sit are almost certainly different
+          // right now. "conflict" surfaces that for review rather than
+          // either silently overwriting sit's existing content or
+          // leaving this document stuck failing the same collision on
+          // every migrate.
+          status: "conflict",
+        };
+        result.reconciled += 1;
+      } catch (err) {
+        // Recorded, not thrown — a real run hit exactly this: one bad
+        // query (a syntax bug, since fixed) aborted the whole mutate()
+        // callback, silently discarding every successful reconciliation
+        // already made earlier in the same run, for documents that had
+        // nothing wrong with them. See the ReconcileResult.failed comment.
+        const message = err instanceof Error ? err.message : String(err);
+        result.failed.push({ devId: doc.id, docType: doc.type, message });
+        log("error", "reconcile.failed", { devId: doc.id, docType: doc.type, message });
       }
-
-      const sitDoc = matches[0];
-      log("info", dryRun ? "reconcile.would_link" : "reconcile.linked", {
-        devId: doc.id,
-        sitId: sitDoc.id,
-        docType: doc.type,
-      });
-
-      if (dryRun) continue;
-
-      mapping[doc.id] = {
-        sit_id: sitDoc.id,
-        doc_type: doc.type,
-        uid: doc.uid || undefined,
-        lang: doc.lang,
-        dev_hash: canonicalHash(doc.data),
-        sit_hash: canonicalHash(sitDoc.data),
-        last_synced_at: new Date().toISOString(),
-        last_synced_direction: "dev->sit",
-        // Not "synced": dev's content was never written to this
-        // document, so dev and sit are almost certainly different right
-        // now. "conflict" surfaces that for review rather than either
-        // silently overwriting sit's existing content or leaving this
-        // document stuck failing the same collision on every migrate.
-        status: "conflict",
-      };
-      result.reconciled += 1;
     }
     return mapping;
   });
@@ -142,6 +169,7 @@ export async function runReconcile({
     reconciled: result.reconciled,
     ambiguous: result.ambiguous.length,
     notFound: result.notFound.length,
+    failed: result.failed.length,
   });
   return result;
 }
