@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-// Loads .env from the current working directory — the whole reason a
-// `DEV_REPOSITORY=...` in .env is enough, with no need to export it into
-// the shell first. Must run before loadConfig() reads process.env below.
-import "dotenv/config";
+import { config as loadDotenv } from "dotenv";
 import { loadConfig } from "./config.js";
 import { log } from "./lib/logger.js";
 import { PrismicApiError } from "./lib/prismic-http.js";
@@ -12,6 +9,20 @@ import { runPhase2 } from "./phases/phase2-migrate.js";
 import { runConfirm } from "./phases/phase2-confirm.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
 import { runPhase4 } from "./phases/phase4-backsync.js";
+
+// Loads .env from the current working directory — the whole reason a
+// `DEV_REPOSITORY=...` in .env is enough, with no need to export it into
+// the shell first. Must run before loadConfig() reads process.env below.
+//
+// Calls dotenv's own config() explicitly rather than `import "dotenv/config"`:
+// that side-effecting subpath's exact resolution has been observed to differ
+// across dotenv major versions (a real install hit
+// `ERR_MODULE_NOT_FOUND: Cannot find package 'dotenv'` on that import, with
+// Node suggesting `dotenv/config.js` instead) — likely a newer dotenv
+// resolved by that project's own workspace than the ^16.x this package
+// declares. The root export's `config()` function has been stable across
+// dotenv's versions for years, so this is resolution-independent.
+loadDotenv();
 
 const COMMANDS = [
   "preflight",
