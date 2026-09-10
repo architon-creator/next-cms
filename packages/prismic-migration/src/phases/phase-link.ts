@@ -37,14 +37,30 @@ export type LinkOptions = {
  * sit. Only records the link and marks it `status: "conflict"` for
  * later review.
  */
+/** True if the link was made (or would be, under --dry-run); false if refused or a document couldn't be found. */
 export async function runLink({
   config,
   devId,
   sitId,
   dryRun,
   fetchImpl = fetch,
-}: LinkOptions): Promise<void> {
+}: LinkOptions): Promise<boolean> {
   log("info", "link.start", { devId, sitId, dryRun });
+
+  if (devId === sitId) {
+    // Caught on a real run: dev and sit are different repositories with
+    // independently generated ids — the two can never legitimately be
+    // the same value. This is virtually always a copy-paste mistake (the
+    // dev id typed twice instead of the actual sit id from the sit
+    // dashboard's URL), and proceeding would silently record a mapping
+    // entry pointing at an id that doesn't exist in sit at all.
+    log("error", "link.same_id_refused", {
+      devId,
+      sitId,
+      hint: "devId and sitId are identical — did you mean to paste the sit document's own id from its dashboard URL instead?",
+    });
+    return false;
+  }
 
   const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
   const devRef = await getMasterRef(config.dev, fetchImpl);
@@ -53,7 +69,7 @@ export async function runLink({
   const devDoc = await getDocumentById(config.dev, devRef, devId, fetchImpl);
   if (!devDoc) {
     log("error", "link.dev_document_not_found", { devId });
-    return;
+    return false;
   }
 
   const sitDoc = await getDocumentById(config.sit, sitRef, sitId, fetchImpl);
@@ -65,7 +81,7 @@ export async function runLink({
   }
 
   log("info", dryRun ? "link.would_link" : "link.linked", { devId, sitId, docType: devDoc.type });
-  if (dryRun) return;
+  if (dryRun) return true;
 
   await mappingStore.mutate((mapping) => {
     mapping[devId] = {
@@ -85,4 +101,5 @@ export async function runLink({
   });
 
   log("info", "link.done", { devId, sitId });
+  return true;
 }

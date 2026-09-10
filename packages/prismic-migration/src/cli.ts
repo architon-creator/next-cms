@@ -132,7 +132,8 @@ async function main(): Promise<void> {
         process.exitCode = 1;
         return;
       }
-      await runLink({ config, devId, sitId, dryRun });
+      const linked = await runLink({ config, devId, sitId, dryRun });
+      if (!linked) process.exitCode = 1;
       return;
     }
     case "retitle":
