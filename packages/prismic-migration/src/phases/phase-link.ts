@@ -80,9 +80,17 @@ export async function runLink({
     });
   }
 
-  log("info", dryRun ? "link.would_link" : "link.linked", { devId, sitId, docType: devDoc.type });
-  if (dryRun) return true;
+  if (dryRun) {
+    log("info", "link.would_link", { devId, sitId, docType: devDoc.type });
+    return true;
+  }
 
+  // Logged AFTER mutate() succeeds, not before — a mutate() failure (e.g.
+  // a stale lock file from an interrupted earlier run) must not report
+  // success for a write that never actually happened. Caught on a real
+  // run: an earlier version of this logged "linked" first, so a lock
+  // error right after made it look like the link had gone through when
+  // the entry was never actually written.
   await mappingStore.mutate((mapping) => {
     mapping[devId] = {
       sit_id: sitId,
@@ -100,7 +108,7 @@ export async function runLink({
     return mapping;
   });
 
-  log("info", "link.done", { devId, sitId });
+  log("info", "link.linked", { devId, sitId, docType: devDoc.type });
   return true;
 }
 
@@ -132,13 +140,20 @@ export async function runUnlink({ config, devId, dryRun }: UnlinkOptions): Promi
     return false;
   }
 
-  log("info", dryRun ? "unlink.would_unlink" : "unlink.unlinked", { devId, sitId: entry.sit_id });
-  if (dryRun) return true;
+  if (dryRun) {
+    log("info", "unlink.would_unlink", { devId, sitId: entry.sit_id });
+    return true;
+  }
 
+  // Logged AFTER mutate() succeeds — see the matching comment in runLink.
+  // Caught on a real run: this used to log "unlinked" before the write,
+  // and a stale lock file from an interrupted earlier command made the
+  // entry look removed when it never actually was.
   await mappingStore.mutate((current) => {
     delete current[devId];
     return current;
   });
 
+  log("info", "unlink.unlinked", { devId, sitId: entry.sit_id });
   return true;
 }
