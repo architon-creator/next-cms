@@ -305,6 +305,13 @@ export async function* iterateAllDocuments(
       `https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`,
     );
     url.searchParams.set("ref", ref);
+    // Without an explicit `lang`, Prismic's content API restricts results
+    // to the repository's master locale only — a multi-locale repository
+    // with content outside that locale silently returns zero documents,
+    // no error. `*` fetches every locale, which is what a full migration
+    // needs. (Confirmed against a real repository: an unfiltered query
+    // returned 0 documents despite 49 assets existing and no auth error.)
+    url.searchParams.set("lang", "*");
     url.searchParams.set("pageSize", "100");
     url.searchParams.set("page", String(page));
     if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
@@ -328,6 +335,7 @@ export async function getDocumentById(
     `https://${repo.repository}.cdn.prismic.io/api/v2/documents/search`,
   );
   url.searchParams.set("ref", ref);
+  url.searchParams.set("lang", "*"); // see iterateAllDocuments — same reasoning
   url.searchParams.set("q", `[[at(document.id,"${id}")]]`);
   if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
 
