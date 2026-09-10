@@ -65,11 +65,13 @@ function usage(): never {
       "              (does not touch sit). Typical flow: delete the document",
       "              in sit's dashboard, unlink it here, then `migrate` again",
       "              to create a fresh copy from dev.",
-      "  inspect <devId>",
+      "  inspect <devId> [sitId]",
       "              Pretty-prints a dev document's raw `data` JSON — for",
       "              checking the actual shape of an image/media/link field",
       "              against what lib/rewrite-refs.ts assumes (documented",
-      "              as unverified in the README).",
+      "              as unverified in the README). Pass sitId too to print",
+      "              sit's live version alongside it, for diffing a",
+      "              phase3 spot-check mismatch by eye.",
       "  retitle     One-time fix for documents created with the raw dev id",
       "              as their title (no uid at create time). Only touches",
       "              sit when dev is unchanged since the original migration.",
@@ -160,9 +162,13 @@ async function main(): Promise<void> {
       return;
     }
     case "inspect": {
-      const [devId] = rest.filter((arg) => !arg.startsWith("--"));
+      // Optional 2nd id: pass a sitId to also print sit's live version
+      // alongside dev's, for diffing a phase3 spot-check mismatch by eye
+      // (e.g. is Prismic itself enriching a field on save/read, rather
+      // than this toolkit's rewrite actually being wrong).
+      const [devId, sitId] = rest.filter((arg) => !arg.startsWith("--"));
       if (!devId) {
-        console.error("Usage: prismic-migration inspect <devId>");
+        console.error("Usage: prismic-migration inspect <devId> [sitId]");
         process.exitCode = 1;
         return;
       }
@@ -175,7 +181,15 @@ async function main(): Promise<void> {
       }
       // Deliberately plain console.log, not the structured logger — this
       // is for a human to read/paste, not another JSON log line.
+      console.log("=== dev ===");
       console.log(JSON.stringify(doc, null, 2));
+
+      if (sitId) {
+        const sitRef = await getMasterRef(config.sit);
+        const sitDoc = await getDocumentById(config.sit, sitRef, sitId);
+        console.log("\n=== sit ===");
+        console.log(sitDoc ? JSON.stringify(sitDoc, null, 2) : "(not found — still unpublished, or wrong id)");
+      }
       return;
     }
     case "retitle":
