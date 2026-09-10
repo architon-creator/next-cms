@@ -24,6 +24,7 @@ assumes pnpm, Turborepo, or any particular workspace layout.
 | `migrate`   | Phase 2    | Two-pass document migration dev → sit (assets first, then document links once every doc has a sit id). Processes every document it can even if some fail — see "Known gaps." |
 | `reconcile` | —          | Links a dev document to a pre-existing sit document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below) |
 | `link <devId> <sitId>` | — | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing sit document is an unpublished draft, invisible to the content API. You supply the sit id (from its dashboard URL). |
+| `unlink <devId>` | — | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch sit. Use when the linked sit document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy. |
 | `inspect <devId>` | — | Pretty-prints a dev document's raw `data` JSON — for checking a field's actual shape against what `rewriteRefs` assumes, rather than guessing. |
 | `retitle`   | —          | One-time bulk fix for documents created with the raw dev id as their title (see below) — only touches sit when dev is unchanged since the original migration |
 | `confirm`   | Phase 2    | Marks documents `synced` once they're actually live at sit's master ref (closes the "how do we know the Release was published" gap — see below) |

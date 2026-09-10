@@ -103,3 +103,42 @@ export async function runLink({
   log("info", "link.done", { devId, sitId });
   return true;
 }
+
+export type UnlinkOptions = {
+  config: Config;
+  devId: string;
+  dryRun: boolean;
+};
+
+/**
+ * Removes a dev document's mapping entry entirely — the undo for `link`
+ * (or `reconcile`), for when the linked sit document turns out to be
+ * worth discarding rather than keeping. Typical flow: delete the
+ * document in sit's dashboard, `unlink` its stale mapping entry here,
+ * then run `migrate` again to create a fresh, correct copy from dev.
+ *
+ * Does not touch sit at all — this only forgets the mapping. If the sit
+ * document still exists and you run `migrate` without deleting it first,
+ * you're back to the original "already exist, non-repeatable" collision
+ * this was linked to get around.
+ */
+export async function runUnlink({ config, devId, dryRun }: UnlinkOptions): Promise<boolean> {
+  const mappingStore = new MappingStore<DocumentMapping>(join(config.mappingDir, "mapping.json"));
+  const mapping = await mappingStore.load();
+  const entry = mapping[devId];
+
+  if (!entry) {
+    log("error", "unlink.not_mapped", { devId });
+    return false;
+  }
+
+  log("info", dryRun ? "unlink.would_unlink" : "unlink.unlinked", { devId, sitId: entry.sit_id });
+  if (dryRun) return true;
+
+  await mappingStore.mutate((current) => {
+    delete current[devId];
+    return current;
+  });
+
+  return true;
+}

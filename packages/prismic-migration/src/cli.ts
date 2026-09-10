@@ -7,7 +7,7 @@ import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
 import { runConfirm } from "./phases/phase2-confirm.js";
-import { runLink } from "./phases/phase-link.js";
+import { runLink, runUnlink } from "./phases/phase-link.js";
 import { runReconcile } from "./phases/phase-reconcile.js";
 import { runRetitle } from "./phases/phase-retitle.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
@@ -33,6 +33,7 @@ const COMMANDS = [
   "migrate",
   "reconcile",
   "link",
+  "unlink",
   "inspect",
   "retitle",
   "confirm",
@@ -59,6 +60,11 @@ function usage(): never {
       "              `reconcile` couldn't find on its own — the pre-existing",
       "              sit document is an unpublished draft, invisible to the",
       "              content API. Find its id in the dashboard's URL.",
+      "  unlink <devId>",
+      "              Undo a `link`/`reconcile` — forgets the mapping entry",
+      "              (does not touch sit). Typical flow: delete the document",
+      "              in sit's dashboard, unlink it here, then `migrate` again",
+      "              to create a fresh copy from dev.",
       "  inspect <devId>",
       "              Pretty-prints a dev document's raw `data` JSON — for",
       "              checking the actual shape of an image/media/link field",
@@ -72,7 +78,7 @@ function usage(): never {
       "  verify      Phase 3 — read-only checks; exits non-zero on any failure",
       "  backsync    Phase 4 — ongoing sit -> dev sync; exits non-zero on any conflict",
       "",
-      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/link/retitle/backsync).",
+      "--dry-run logs the planned diff without writing anything (preflight/assets/migrate/reconcile/link/unlink/retitle/backsync).",
     ].join("\n"),
   );
   process.exit(1);
@@ -140,6 +146,17 @@ async function main(): Promise<void> {
       }
       const linked = await runLink({ config, devId, sitId, dryRun });
       if (!linked) process.exitCode = 1;
+      return;
+    }
+    case "unlink": {
+      const [devId] = rest.filter((arg) => !arg.startsWith("--"));
+      if (!devId) {
+        console.error("Usage: prismic-migration unlink <devId>");
+        process.exitCode = 1;
+        return;
+      }
+      const unlinked = await runUnlink({ config, devId, dryRun });
+      if (!unlinked) process.exitCode = 1;
       return;
     }
     case "inspect": {
