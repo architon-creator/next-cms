@@ -383,7 +383,13 @@ export async function findDocumentsByType(
   // closing paren) on a real run.
   const predicates = [`at(document.type,"${type}")`];
   if (lang) predicates.push(`at(document.lang,"${lang}")`);
-  url.searchParams.set("q", `[[${predicates.join(",")}]]`);
+  const q = `[[${predicates.join(",")}]]`;
+  url.searchParams.set("q", q);
+  // Logged unconditionally (not just on failure) — some terminal/tooling
+  // setups have been observed truncating the request URL in error output,
+  // so this is a second, independent way to see exactly what query was
+  // sent when diagnosing a 400 here.
+  log("info", "prismic_http.find_documents_by_type_query", { repository: repo.repository, type, lang, q });
   url.searchParams.set("pageSize", "20");
   if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);
 

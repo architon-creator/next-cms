@@ -8,6 +8,7 @@ import {
   getMasterRef,
   iterateAllDocuments,
   listCustomTypes,
+  PrismicApiError,
 } from "../lib/prismic-http.js";
 import type { DocumentMapping } from "../types.js";
 
@@ -39,7 +40,7 @@ export type ReconcileResult = {
    * discard every successful reconciliation this run already made before
    * the failure (mutate() only persists if its callback returns normally).
    */
-  failed: { devId: string; docType: string; message: string }[];
+  failed: { devId: string; docType: string; message: string; status?: number; body?: string }[];
 };
 
 /**
@@ -157,8 +158,20 @@ export async function runReconcile({
         // already made earlier in the same run, for documents that had
         // nothing wrong with them. See the ReconcileResult.failed comment.
         const message = err instanceof Error ? err.message : String(err);
-        result.failed.push({ devId: doc.id, docType: doc.type, message });
-        log("error", "reconcile.failed", { devId: doc.id, docType: doc.type, message });
+        const failure: ReconcileResult["failed"][number] = { devId: doc.id, docType: doc.type, message };
+        if (err instanceof PrismicApiError) {
+          failure.status = err.status;
+          failure.body = err.body;
+        }
+        result.failed.push(failure);
+        log("error", "reconcile.failed", {
+          devId: doc.id,
+          docType: doc.type,
+          lang: doc.lang,
+          message,
+          status: failure.status,
+          body: failure.body,
+        });
       }
     }
     return mapping;
