@@ -142,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 68 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 71 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -223,6 +223,18 @@ paginated GET loop with 429 on its own. Every request in
 exponential backoff with jitter, capped at 5 attempts), and logs each
 retry as a `prismic_http.retrying` event so a slow run is visible rather
 than looking hung.
+
+**Request timeout.** Every request also has a per-attempt timeout (30s by
+default, `PRISMIC_HTTP_TIMEOUT_MS` to override) via `AbortController` — a
+request against an unreachable or black-holing host used to hang the CLI
+indefinitely rather than failing. A timeout counts against the same
+5-retry budget as a 429/502/503/504 (logged as
+`prismic_http.timeout_retrying`), and after exhausting it, throws a plain
+`Error` naming the timeout (not a `PrismicApiError`, since there's no HTTP
+response to report a status/body from). This matters more than usual here
+because `cli.ts` deliberately uses `process.exitCode` rather than
+`process.exit()` on failure — see the comment there — so before this fix,
+a hung request had no upper bound at all.
 
 ## Prismic API specifics confirmed the hard way
 
@@ -346,15 +358,6 @@ dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
   empty `upper_hash` if even a known id is unreadable (still a draft);
   safe, since a `"conflict"` entry's `upper_hash` isn't compared by
   anything until a human resolves it.
-- **No request timeout.** `lib/prismic-http.ts`'s `request()` has no
-  `AbortController`/timeout, so a request against an unreachable or
-  black-holing host hangs indefinitely rather than failing fast. This
-  matters more than usual here because `cli.ts` deliberately uses
-  `process.exitCode` rather than `process.exit()` on failure (see the
-  comment there — an immediate `process.exit()` was reproduced crashing
-  the Node runtime on Windows when a sibling in-flight request got yanked
-  mid-socket) — that fix trades "crash on a failure" for "hang forever on
-  a request that never settles." Add a timeout if that trade-off bites.
 
 ## Upgrading from a pre-chain mapping store
 
@@ -426,12 +429,14 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 pnpm test
 ```
 
-68 tests across canonical hashing, the mapping store (including lock
+71 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
-4-quadrant conflict matrix, the rate limiter, retry/backoff behavior, a
-full `runPhase2` run against a mocked fetch, the Migration/Asset API
-request shapes, environment-chain resolution (`resolvePair`/`resolveNextHop`/
+4-quadrant conflict matrix, the rate limiter, retry/backoff behavior,
+request timeout handling (timeout-and-retry-exhaustion, recovery on a
+later attempt, and no-retry on a genuine network error), a full
+`runPhase2` run against a mocked fetch, the Migration/Asset API request
+shapes, environment-chain resolution (`resolvePair`/`resolveNextHop`/
 `requireDirection` — adjacency, direction enforcement, not-configured
 handling), pair-scoped mapping file naming, and the legacy-mapping
 conversion script — all pure logic or mocked `fetch`, no live call, so no

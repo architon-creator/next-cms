@@ -36,16 +36,48 @@ type FetchFn = typeof fetch;
 const MAX_RETRIES = 5;
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 
+// Every request through this module previously had no timeout at all — a
+// request against an unreachable or black-holing host hung indefinitely,
+// which matters more than usual here because cli.ts deliberately uses
+// process.exitCode rather than process.exit() on failure (see the comment
+// there), trading "crash on failure" for "hang forever on a request that
+// never settles". This bounds that hang. Overridable via
+// PRISMIC_HTTP_TIMEOUT_MS for a slower network or a deliberately generous
+// CI environment; defaults to 30s, comfortably above any real observed
+// Prismic API response time.
+const REQUEST_TIMEOUT_MS = Number(process.env.PRISMIC_HTTP_TIMEOUT_MS) || 30_000;
+
+function backoffDelayMs(attempt: number): number {
+  // Exponential backoff with jitter, capped at 10s.
+  const base = Math.min(500 * 2 ** attempt, 10_000);
+  return base + Math.random() * 250;
+}
+
 function retryDelayMs(response: Response, attempt: number): number {
   const retryAfter = response.headers.get("retry-after");
   if (retryAfter) {
     const seconds = Number(retryAfter);
     if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
   }
-  // Exponential backoff with jitter, capped at 10s, when the server didn't
-  // tell us how long to wait.
-  const base = Math.min(500 * 2 ** attempt, 10_000);
-  return base + Math.random() * 250;
+  return backoffDelayMs(attempt);
+}
+
+async function fetchWithTimeout(
+  fetchImpl: FetchFn,
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetchImpl(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
 }
 
 async function request(
@@ -54,7 +86,30 @@ async function request(
   fetchImpl: FetchFn,
 ): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
-    const response = await fetchImpl(url, init);
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(fetchImpl, url, init);
+    } catch (err) {
+      if (!isAbortError(err)) throw err; // a real network error (DNS, connection refused, ...) — not this function's job to retry
+
+      if (attempt < MAX_RETRIES) {
+        const delay = backoffDelayMs(attempt);
+        log("warn", "prismic_http.timeout_retrying", {
+          url,
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          attempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          delayMs: Math.round(delay),
+        });
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      throw new Error(
+        `${init.method || "GET"} ${url} timed out after ${REQUEST_TIMEOUT_MS}ms ` +
+          `(gave up after ${MAX_RETRIES + 1} attempts)`,
+      );
+    }
 
     if (response.ok) return response;
 

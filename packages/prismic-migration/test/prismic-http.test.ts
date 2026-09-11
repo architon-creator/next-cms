@@ -136,3 +136,86 @@ describe("retry on 429 / transient gateway errors", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
+
+// Regression coverage for the "no request timeout" known gap: a request
+// against an unreachable/black-holing host used to hang indefinitely.
+// Simulates that by having the mock fetch never resolve on its own,
+// relying entirely on the AbortSignal request() now passes in — exactly
+// what a real fetch implementation does when its signal fires.
+describe("request timeout", () => {
+  function hangingFetch() {
+    return vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            const err = new Error("The operation was aborted.");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }),
+    );
+  }
+
+  it("gives up after the retry budget and throws a clear timeout error, not PrismicApiError", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = hangingFetch();
+      const promise = listCustomTypes(repo, fetchImpl);
+      const assertion = expect(promise).rejects.toThrow(/timed out after/);
+      // Advance well past the default timeout for every attempt (initial +
+      // MAX_RETRIES retries) and every backoff delay between them.
+      for (let i = 0; i < 10; i++) {
+        await vi.advanceTimersByTimeAsync(40_000);
+      }
+      await assertion;
+      await expect(promise).rejects.not.toMatchObject({ name: "PrismicApiError" });
+      // 1 initial attempt + 5 retries = 6 calls before giving up — same
+      // retry budget as a retryable HTTP status.
+      expect(fetchImpl).toHaveBeenCalledTimes(6);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("recovers if a later attempt succeeds before hitting the retry budget", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      const fetchImpl = vi.fn((_url: string, init: RequestInit) => {
+        calls += 1;
+        if (calls < 3) {
+          return new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener("abort", () => {
+              const err = new Error("The operation was aborted.");
+              err.name = "AbortError";
+              reject(err);
+            });
+          });
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      });
+
+      const promise = listCustomTypes(repo, fetchImpl);
+      for (let i = 0; i < 5; i++) {
+        await vi.advanceTimersByTimeAsync(40_000);
+      }
+      await expect(promise).resolves.toEqual([]);
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry a genuine (non-abort) network error", async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error("getaddrinfo ENOTFOUND fake-repo.cdn.prismic.io");
+    });
+    await expect(listCustomTypes(repo, fetchImpl)).rejects.toThrow(/ENOTFOUND/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
