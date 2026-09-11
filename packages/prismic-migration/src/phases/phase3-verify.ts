@@ -83,7 +83,12 @@ export async function runPhase3({
   const mismatches: string[] = [];
   for (const [lowerId, entry] of sample) {
     const lowerDoc = await getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl);
-    const upperDoc = await getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl);
+    const upperDoc = await getDocumentById(
+      pair.upper,
+      upperRef,
+      entry.upper_id,
+      fetchImpl,
+    );
     if (!lowerDoc || !upperDoc) {
       mismatches.push(lowerId);
       continue;
@@ -124,7 +129,12 @@ export async function runPhase3({
   const brokenAssets: Record<string, string[]> = {};
 
   for (const [, entry] of syncedEntries) {
-    const upperDoc = await getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl);
+    const upperDoc = await getDocumentById(
+      pair.upper,
+      upperRef,
+      entry.upper_id,
+      fetchImpl,
+    );
     if (!upperDoc) continue;
     const unresolvedLinks = findUnresolvedDocumentLinks(upperDoc.data, knownUpperIds);
     if (unresolvedLinks.length > 0) brokenLinks[entry.upper_id] = unresolvedLinks;

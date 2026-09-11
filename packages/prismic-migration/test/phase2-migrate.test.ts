@@ -2,14 +2,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolvePair } from "../src/lib/environments.js";
 import { runPhase2 } from "../src/phases/phase2-migrate.js";
 import type { Config } from "../src/config.js";
 
 // Regression coverage for a real-run confusion: created/updated/unchanged
-// all being 0 looked like "nothing to do" when it actually meant dev's
-// document search returned zero results — indistinguishable from a
-// healthy no-op run without reading the code. phase2 now logs a `seen`
-// count and an explicit warning event when it's 0.
+// all being 0 looked like "nothing to do" when it actually meant the lower
+// environment's document search returned zero results — indistinguishable
+// from a healthy no-op run without reading the code. phase2 now logs a
+// `seen` count and an explicit warning event when it's 0.
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -22,21 +23,26 @@ function fakeMasterRefResponse(): Response {
   return jsonResponse({ refs: [{ ref: "master-ref", isMasterRef: true }] });
 }
 
-describe("runPhase2 — dev document search returns nothing", () => {
+describe("runPhase2 — lower document search returns nothing", () => {
   let dir: string;
   let config: Config;
+  let pair: ReturnType<typeof resolvePair>;
   let logs: { level: string; event: string; fields: Record<string, unknown> }[];
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "phase2-"));
     config = {
-      dev: { repository: "dev-repo", migrationToken: "dev-token" },
-      sit: { repository: "sit-repo", migrationToken: "sit-token" },
+      environments: {
+        dev: { repository: "dev-repo", migrationToken: "dev-token" },
+        sit: { repository: "sit-repo", migrationToken: "sit-token" },
+      },
+      environmentChain: ["dev", "sit"],
       mappingDir: join(dir, "data"),
       snapshotDir: join(dir, "snapshots"),
       reportDir: join(dir, "reports"),
       cacheDir: join(dir, "cache"),
     };
+    pair = resolvePair(config, "dev", "sit");
     logs = [];
     vi.spyOn(console, "log").mockImplementation((line: string) => {
       const parsed = JSON.parse(line);
@@ -49,7 +55,7 @@ describe("runPhase2 — dev document search returns nothing", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("logs seen: 0 and a no_dev_documents_found warning, rather than looking like a healthy no-op", async () => {
+  it("logs seen: 0 and a no_lower_documents_found warning, rather than looking like a healthy no-op", async () => {
     const fetchImpl = vi.fn(async (input: string | URL) => {
       const url = new URL(input);
       if (url.pathname === "/api/v2") return fakeMasterRefResponse();
@@ -60,7 +66,7 @@ describe("runPhase2 — dev document search returns nothing", () => {
       throw new Error(`Unexpected request in test: ${url}`);
     });
 
-    await runPhase2({ config, dryRun: false, fetchImpl });
+    await runPhase2({ config, pair, dryRun: false, fetchImpl });
 
     const pass1Done = logs.find((l) => l.event === "phase2.pass1_done");
     expect(pass1Done?.fields).toMatchObject({
@@ -70,13 +76,13 @@ describe("runPhase2 — dev document search returns nothing", () => {
       unchanged: 0,
     });
 
-    const warning = logs.find((l) => l.event === "phase2.no_dev_documents_found");
+    const warning = logs.find((l) => l.event === "phase2.no_lower_documents_found");
     expect(warning).toBeDefined();
     expect(warning?.level).toBe("warn");
     expect(warning?.fields).toMatchObject({ repository: "dev-repo", ref: "master-ref" });
   });
 
-  it("does not warn when dev documents are actually found", async () => {
+  it("does not warn when lower documents are actually found", async () => {
     const fetchImpl = vi.fn(async (input: string | URL) => {
       const url = new URL(input);
       if (url.pathname === "/api/v2") return fakeMasterRefResponse();
@@ -102,9 +108,11 @@ describe("runPhase2 — dev document search returns nothing", () => {
       throw new Error(`Unexpected request in test: ${url}`);
     });
 
-    await runPhase2({ config, dryRun: false, fetchImpl });
+    await runPhase2({ config, pair, dryRun: false, fetchImpl });
 
-    expect(logs.find((l) => l.event === "phase2.no_dev_documents_found")).toBeUndefined();
+    expect(
+      logs.find((l) => l.event === "phase2.no_lower_documents_found"),
+    ).toBeUndefined();
     const pass1Done = logs.find((l) => l.event === "phase2.pass1_done");
     expect(pass1Done?.fields).toMatchObject({ seen: 1, created: 1 });
   });

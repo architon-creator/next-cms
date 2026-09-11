@@ -4,35 +4,35 @@ import type { MappingEntry } from "../src/types.js";
 
 function entry(overrides: Partial<MappingEntry> = {}): MappingEntry {
   return {
-    sit_id: "sit-1",
+    upper_id: "upper-1",
     doc_type: "homepage",
-    dev_hash: "dev-hash-v1",
-    sit_hash: "sit-hash-v1",
+    lower_hash: "lower-hash-v1",
+    upper_hash: "upper-hash-v1",
     last_synced_at: "2026-01-01T00:00:00.000Z",
-    last_synced_direction: "dev->sit",
+    last_synced_direction: "forward",
     status: "synced",
     ...overrides,
   };
 }
 
 describe("classifySync — the 4-quadrant back-sync conflict matrix", () => {
-  it("dev unchanged, sit unchanged -> noop", () => {
+  it("lower unchanged, upper unchanged -> noop", () => {
     const e = entry();
-    expect(classifySync(e, e.dev_hash, e.sit_hash)).toBe("noop");
+    expect(classifySync(e, e.lower_hash, e.upper_hash)).toBe("noop");
   });
 
-  it("dev unchanged, sit changed -> fast-forward sync sit -> dev", () => {
+  it("lower unchanged, upper changed -> fast-forward sync upper -> lower", () => {
     const e = entry();
-    expect(classifySync(e, e.dev_hash, "sit-hash-v2")).toBe("sync-sit-to-dev");
+    expect(classifySync(e, e.lower_hash, "upper-hash-v2")).toBe("sync-upper-to-lower");
   });
 
-  it("dev changed, sit unchanged -> pending forward-sync, not a conflict", () => {
+  it("lower changed, upper unchanged -> pending forward-sync, not a conflict", () => {
     const e = entry();
-    expect(classifySync(e, "dev-hash-v2", e.sit_hash)).toBe("pending-dev-to-sit");
+    expect(classifySync(e, "lower-hash-v2", e.upper_hash)).toBe("pending-lower-to-upper");
   });
 
-  it("dev changed, sit changed -> conflict", () => {
+  it("lower changed, upper changed -> conflict", () => {
     const e = entry();
-    expect(classifySync(e, "dev-hash-v2", "sit-hash-v2")).toBe("conflict");
+    expect(classifySync(e, "lower-hash-v2", "upper-hash-v2")).toBe("conflict");
   });
 });

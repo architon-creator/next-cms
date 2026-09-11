@@ -35,6 +35,39 @@ function convertDirection(d: "dev->sit" | "sit->dev"): SyncDirection {
   return d === "dev->sit" ? "forward" : "backward";
 }
 
+/** Pure conversion, exported for direct unit testing — no filesystem or env access. */
+export function convertLegacyMapping(legacy: LegacyMapping): DocumentMapping {
+  const converted: DocumentMapping = {};
+  for (const [devId, entry] of Object.entries(legacy)) {
+    converted[devId] = {
+      upper_id: entry.sit_id,
+      doc_type: entry.doc_type,
+      uid: entry.uid,
+      lang: entry.lang,
+      lower_hash: entry.dev_hash,
+      upper_hash: entry.sit_hash,
+      last_synced_at: entry.last_synced_at,
+      last_synced_direction: convertDirection(entry.last_synced_direction),
+      status: entry.status,
+    };
+  }
+  return converted;
+}
+
+/** Pure conversion, exported for direct unit testing — no filesystem or env access. */
+export function convertLegacyAssetMapping(legacy: LegacyAssetMapping): AssetMapping {
+  const converted: AssetMapping = {};
+  for (const [devAssetId, entry] of Object.entries(legacy)) {
+    converted[devAssetId] = {
+      upper_asset_id: entry.sit_asset_id,
+      upper_asset_url: entry.sit_url ?? "",
+      lower_hash: entry.dev_hash,
+      migrated_at: entry.migrated_at,
+    };
+  }
+  return converted;
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await access(path);
@@ -102,20 +135,7 @@ async function main(): Promise<void> {
 
   if (hasLegacyMapping) {
     const legacy: LegacyMapping = JSON.parse(await readFile(legacyMappingPath, "utf8"));
-    const converted: DocumentMapping = {};
-    for (const [devId, entry] of Object.entries(legacy)) {
-      converted[devId] = {
-        upper_id: entry.sit_id,
-        doc_type: entry.doc_type,
-        uid: entry.uid,
-        lang: entry.lang,
-        lower_hash: entry.dev_hash,
-        upper_hash: entry.sit_hash,
-        last_synced_at: entry.last_synced_at,
-        last_synced_direction: convertDirection(entry.last_synced_direction),
-        status: entry.status,
-      };
-    }
+    const converted = convertLegacyMapping(legacy);
     const mappingStore = new MappingStore<DocumentMapping>(newMappingPath);
     await mappingStore.mutate(() => converted);
     console.log(
@@ -127,15 +147,7 @@ async function main(): Promise<void> {
     const legacy: LegacyAssetMapping = JSON.parse(
       await readFile(legacyAssetMappingPath, "utf8"),
     );
-    const converted: AssetMapping = {};
-    for (const [devAssetId, entry] of Object.entries(legacy)) {
-      converted[devAssetId] = {
-        upper_asset_id: entry.sit_asset_id,
-        upper_asset_url: entry.sit_url ?? "",
-        lower_hash: entry.dev_hash,
-        migrated_at: entry.migrated_at,
-      };
-    }
+    const converted = convertLegacyAssetMapping(legacy);
     const assetMappingStore = new MappingStore<AssetMapping>(newAssetMappingPath);
     await assetMappingStore.mutate(() => converted);
     console.log(

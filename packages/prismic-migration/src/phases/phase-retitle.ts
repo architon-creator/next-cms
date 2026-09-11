@@ -115,7 +115,10 @@ export async function runRetitle({
       const lowerDoc = await getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl);
       if (!lowerDoc) {
         result.skippedMissing += 1;
-        log("warn", "retitle.lower_document_missing", { lowerId, upperId: entry.upper_id });
+        log("warn", "retitle.lower_document_missing", {
+          lowerId,
+          upperId: entry.upper_id,
+        });
         continue;
       }
 

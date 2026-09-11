@@ -175,7 +175,9 @@ async function main(): Promise<void> {
     case "link": {
       const [lowerId, upperId] = positional;
       if (!lowerId || !upperId) {
-        console.error("Usage: prismic-migration link --from=<env> --to=<env> <lowerId> <upperId>");
+        console.error(
+          "Usage: prismic-migration link --from=<env> --to=<env> <lowerId> <upperId>",
+        );
         process.exitCode = 1;
         return;
       }
@@ -186,7 +188,9 @@ async function main(): Promise<void> {
     case "unlink": {
       const [lowerId] = positional;
       if (!lowerId) {
-        console.error("Usage: prismic-migration unlink --from=<env> --to=<env> <lowerId>");
+        console.error(
+          "Usage: prismic-migration unlink --from=<env> --to=<env> <lowerId>",
+        );
         process.exitCode = 1;
         return;
       }
@@ -202,7 +206,9 @@ async function main(): Promise<void> {
       // rewrite actually being wrong).
       const [lowerId, upperId] = positional;
       if (!lowerId) {
-        console.error("Usage: prismic-migration inspect --from=<env> --to=<env> <lowerId> [upperId]");
+        console.error(
+          "Usage: prismic-migration inspect --from=<env> --to=<env> <lowerId> [upperId]",
+        );
         process.exitCode = 1;
         return;
       }

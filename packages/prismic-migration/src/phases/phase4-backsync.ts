@@ -14,7 +14,8 @@ import {
 import { rewriteRefs } from "../lib/rewrite-refs.js";
 import type { AssetMapping, DocumentMapping, MappingEntry } from "../types.js";
 
-export type SyncVerdict = "noop" | "sync-upper-to-lower" | "pending-lower-to-upper" | "conflict";
+export type SyncVerdict =
+  "noop" | "sync-upper-to-lower" | "pending-lower-to-upper" | "conflict";
 
 /**
  * The full 2x2 case analysis for back-sync, made explicit (the original
@@ -58,7 +59,12 @@ export type Phase4Options = {
 export type Phase4Result = {
   synced: number;
   pending: number;
-  conflicts: { lowerId: string; upperId: string; docType: string; lastSyncedAt: string }[];
+  conflicts: {
+    lowerId: string;
+    upperId: string;
+    docType: string;
+    lastSyncedAt: string;
+  }[];
 };
 
 /**
@@ -94,7 +100,10 @@ export async function runPhase4({
   // unlike the forward direction's upper_asset_url; only `id` gets
   // rewritten going backward.
   const reverseAssetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([lowerId, e]) => [e.upper_asset_id, { id: lowerId }]),
+    Object.entries(assetMapping).map(([lowerId, e]) => [
+      e.upper_asset_id,
+      { id: lowerId },
+    ]),
   );
 
   const lowerRef = await getMasterRef(pair.lower, fetchImpl);
@@ -127,7 +136,10 @@ export async function runPhase4({
         case "pending-lower-to-upper":
           mapping[lowerId] = { ...entry, status: "pending" };
           result.pending += 1;
-          log("info", "phase4.pending_forward_sync", { lowerId, upperId: entry.upper_id });
+          log("info", "phase4.pending_forward_sync", {
+            lowerId,
+            upperId: entry.upper_id,
+          });
           continue;
 
         case "conflict":
@@ -148,7 +160,10 @@ export async function runPhase4({
           });
 
           if (dryRun) {
-            log("info", "phase4.would_sync_upper_to_lower", { lowerId, upperId: entry.upper_id });
+            log("info", "phase4.would_sync_upper_to_lower", {
+              lowerId,
+              upperId: entry.upper_id,
+            });
             continue;
           }
 
@@ -171,7 +186,10 @@ export async function runPhase4({
             last_synced_direction: "backward",
           };
           result.synced += 1;
-          log("info", "phase4.synced_upper_to_lower", { lowerId, upperId: entry.upper_id });
+          log("info", "phase4.synced_upper_to_lower", {
+            lowerId,
+            upperId: entry.upper_id,
+          });
         }
       }
     }

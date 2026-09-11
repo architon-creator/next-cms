@@ -60,7 +60,12 @@ function toFailure(
   return failure;
 }
 
-function cachePathFor(cacheDir: string, lowerName: string, upperName: string, lowerId: string): string {
+function cachePathFor(
+  cacheDir: string,
+  lowerName: string,
+  upperName: string,
+  lowerId: string,
+): string {
   return join(cacheDir, `${lowerName}-${upperName}`, "lower-docs", `${lowerId}.json`);
 }
 
@@ -155,7 +160,11 @@ export async function runPhase2({
     repository: pair.lower.repository,
     ref: lowerRef,
   });
-  const cacheSubdir = join(config.cacheDir, `${pair.lowerName}-${pair.upperName}`, "lower-docs");
+  const cacheSubdir = join(
+    config.cacheDir,
+    `${pair.lowerName}-${pair.upperName}`,
+    "lower-docs",
+  );
   await mkdir(cacheSubdir, { recursive: true });
 
   // For a human-readable title on a document that has no uid (see
@@ -312,7 +321,10 @@ export async function runPhase2({
       let raw: PrismicDocument;
       try {
         raw = JSON.parse(
-          await readFile(cachePathFor(config.cacheDir, pair.lowerName, pair.upperName, lowerId), "utf8"),
+          await readFile(
+            cachePathFor(config.cacheDir, pair.lowerName, pair.upperName, lowerId),
+            "utf8",
+          ),
         );
       } catch {
         // Not written this run (e.g. was already "pending" from a prior
@@ -340,7 +352,9 @@ export async function runPhase2({
         linkFixups += 1;
         log("info", "phase2.link_fixup", { lowerId, upperId: entry.upper_id });
       } catch (err) {
-        failures.push(toFailure({ id: lowerId, type: entry.doc_type }, "link_fixup", err));
+        failures.push(
+          toFailure({ id: lowerId, type: entry.doc_type }, "link_fixup", err),
+        );
         log("error", "phase2.link_fixup_failed", {
           lowerId,
           upperId: entry.upper_id,

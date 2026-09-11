@@ -4,7 +4,11 @@ import type { ResolvedPair } from "../lib/environments.js";
 import { log } from "../lib/logger.js";
 import { MappingStore } from "../lib/mapping-store.js";
 import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
-import { insertCustomType, listCustomTypes, updateCustomType } from "../lib/prismic-http.js";
+import {
+  insertCustomType,
+  listCustomTypes,
+  updateCustomType,
+} from "../lib/prismic-http.js";
 import { takeSnapshot } from "../lib/snapshot.js";
 import type { AssetMapping, DocumentMapping, PrismicCustomType } from "../types.js";
 
@@ -83,8 +87,16 @@ export async function runPhase0({ config, pair, dryRun }: Phase0Options): Promis
   // Labeled with the real environment name (not "lower"/"upper") so a
   // uat snapshot is actually named uat-<timestamp>.json, not something
   // generic that loses which environment it came from.
-  const lowerSnapshot = await takeSnapshot(pair.lower, pair.lowerName, config.snapshotDir);
-  const upperSnapshot = await takeSnapshot(pair.upper, pair.upperName, config.snapshotDir);
+  const lowerSnapshot = await takeSnapshot(
+    pair.lower,
+    pair.lowerName,
+    config.snapshotDir,
+  );
+  const upperSnapshot = await takeSnapshot(
+    pair.upper,
+    pair.upperName,
+    config.snapshotDir,
+  );
   log("info", "phase0.snapshots_taken", { lowerSnapshot, upperSnapshot });
 
   if (!dryRun) {
