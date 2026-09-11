@@ -65,6 +65,22 @@ export type Phase4Result = {
     docType: string;
     lastSyncedAt: string;
   }[];
+  /**
+   * A "synced" mapping entry whose lower or upper document no longer
+   * exists — deleted directly in one environment's dashboard, outside
+   * this toolkit. Previously a silent `continue`; now logged and
+   * returned so a run doesn't quietly do nothing about it. Still out of
+   * scope to actually resolve (unlike `conflict`, this doesn't set
+   * `status`, since there's no well-defined action to take automatically —
+   * a human needs to decide whether to `unlink` the entry, or recreate
+   * the deleted document via `migrate`/`backsync`).
+   */
+  deletedOnOneSide: {
+    lowerId: string;
+    upperId: string;
+    docType: string;
+    deletedSide: "lower" | "upper";
+  }[];
 };
 
 /**
@@ -109,7 +125,12 @@ export async function runPhase4({
   const lowerRef = await getMasterRef(pair.lower, fetchImpl);
   const upperRef = await getMasterRef(pair.upper, fetchImpl);
 
-  const result: Phase4Result = { synced: 0, pending: 0, conflicts: [] };
+  const result: Phase4Result = {
+    synced: 0,
+    pending: 0,
+    conflicts: [],
+    deletedOnOneSide: [],
+  };
 
   await mappingStore.mutate(async (mapping) => {
     const reverseDocumentIds = Object.fromEntries(
@@ -123,7 +144,22 @@ export async function runPhase4({
         getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl),
         getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl),
       ]);
-      if (!lowerDoc || !upperDoc) continue; // deleted on one side — out of scope for this toolkit's conflict model
+      if (!lowerDoc || !upperDoc) {
+        const deletedSide = !lowerDoc ? "lower" : "upper";
+        result.deletedOnOneSide.push({
+          lowerId,
+          upperId: entry.upper_id,
+          docType: entry.doc_type,
+          deletedSide,
+        });
+        log("warn", "phase4.document_deleted", {
+          lowerId,
+          upperId: entry.upper_id,
+          docType: entry.doc_type,
+          deletedSide,
+        });
+        continue;
+      }
 
       const currentLowerHash = canonicalHash(lowerDoc.data);
       const currentUpperHash = canonicalHash(upperDoc.data);
@@ -209,6 +245,10 @@ export async function runPhase4({
     });
   }
 
-  log("info", "phase4.done", { ...result, conflictCount: result.conflicts.length });
+  log("info", "phase4.done", {
+    ...result,
+    conflictCount: result.conflicts.length,
+    deletedOnOneSideCount: result.deletedOnOneSide.length,
+  });
   return result;
 }

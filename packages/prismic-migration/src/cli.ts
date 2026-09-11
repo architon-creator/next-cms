@@ -305,7 +305,7 @@ async function main(): Promise<void> {
     case "backsync": {
       requireDirection(pair, "backward", "backsync");
       const result = await runPhase4({ config, pair, dryRun });
-      if (result.conflicts.length > 0) {
+      if (result.conflicts.length > 0 || result.deletedOnOneSide.length > 0) {
         process.exitCode = 1; // halt, don't force-push (Phase 5 rule)
       }
       return;

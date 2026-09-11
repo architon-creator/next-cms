@@ -25,12 +25,29 @@ export type Phase3Options = {
   fetchImpl?: typeof fetch;
 };
 
+export type DeletedDocument = {
+  lowerId: string;
+  upperId: string;
+  deletedSide: "lower" | "upper";
+};
+
 export type Phase3Report = {
   passed: boolean;
   countCheck: { lowerCount: number; upperCount: number; matches: boolean };
   spotCheck: { sampleSize: number; mismatches: string[] };
   brokenLinkScan: { affectedDocuments: Record<string, string[]> };
   assetCheck: { affectedDocuments: Record<string, string[]> };
+  /**
+   * A mapping entry marked "synced" whose lower or upper document no
+   * longer exists — deleted directly in one environment's dashboard,
+   * outside this toolkit. Previously a silent `continue` in both the
+   * spot-check and the broken-link/asset scan; now recorded explicitly
+   * and counted against `passed`, since a "synced" entry pointing at a
+   * document that's actually gone is exactly the kind of drift `verify`
+   * exists to catch, not a content difference to lump in with
+   * `spotCheck.mismatches`.
+   */
+  deletedDocuments: DeletedDocument[];
 };
 
 /**
@@ -81,6 +98,8 @@ export async function runPhase3({
   // ---- Spot check ----
   const sample = shuffle(syncedEntries).slice(0, sampleSize);
   const mismatches: string[] = [];
+  const deletedDocuments: DeletedDocument[] = [];
+  const deletedLowerIds = new Set<string>();
   for (const [lowerId, entry] of sample) {
     const lowerDoc = await getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl);
     const upperDoc = await getDocumentById(
@@ -90,7 +109,14 @@ export async function runPhase3({
       fetchImpl,
     );
     if (!lowerDoc || !upperDoc) {
-      mismatches.push(lowerId);
+      const deletedSide = !lowerDoc ? "lower" : "upper";
+      deletedDocuments.push({ lowerId, upperId: entry.upper_id, deletedSide });
+      deletedLowerIds.add(lowerId);
+      log("warn", "phase3.document_deleted", {
+        lowerId,
+        upperId: entry.upper_id,
+        deletedSide,
+      });
       continue;
     }
     // Compare rewrite(lower) against upper's actual data, not raw lower vs.
@@ -128,14 +154,28 @@ export async function runPhase3({
   const brokenLinks: Record<string, string[]> = {};
   const brokenAssets: Record<string, string[]> = {};
 
-  for (const [, entry] of syncedEntries) {
+  for (const [lowerId, entry] of syncedEntries) {
     const upperDoc = await getDocumentById(
       pair.upper,
       upperRef,
       entry.upper_id,
       fetchImpl,
     );
-    if (!upperDoc) continue;
+    if (!upperDoc) {
+      // Same deletion as the spot-check above, but this loop covers every
+      // synced entry, not just the random sample — dedupe against
+      // anything the spot-check already caught rather than double-report.
+      if (!deletedLowerIds.has(lowerId)) {
+        deletedDocuments.push({ lowerId, upperId: entry.upper_id, deletedSide: "upper" });
+        deletedLowerIds.add(lowerId);
+        log("warn", "phase3.document_deleted", {
+          lowerId,
+          upperId: entry.upper_id,
+          deletedSide: "upper",
+        });
+      }
+      continue;
+    }
     const unresolvedLinks = findUnresolvedDocumentLinks(upperDoc.data, knownUpperIds);
     if (unresolvedLinks.length > 0) brokenLinks[entry.upper_id] = unresolvedLinks;
     const unresolvedAssets = findUnresolvedAssetLinks(upperDoc.data, knownUpperAssetIds);
@@ -143,17 +183,20 @@ export async function runPhase3({
   }
   log("info", "phase3.broken_link_scan", { affected: Object.keys(brokenLinks).length });
   log("info", "phase3.asset_check", { affected: Object.keys(brokenAssets).length });
+  log("info", "phase3.deleted_documents", { count: deletedDocuments.length });
 
   const report: Phase3Report = {
     passed:
       countCheck.matches &&
       mismatches.length === 0 &&
       Object.keys(brokenLinks).length === 0 &&
-      Object.keys(brokenAssets).length === 0,
+      Object.keys(brokenAssets).length === 0 &&
+      deletedDocuments.length === 0,
     countCheck,
     spotCheck: { sampleSize: sample.length, mismatches },
     brokenLinkScan: { affectedDocuments: brokenLinks },
     assetCheck: { affectedDocuments: brokenAssets },
+    deletedDocuments,
   };
 
   log(report.passed ? "info" : "error", "phase3.done", { passed: report.passed });

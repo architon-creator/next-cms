@@ -142,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 71 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 73 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -213,6 +213,20 @@ poll, so `confirm` asks the question the pipeline actually needs answered:
 "is this upper document now live at the upper environment's master ref?" —
 for every mapping entry still `status: "pending"`. Run it after a human
 publishes the Migration Release in the upper environment's dashboard.
+
+**Document deletion detection.** A `status: "synced"` mapping entry whose
+lower or upper document has since been deleted directly in a dashboard —
+outside this toolkit entirely — used to fall through a silent `continue`
+in both `verify` and `backsync`, with no log line and no trace anywhere
+in the result. Both now detect it explicitly (`phase3.document_deleted` /
+`phase4.document_deleted`) and surface it: `verify`'s report gets a
+`deletedDocuments` array and `passed: false`; `backsync`'s result gets a
+`deletedOnOneSide` array and the CLI exits non-zero, same as a conflict.
+Neither command tries to resolve it automatically — there's no
+well-defined default action (recreate the document? forget the mapping
+entry?), so it's left for a human to decide, typically via `unlink` if
+the mapping entry should simply be forgotten, or by re-running `migrate`/
+`backsync` after manually recreating the missing document.
 
 **Retry on 429 and transient gateway errors.** Confirmed against a real
 run: Prismic's rate limits aren't limited to the Migration API's
@@ -332,9 +346,12 @@ dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
   hand" — there is no `restore` command that takes a snapshot and
   actually undoes a bad publish. Build that runbook once the happy path is
   validated against real repositories.
-- **Document/asset deletions are out of scope.** `verify` and `backsync`
-  both silently skip a mapping entry whose lower or upper document has
-  been deleted, rather than flagging it.
+- **Asset deletions are still out of scope.** A mapping entry whose lower
+  or upper _document_ has been deleted is now caught (see "Document
+  deletion detection" below) — but a deleted _asset_ isn't: `verify`'s
+  asset check only looks for references to assets that were never
+  migrated (a broken link), not for an asset that was migrated and later
+  removed from the upper environment's library.
 - **`reconcile` only handles non-repeatable types.** If the upper
   environment already has pre-existing content for a _repeatable_ custom
   type (many possible documents), there's no automated way to guess which
@@ -429,7 +446,7 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 pnpm test
 ```
 
-71 tests across canonical hashing, the mapping store (including lock
+73 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
 4-quadrant conflict matrix, the rate limiter, retry/backoff behavior,
