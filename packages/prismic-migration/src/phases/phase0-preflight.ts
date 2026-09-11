@@ -1,41 +1,40 @@
-import { join } from "node:path";
 import type { Config } from "../config.js";
+import { canonicalStringify } from "../lib/canonical-hash.js";
+import type { ResolvedPair } from "../lib/environments.js";
 import { log } from "../lib/logger.js";
 import { MappingStore } from "../lib/mapping-store.js";
-import {
-  insertCustomType,
-  listCustomTypes,
-  updateCustomType,
-} from "../lib/prismic-http.js";
-import { canonicalStringify } from "../lib/canonical-hash.js";
+import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
+import { insertCustomType, listCustomTypes, updateCustomType } from "../lib/prismic-http.js";
 import { takeSnapshot } from "../lib/snapshot.js";
 import type { AssetMapping, DocumentMapping, PrismicCustomType } from "../types.js";
 
 export type CustomTypeDiff = {
   missing: PrismicCustomType[];
-  differing: { id: string; dev: PrismicCustomType; sit: PrismicCustomType }[];
+  differing: { id: string; lower: PrismicCustomType; upper: PrismicCustomType }[];
 };
 
 /**
  * Pure diff — no network calls — so it's directly unit-testable. Compares
  * custom types by canonical JSON of their `json` schema; a custom type
  * present in both but with a different schema is "differing", one absent
- * from sit entirely is "missing".
+ * from the upper environment entirely is "missing". Always pushes
+ * lower -> upper, matching `migrate`'s own direction — schema promotion
+ * follows the same one-hop chain as content.
  */
 export function diffCustomTypes(
-  devTypes: PrismicCustomType[],
-  sitTypes: PrismicCustomType[],
+  lowerTypes: PrismicCustomType[],
+  upperTypes: PrismicCustomType[],
 ): CustomTypeDiff {
-  const sitById = new Map(sitTypes.map((t) => [t.id, t]));
+  const upperById = new Map(upperTypes.map((t) => [t.id, t]));
   const missing: PrismicCustomType[] = [];
   const differing: CustomTypeDiff["differing"] = [];
 
-  for (const dev of devTypes) {
-    const sit = sitById.get(dev.id);
-    if (!sit) {
-      missing.push(dev);
-    } else if (canonicalStringify(dev.json) !== canonicalStringify(sit.json)) {
-      differing.push({ id: dev.id, dev, sit });
+  for (const lower of lowerTypes) {
+    const upper = upperById.get(lower.id);
+    if (!upper) {
+      missing.push(lower);
+    } else if (canonicalStringify(lower.json) !== canonicalStringify(upper.json)) {
+      differing.push({ id: lower.id, lower, upper });
     }
   }
 
@@ -44,17 +43,18 @@ export function diffCustomTypes(
 
 export type Phase0Options = {
   config: Config;
+  pair: ResolvedPair;
   dryRun: boolean;
 };
 
-export async function runPhase0({ config, dryRun }: Phase0Options): Promise<void> {
-  log("info", "phase0.start", { dryRun });
+export async function runPhase0({ config, pair, dryRun }: Phase0Options): Promise<void> {
+  log("info", "phase0.start", { dryRun, from: pair.lowerName, to: pair.upperName });
 
-  const [devTypes, sitTypes] = await Promise.all([
-    listCustomTypes(config.dev),
-    listCustomTypes(config.sit),
+  const [lowerTypes, upperTypes] = await Promise.all([
+    listCustomTypes(pair.lower),
+    listCustomTypes(pair.upper),
   ]);
-  const diff = diffCustomTypes(devTypes, sitTypes);
+  const diff = diffCustomTypes(lowerTypes, upperTypes);
 
   log("info", "phase0.custom_type_diff", {
     missing: diff.missing.map((t) => t.id),
@@ -70,27 +70,30 @@ export async function runPhase0({ config, dryRun }: Phase0Options): Promise<void
     });
   } else {
     for (const type of diff.missing) {
-      await insertCustomType(config.sit, type);
+      await insertCustomType(pair.upper, type);
       log("info", "phase0.custom_type_inserted", { id: type.id });
     }
-    for (const { id, dev } of diff.differing) {
-      await updateCustomType(config.sit, dev);
+    for (const { id, lower } of diff.differing) {
+      await updateCustomType(pair.upper, lower);
       log("info", "phase0.custom_type_updated", { id });
     }
   }
 
   // Restore point — taken regardless of dry-run, since it's read-only.
-  const devSnapshot = await takeSnapshot(config.dev, "dev", config.snapshotDir);
-  const sitSnapshot = await takeSnapshot(config.sit, "sit", config.snapshotDir);
-  log("info", "phase0.snapshots_taken", { devSnapshot, sitSnapshot });
+  // Labeled with the real environment name (not "lower"/"upper") so a
+  // uat snapshot is actually named uat-<timestamp>.json, not something
+  // generic that loses which environment it came from.
+  const lowerSnapshot = await takeSnapshot(pair.lower, pair.lowerName, config.snapshotDir);
+  const upperSnapshot = await takeSnapshot(pair.upper, pair.upperName, config.snapshotDir);
+  log("info", "phase0.snapshots_taken", { lowerSnapshot, upperSnapshot });
 
   if (!dryRun) {
     const mappingStore = new MappingStore<DocumentMapping>(
-      join(config.mappingDir, "mapping.json"),
+      mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
     );
     await mappingStore.mutate((current) => current); // creates the file if absent, never overwrites existing entries
     const assetMappingStore = new MappingStore<AssetMapping>(
-      join(config.mappingDir, "asset-mapping.json"),
+      assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
     );
     await assetMappingStore.mutate((current) => current);
     log("info", "phase0.mapping_initialized");

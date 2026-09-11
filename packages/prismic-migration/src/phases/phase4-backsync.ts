@@ -2,8 +2,10 @@ import { join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import type { Config } from "../config.js";
 import { canonicalHash } from "../lib/canonical-hash.js";
+import type { ResolvedPair } from "../lib/environments.js";
 import { log } from "../lib/logger.js";
 import { MappingStore } from "../lib/mapping-store.js";
+import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
 import {
   getDocumentById,
   getMasterRef,
@@ -12,41 +14,43 @@ import {
 import { rewriteRefs } from "../lib/rewrite-refs.js";
 import type { AssetMapping, DocumentMapping, MappingEntry } from "../types.js";
 
-export type SyncVerdict = "noop" | "sync-sit-to-dev" | "pending-dev-to-sit" | "conflict";
+export type SyncVerdict = "noop" | "sync-upper-to-lower" | "pending-lower-to-upper" | "conflict";
 
 /**
- * The full 2x2 case analysis for back-sync, made explicit (the plan's own
- * text only names two of these four rows):
+ * The full 2x2 case analysis for back-sync, made explicit (the original
+ * plan's own text only named two of these four rows):
  *
- *              sit unchanged        sit changed
- * dev unchanged   noop              sync-sit-to-dev (fast-forward)
- * dev changed     pending-dev-to-sit  conflict
+ *                upper unchanged     upper changed
+ * lower unchanged   noop              sync-upper-to-lower (fast-forward)
+ * lower changed     pending-lower-to-upper  conflict
  *
- * "dev changed, sit unchanged" is NOT a conflict — dev has an edit sit
- * doesn't know about yet, but nothing on sit's side would be lost by
- * catching sit up. It becomes a normal Phase 2 forward-sync candidate:
- * `status: "pending"` here means "run Phase 2 again", not "needs a human".
- * Only "both sides changed independently" is a genuine conflict.
+ * "lower changed, upper unchanged" is NOT a conflict — the lower
+ * environment has an edit the upper one doesn't know about yet, but
+ * nothing on the upper side would be lost by catching it up. It becomes
+ * a normal Phase 2 forward-sync candidate: `status: "pending"` here
+ * means "run Phase 2 (migrate) again", not "needs a human". Only "both
+ * sides changed independently" is a genuine conflict.
  *
  * Pure and network-free by design, so this is the one piece of the whole
  * toolkit that's fully unit-tested without mocking any HTTP calls.
  */
 export function classifySync(
   entry: MappingEntry,
-  currentDevHash: string,
-  currentSitHash: string,
+  currentLowerHash: string,
+  currentUpperHash: string,
 ): SyncVerdict {
-  const devUnchanged = currentDevHash === entry.dev_hash;
-  const sitUnchanged = currentSitHash === entry.sit_hash;
+  const lowerUnchanged = currentLowerHash === entry.lower_hash;
+  const upperUnchanged = currentUpperHash === entry.upper_hash;
 
-  if (devUnchanged && sitUnchanged) return "noop";
-  if (devUnchanged && !sitUnchanged) return "sync-sit-to-dev";
-  if (!devUnchanged && sitUnchanged) return "pending-dev-to-sit";
+  if (lowerUnchanged && upperUnchanged) return "noop";
+  if (lowerUnchanged && !upperUnchanged) return "sync-upper-to-lower";
+  if (!lowerUnchanged && upperUnchanged) return "pending-lower-to-upper";
   return "conflict";
 }
 
 export type Phase4Options = {
   config: Config;
+  pair: ResolvedPair;
   dryRun: boolean;
   fetchImpl?: typeof fetch;
 };
@@ -54,116 +58,120 @@ export type Phase4Options = {
 export type Phase4Result = {
   synced: number;
   pending: number;
-  conflicts: { devId: string; sitId: string; docType: string; lastSyncedAt: string }[];
+  conflicts: { lowerId: string; upperId: string; docType: string; lastSyncedAt: string }[];
 };
 
 /**
- * Ongoing back-sync, sit -> dev, gated by classifySync above. Only
- * `status: "synced"` entries are candidates — a `pending` or `conflict`
- * entry is left for a human (or the next Phase 2 run) to resolve, never
- * silently reprocessed here.
+ * Ongoing back-sync, upper -> lower (the caller enforces this direction
+ * via requireDirection before calling in — see cli.ts), gated by
+ * classifySync above. Only `status: "synced"` entries are candidates — a
+ * `pending` or `conflict` entry is left for a human (or the next
+ * Phase 2/migrate run) to resolve, never silently reprocessed here.
  *
- * Note: this back-syncs document content, not assets. The plan's asset
- * pipeline (Phase 1) is dev -> sit only; an asset uploaded fresh in sit
- * during back-sync would need its own dev-ward asset mapping, which this
- * POC does not implement.
+ * Note: this back-syncs document content, not assets. Phase 1's asset
+ * pipeline is lower -> upper only; an asset uploaded fresh in the upper
+ * environment during back-sync would need its own lower-ward asset
+ * mapping, which this toolkit does not implement.
  */
 export async function runPhase4({
   config,
+  pair,
   dryRun,
   fetchImpl = fetch,
 }: Phase4Options): Promise<Phase4Result> {
-  log("info", "phase4.start", { dryRun });
+  log("info", "phase4.start", { dryRun, from: pair.upperName, to: pair.lowerName });
 
   const mappingStore = new MappingStore<DocumentMapping>(
-    join(config.mappingDir, "mapping.json"),
+    mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
   const assetMappingStore = new MappingStore<AssetMapping>(
-    join(config.mappingDir, "asset-mapping.json"),
+    assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
   const assetMapping = await assetMappingStore.load();
-  // Reverse direction for sit -> dev asset ids (see the caveat above — this
-  // will be empty for anything only ever migrated dev -> sit). No `url`
-  // here — there's no recorded "dev CDN url" to restore to, unlike the
-  // forward direction's sit_url; only `id` gets rewritten going backward.
+  // Reverse direction for upper -> lower asset ids (see the caveat above —
+  // this will be empty for anything only ever migrated lower -> upper).
+  // No `url` here — there's no recorded "lower CDN url" to restore to,
+  // unlike the forward direction's upper_asset_url; only `id` gets
+  // rewritten going backward.
   const reverseAssetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [e.sit_asset_id, { id: devId }]),
+    Object.entries(assetMapping).map(([lowerId, e]) => [e.upper_asset_id, { id: lowerId }]),
   );
 
-  const devRef = await getMasterRef(config.dev, fetchImpl);
-  const sitRef = await getMasterRef(config.sit, fetchImpl);
+  const lowerRef = await getMasterRef(pair.lower, fetchImpl);
+  const upperRef = await getMasterRef(pair.upper, fetchImpl);
 
   const result: Phase4Result = { synced: 0, pending: 0, conflicts: [] };
 
   await mappingStore.mutate(async (mapping) => {
     const reverseDocumentIds = Object.fromEntries(
-      Object.entries(mapping).map(([devId, e]) => [e.sit_id, devId]),
+      Object.entries(mapping).map(([lowerId, e]) => [e.upper_id, lowerId]),
     );
 
-    for (const [devId, entry] of Object.entries(mapping)) {
+    for (const [lowerId, entry] of Object.entries(mapping)) {
       if (entry.status !== "synced") continue;
 
-      const [devDoc, sitDoc] = await Promise.all([
-        getDocumentById(config.dev, devRef, devId, fetchImpl),
-        getDocumentById(config.sit, sitRef, entry.sit_id, fetchImpl),
+      const [lowerDoc, upperDoc] = await Promise.all([
+        getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl),
+        getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl),
       ]);
-      if (!devDoc || !sitDoc) continue; // deleted on one side — out of scope for this POC's conflict model
+      if (!lowerDoc || !upperDoc) continue; // deleted on one side — out of scope for this toolkit's conflict model
 
-      const currentDevHash = canonicalHash(devDoc.data);
-      const currentSitHash = canonicalHash(sitDoc.data);
-      const verdict = classifySync(entry, currentDevHash, currentSitHash);
+      const currentLowerHash = canonicalHash(lowerDoc.data);
+      const currentUpperHash = canonicalHash(upperDoc.data);
+      const verdict = classifySync(entry, currentLowerHash, currentUpperHash);
 
       switch (verdict) {
         case "noop":
           continue;
 
-        case "pending-dev-to-sit":
-          mapping[devId] = { ...entry, status: "pending" };
+        case "pending-lower-to-upper":
+          mapping[lowerId] = { ...entry, status: "pending" };
           result.pending += 1;
-          log("info", "phase4.pending_forward_sync", { devId, sitId: entry.sit_id });
+          log("info", "phase4.pending_forward_sync", { lowerId, upperId: entry.upper_id });
           continue;
 
         case "conflict":
-          mapping[devId] = { ...entry, status: "conflict" };
+          mapping[lowerId] = { ...entry, status: "conflict" };
           result.conflicts.push({
-            devId,
-            sitId: entry.sit_id,
+            lowerId,
+            upperId: entry.upper_id,
             docType: entry.doc_type,
             lastSyncedAt: entry.last_synced_at,
           });
-          log("warn", "phase4.conflict", { devId, sitId: entry.sit_id });
+          log("warn", "phase4.conflict", { lowerId, upperId: entry.upper_id });
           continue;
 
-        case "sync-sit-to-dev": {
-          const rewritten = rewriteRefs(sitDoc.data, {
+        case "sync-upper-to-lower": {
+          const rewritten = rewriteRefs(upperDoc.data, {
             assetIds: reverseAssetIds,
             documentIds: reverseDocumentIds,
           });
 
           if (dryRun) {
-            log("info", "phase4.would_sync_sit_to_dev", { devId, sitId: entry.sit_id });
+            log("info", "phase4.would_sync_upper_to_lower", { lowerId, upperId: entry.upper_id });
             continue;
           }
 
-          // Lands as a draft in dev's own Migration Release, same as any
-          // other write this toolkit makes — rule #3 ("nothing
-          // auto-publishes in the target repo") applies to dev here too,
-          // since dev is the write target for this direction.
+          // Lands as a draft in the lower environment's own Migration
+          // Release, same as any other write this toolkit makes — rule #3
+          // ("nothing auto-publishes in the target repo") applies to the
+          // lower environment here too, since it's the write target for
+          // this direction.
           await updateMigrationDocument(
-            config.dev,
-            devId,
+            pair.lower,
+            lowerId,
             { data: rewritten },
             fetchImpl,
           );
-          mapping[devId] = {
+          mapping[lowerId] = {
             ...entry,
-            dev_hash: canonicalHash(rewritten),
-            sit_hash: currentSitHash,
+            lower_hash: canonicalHash(rewritten),
+            upper_hash: currentUpperHash,
             last_synced_at: new Date().toISOString(),
-            last_synced_direction: "sit->dev",
+            last_synced_direction: "backward",
           };
           result.synced += 1;
-          log("info", "phase4.synced_sit_to_dev", { devId, sitId: entry.sit_id });
+          log("info", "phase4.synced_upper_to_lower", { lowerId, upperId: entry.upper_id });
         }
       }
     }
@@ -174,7 +182,7 @@ export async function runPhase4({
     await mkdir(config.reportDir, { recursive: true });
     const reportPath = join(
       config.reportDir,
-      `conflicts-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+      `conflicts-${pair.lowerName}-${pair.upperName}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
     );
     await writeFile(reportPath, JSON.stringify(result.conflicts, null, 2), "utf8");
     log("error", "phase4.conflicts_reported", {

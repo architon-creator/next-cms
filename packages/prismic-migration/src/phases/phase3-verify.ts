@@ -1,8 +1,9 @@
-import { join } from "node:path";
 import type { Config } from "../config.js";
 import { canonicalHash } from "../lib/canonical-hash.js";
+import type { ResolvedPair } from "../lib/environments.js";
 import { log } from "../lib/logger.js";
 import { MappingStore } from "../lib/mapping-store.js";
+import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
 import {
   getDocumentById,
   getMasterRef,
@@ -19,13 +20,14 @@ import type { AssetMapping, DocumentMapping } from "../types.js";
 
 export type Phase3Options = {
   config: Config;
+  pair: ResolvedPair;
   sampleSize?: number;
   fetchImpl?: typeof fetch;
 };
 
 export type Phase3Report = {
   passed: boolean;
-  countCheck: { devCount: number; sitCount: number; matches: boolean };
+  countCheck: { lowerCount: number; upperCount: number; matches: boolean };
   spotCheck: { sampleSize: number; mismatches: string[] };
   brokenLinkScan: { affectedDocuments: Record<string, string[]> };
   assetCheck: { affectedDocuments: Record<string, string[]> };
@@ -39,71 +41,74 @@ export type Phase3Report = {
  */
 export async function runPhase3({
   config,
+  pair,
   sampleSize = 20,
   fetchImpl = fetch,
 }: Phase3Options): Promise<Phase3Report> {
-  log("info", "phase3.start", { sampleSize });
+  log("info", "phase3.start", { sampleSize, from: pair.lowerName, to: pair.upperName });
 
   const mappingStore = new MappingStore<DocumentMapping>(
-    join(config.mappingDir, "mapping.json"),
+    mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
   const assetMappingStore = new MappingStore<AssetMapping>(
-    join(config.mappingDir, "asset-mapping.json"),
+    assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
   const mapping = await mappingStore.load();
   const assetMapping = await assetMappingStore.load();
   const assetIds = Object.fromEntries(
-    Object.entries(assetMapping).map(([devId, e]) => [
-      devId,
-      { id: e.sit_asset_id, url: e.sit_url },
+    Object.entries(assetMapping).map(([lowerId, e]) => [
+      lowerId,
+      { id: e.upper_asset_id, url: e.upper_asset_url },
     ]),
   );
   const documentIds = Object.fromEntries(
-    Object.entries(mapping).map(([devId, e]) => [devId, e.sit_id]),
+    Object.entries(mapping).map(([lowerId, e]) => [lowerId, e.upper_id]),
   );
 
   const syncedEntries = Object.entries(mapping).filter(([, e]) => e.status === "synced");
 
-  const devRef = await getMasterRef(config.dev, fetchImpl);
-  const sitRef = await getMasterRef(config.sit, fetchImpl);
+  const lowerRef = await getMasterRef(pair.lower, fetchImpl);
+  const upperRef = await getMasterRef(pair.upper, fetchImpl);
 
   // ---- Count check ----
-  let devCount = 0;
-  for await (const _doc of iterateAllDocuments(config.dev, devRef, fetchImpl))
-    devCount += 1;
-  const sitCount = syncedEntries.length;
-  const countCheck = { devCount, sitCount, matches: devCount === sitCount };
+  let lowerCount = 0;
+  for await (const _doc of iterateAllDocuments(pair.lower, lowerRef, fetchImpl))
+    lowerCount += 1;
+  const upperCount = syncedEntries.length;
+  const countCheck = { lowerCount, upperCount, matches: lowerCount === upperCount };
   log("info", "phase3.count_check", countCheck);
 
   // ---- Spot check ----
   const sample = shuffle(syncedEntries).slice(0, sampleSize);
   const mismatches: string[] = [];
-  for (const [devId, entry] of sample) {
-    const devDoc = await getDocumentById(config.dev, devRef, devId, fetchImpl);
-    const sitDoc = await getDocumentById(config.sit, sitRef, entry.sit_id, fetchImpl);
-    if (!devDoc || !sitDoc) {
-      mismatches.push(devId);
+  for (const [lowerId, entry] of sample) {
+    const lowerDoc = await getDocumentById(pair.lower, lowerRef, lowerId, fetchImpl);
+    const upperDoc = await getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl);
+    if (!lowerDoc || !upperDoc) {
+      mismatches.push(lowerId);
       continue;
     }
-    // Compare rewrite(dev) against sit's actual data, not raw dev vs. sit —
-    // sit's ids are rewritten, so a direct hash of the two raw payloads
-    // would never match even when the migration is entirely correct.
+    // Compare rewrite(lower) against upper's actual data, not raw lower vs.
+    // upper — upper's ids are rewritten, so a direct hash of the two raw
+    // payloads would never match even when the migration is entirely
+    // correct.
     //
     // Both sides go through normalizeForComparison() before hashing: a
     // Content Relationship or Image field is denormalized by Prismic at
     // read time with a live snapshot of whatever it currently points at
     // (publish dates, slug, dimensions, url, ...) — that's expected to
-    // differ between dev's and sit's own document states even when the
-    // reference itself (the `id`) is correctly migrated. The broken-link
-    // scan and asset check below are what actually verify `id` resolves
-    // to something real; this comparison would otherwise flag every
-    // document with a link or image field as a false-positive mismatch
-    // (confirmed on a real run via `inspect <devId> <sitId>`).
+    // differ between the lower and upper environments' own document
+    // states even when the reference itself (the `id`) is correctly
+    // migrated. The broken-link scan and asset check below are what
+    // actually verify `id` resolves to something real; this comparison
+    // would otherwise flag every document with a link or image field as
+    // a false-positive mismatch (confirmed on a real run via
+    // `inspect <lowerId> <upperId>`).
     const expected = canonicalHash(
-      normalizeForComparison(rewriteRefs(devDoc.data, { assetIds, documentIds })),
+      normalizeForComparison(rewriteRefs(lowerDoc.data, { assetIds, documentIds })),
     );
-    const actual = canonicalHash(normalizeForComparison(sitDoc.data));
-    if (expected !== actual) mismatches.push(devId);
+    const actual = canonicalHash(normalizeForComparison(upperDoc.data));
+    if (expected !== actual) mismatches.push(lowerId);
   }
   log("info", "phase3.spot_check", {
     sampleSize: sample.length,
@@ -111,20 +116,20 @@ export async function runPhase3({
   });
 
   // ---- Broken-link scan + asset check ----
-  const knownSitIds = new Set(Object.values(documentIds));
-  const knownSitAssetIds = new Set(
-    (await listAssets(config.sit, fetchImpl)).map((a) => a.id),
+  const knownUpperIds = new Set(Object.values(documentIds));
+  const knownUpperAssetIds = new Set(
+    (await listAssets(pair.upper, fetchImpl)).map((a) => a.id),
   );
   const brokenLinks: Record<string, string[]> = {};
   const brokenAssets: Record<string, string[]> = {};
 
   for (const [, entry] of syncedEntries) {
-    const sitDoc = await getDocumentById(config.sit, sitRef, entry.sit_id, fetchImpl);
-    if (!sitDoc) continue;
-    const unresolvedLinks = findUnresolvedDocumentLinks(sitDoc.data, knownSitIds);
-    if (unresolvedLinks.length > 0) brokenLinks[entry.sit_id] = unresolvedLinks;
-    const unresolvedAssets = findUnresolvedAssetLinks(sitDoc.data, knownSitAssetIds);
-    if (unresolvedAssets.length > 0) brokenAssets[entry.sit_id] = unresolvedAssets;
+    const upperDoc = await getDocumentById(pair.upper, upperRef, entry.upper_id, fetchImpl);
+    if (!upperDoc) continue;
+    const unresolvedLinks = findUnresolvedDocumentLinks(upperDoc.data, knownUpperIds);
+    if (unresolvedLinks.length > 0) brokenLinks[entry.upper_id] = unresolvedLinks;
+    const unresolvedAssets = findUnresolvedAssetLinks(upperDoc.data, knownUpperAssetIds);
+    if (unresolvedAssets.length > 0) brokenAssets[entry.upper_id] = unresolvedAssets;
   }
   log("info", "phase3.broken_link_scan", { affected: Object.keys(brokenLinks).length });
   log("info", "phase3.asset_check", { affected: Object.keys(brokenAssets).length });
