@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>prismic-migration log viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel-2: #1e222b;
+        --border: #2a2f3a;
+        --text: #e6e8ec;
+        --text-dim: #9aa2b1;
+        --accent: #5b9dff;
+        --info: #5b9dff;
+        --warn: #e0a94a;
+        --error: #e05a5a;
+        --mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f5f6f8;
+          --panel: #ffffff;
+          --panel-2: #f0f1f4;
+          --border: #dde1e8;
+          --text: #1a1d24;
+          --text-dim: #5c6474;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          13px/1.5 -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      h1 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+      }
+      h1 span {
+        color: var(--text-dim);
+        font-weight: 400;
+      }
+      .dropzone {
+        border: 1px dashed var(--border);
+        border-radius: 6px;
+        padding: 6px 12px;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .dropzone.drag {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .dropzone input {
+        display: none;
+      }
+      #search {
+        flex: 1;
+        min-width: 180px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        padding: 6px 10px;
+        font: inherit;
+      }
+      .level-toggle {
+        display: flex;
+        gap: 4px;
+        font-size: 12px;
+      }
+      .level-toggle label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+      }
+      .level-toggle label[data-level="info"].active {
+        border-color: var(--info);
+        color: var(--info);
+      }
+      .level-toggle label[data-level="warn"].active {
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      .level-toggle label[data-level="error"].active {
+        border-color: var(--error);
+        color: var(--error);
+      }
+      .level-toggle input {
+        display: none;
+      }
+      #stats {
+        font-size: 12px;
+        color: var(--text-dim);
+        white-space: nowrap;
+      }
+      #empty {
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--text-dim);
+      }
+      #empty code {
+        background: var(--panel-2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: var(--mono);
+      }
+      main {
+        padding: 8px 16px 40px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+      }
+      tbody tr:hover {
+        background: var(--panel-2);
+      }
+      td {
+        padding: 6px 8px;
+        vertical-align: top;
+      }
+      td.ts {
+        font-family: var(--mono);
+        color: var(--text-dim);
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      td.badge {
+        white-space: nowrap;
+      }
+      .badge-pill {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .badge-pill.info {
+        background: rgba(91, 157, 255, 0.15);
+        color: var(--info);
+      }
+      .badge-pill.warn {
+        background: rgba(224, 169, 74, 0.18);
+        color: var(--warn);
+      }
+      .badge-pill.error {
+        background: rgba(224, 90, 90, 0.18);
+        color: var(--error);
+      }
+      td.event {
+        font-family: var(--mono);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      td.summary {
+        color: var(--text-dim);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 0;
+      }
+      tr.expanded td.summary {
+        white-space: normal;
+      }
+      pre.fields {
+        margin: 6px 0 2px;
+        padding: 8px 10px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .row-error {
+        border-left: 2px solid var(--error);
+      }
+      .row-warn {
+        border-left: 2px solid var(--warn);
+      }
+      .row-info {
+        border-left: 2px solid transparent;
+      }
+      .malformed {
+        color: var(--error);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>prismic-migration <span>log viewer</span></h1>
+      <label class="dropzone" id="dropzone">
+        Choose or drop a log file…
+        <input type="file" id="fileInput" accept=".log,.txt,.jsonl,.ndjson" />
+      </label>
+      <input
+        id="search"
+        type="text"
+        placeholder="Filter by event name, id, or any field value…"
+      />
+      <div class="level-toggle" id="levelToggle">
+        <label data-level="info" class="active"
+          ><input type="checkbox" checked />info</label
+        >
+        <label data-level="warn" class="active"
+          ><input type="checkbox" checked />warn</label
+        >
+        <label data-level="error" class="active"
+          ><input type="checkbox" checked />error</label
+        >
+      </div>
+      <div id="stats"></div>
+    </header>
+
+    <main>
+      <div id="empty">
+        Nothing loaded yet.<br /><br />
+        Capture a run's output first, then load it here:<br />
+        <code>pnpm cli migrate --from=dev --to=sit &gt; run.log</code><br /><br />
+        Every line the CLI prints is one JSON object (<code
+          >{ ts, level, event, ...fields }</code
+        >) — this page never sends that data anywhere; it's parsed entirely in your
+        browser.
+      </div>
+      <table id="table" style="display: none">
+        <tbody id="tbody"></tbody>
+      </table>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /** @type {{ts:string, level:string, event:string, fields:Record<string,unknown>, raw:string, malformed:boolean}[]} */
+        let entries = [];
+        let activeLevels = new Set(["info", "warn", "error"]);
+        let searchTerm = "";
+
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+        const searchInput = document.getElementById("search");
+        const levelToggle = document.getElementById("levelToggle");
+        const statsEl = document.getElementById("stats");
+        const emptyEl = document.getElementById("empty");
+        const tableEl = document.getElementById("table");
+        const tbody = document.getElementById("tbody");
+
+        function parseLog(text) {
+          const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+          return lines.map((raw) => {
+            try {
+              const obj = JSON.parse(raw);
+              const { ts, level, event, ...fields } = obj;
+              return {
+                ts: typeof ts === "string" ? ts : "",
+                level: typeof level === "string" ? level : "info",
+                event: typeof event === "string" ? event : "(no event)",
+                fields,
+                raw,
+                malformed: false,
+              };
+            } catch {
+              return {
+                ts: "",
+                level: "info",
+                event: "",
+                fields: {},
+                raw,
+                malformed: true,
+              };
+            }
+          });
+        }
+
+        function loadFile(file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            entries = parseLog(String(reader.result));
+            render();
+          };
+          reader.readAsText(file);
+        }
+
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+        });
+
+        ["dragover", "dragenter"].forEach((evt) =>
+          dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropzone.classList.add("drag");
+          }),
+        );
+        ["dragleave", "drop"].forEach((evt) =>
+          dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("drag");
+          }),
+        );
+        dropzone.addEventListener("drop", (e) => {
+          const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if (file) loadFile(file);
+        });
+
+        searchInput.addEventListener("input", () => {
+          searchTerm = searchInput.value.trim().toLowerCase();
+          render();
+        });
+
+        levelToggle.querySelectorAll("label").forEach((label) => {
+          label.addEventListener("click", (e) => {
+            e.preventDefault();
+            const level = label.dataset.level;
+            if (activeLevels.has(level)) {
+              activeLevels.delete(level);
+              label.classList.remove("active");
+              label.querySelector("input").checked = false;
+            } else {
+              activeLevels.add(level);
+              label.classList.add("active");
+              label.querySelector("input").checked = true;
+            }
+            render();
+          });
+        });
+
+        function matchesSearch(entry) {
+          if (!searchTerm) return true;
+          if (entry.event.toLowerCase().includes(searchTerm)) return true;
+          return JSON.stringify(entry.fields).toLowerCase().includes(searchTerm);
+        }
+
+        function summarize(fields) {
+          const parts = Object.entries(fields).map(([k, v]) => `${k}=${formatValue(v)}`);
+          return parts.join("  ");
+        }
+
+        function formatValue(v) {
+          if (typeof v === "string") return v.length > 80 ? v.slice(0, 80) + "…" : v;
+          if (v === null || v === undefined) return String(v);
+          if (typeof v === "object") {
+            const s = JSON.stringify(v);
+            return s.length > 80 ? s.slice(0, 80) + "…" : s;
+          }
+          return String(v);
+        }
+
+        function formatTs(ts) {
+          if (!ts) return "";
+          const d = new Date(ts);
+          if (isNaN(d.getTime())) return ts;
+          return d.toLocaleString(undefined, {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+
+        function render() {
+          const visible = entries.filter(
+            (e) => e.malformed || (activeLevels.has(e.level) && matchesSearch(e)),
+          );
+
+          const counts = { info: 0, warn: 0, error: 0 };
+          for (const e of entries)
+            if (counts[e.level] !== undefined) counts[e.level] += 1;
+          statsEl.textContent = entries.length
+            ? `${visible.length} shown / ${entries.length} total — ${counts.info} info, ${counts.warn} warn, ${counts.error} error`
+            : "";
+
+          if (entries.length === 0) {
+            emptyEl.style.display = "";
+            tableEl.style.display = "none";
+            return;
+          }
+          emptyEl.style.display = "none";
+          tableEl.style.display = "";
+
+          tbody.innerHTML = "";
+          for (const entry of visible) {
+            const tr = document.createElement("tr");
+            tr.className = entry.malformed ? "" : `row-${entry.level}`;
+
+            if (entry.malformed) {
+              const td = document.createElement("td");
+              td.colSpan = 4;
+              td.className = "malformed";
+              td.textContent = `Unparseable line: ${entry.raw}`;
+              tr.appendChild(td);
+              tbody.appendChild(tr);
+              continue;
+            }
+
+            const tsTd = document.createElement("td");
+            tsTd.className = "ts";
+            tsTd.textContent = formatTs(entry.ts);
+
+            const badgeTd = document.createElement("td");
+            badgeTd.className = "badge";
+            const pill = document.createElement("span");
+            pill.className = `badge-pill ${entry.level}`;
+            pill.textContent = entry.level;
+            badgeTd.appendChild(pill);
+
+            const eventTd = document.createElement("td");
+            eventTd.className = "event";
+            eventTd.textContent = entry.event;
+
+            const summaryTd = document.createElement("td");
+            summaryTd.className = "summary";
+            summaryTd.textContent = summarize(entry.fields);
+
+            tr.append(tsTd, badgeTd, eventTd, summaryTd);
+            tr.addEventListener("click", () => toggleExpand(tr, entry));
+            tbody.appendChild(tr);
+          }
+        }
+
+        function toggleExpand(tr, entry) {
+          const next = tr.nextElementSibling;
+          if (next && next.classList.contains("detail-row")) {
+            next.remove();
+            tr.classList.remove("expanded");
+            return;
+          }
+          tr.classList.add("expanded");
+          const detailRow = document.createElement("tr");
+          detailRow.className = "detail-row";
+          const td = document.createElement("td");
+          td.colSpan = 4;
+          const pre = document.createElement("pre");
+          pre.className = "fields";
+          pre.textContent = JSON.stringify(
+            { ts: entry.ts, level: entry.level, event: entry.event, ...entry.fields },
+            null,
+            2,
+          );
+          td.appendChild(pre);
+          detailRow.appendChild(td);
+          tr.after(detailRow);
+        }
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -382,6 +382,26 @@ pnpm cli verify --from=dev --to=sit   # confirm the converted mapping still chec
 Then delete `data/mapping.json` and `data/asset-mapping.json` by hand once
 you're satisfied.
 
+## Viewing a run's logs
+
+Every command logs one JSON object per line (`{ ts, level, event, ...fields }`
+— see [`lib/logger.ts`](src/lib/logger.ts)) to stdout. To browse a run
+afterward instead of scrolling raw terminal output, capture it to a file
+and open [`tools/log-viewer.html`](tools/log-viewer.html) directly in a
+browser (double-click it — no server or build step needed):
+
+```bash
+pnpm cli migrate --from=dev --to=sit > run.log 2>&1
+# then open tools/log-viewer.html and choose run.log
+```
+
+It's a single self-contained HTML file — filters by level (info/warn/
+error) and free-text search across event names and field values, click a
+row to expand its full JSON. Everything happens in your browser; the log
+never leaves your machine. A non-JSON line (e.g. `pnpm`'s own `$ tsx ...`
+banner, or an `[ELIFECYCLE]` failure line if a command exited non-zero) is
+shown as-is rather than dropped or crashing the page.
+
 ## Testing
 
 ```bash
