@@ -31,6 +31,19 @@ export type DeletedDocument = {
   deletedSide: "lower" | "upper";
 };
 
+/**
+ * An asset mapping entry whose recorded upper_asset_id no longer exists
+ * in the upper environment's asset library — deleted directly there,
+ * outside this toolkit. Distinct from `assetCheck` (which only catches a
+ * broken *reference* inside a document's data): a migrated asset that's
+ * since been deleted, but that no document currently references, would
+ * otherwise have nothing to flag it at all — a dangling mapping row
+ * `backsync`'s asset step (see phase4-backsync.ts) would also never
+ * revisit, since it only walks the upper environment's CURRENT asset
+ * list, not this toolkit's own mapping file.
+ */
+export type DeletedAsset = { lowerAssetId: string; upperAssetId: string };
+
 export type Phase3Report = {
   passed: boolean;
   countCheck: { lowerCount: number; upperCount: number; matches: boolean };
@@ -48,6 +61,8 @@ export type Phase3Report = {
    * `spotCheck.mismatches`.
    */
   deletedDocuments: DeletedDocument[];
+  /** See DeletedAsset's doc comment. */
+  deletedAssets: DeletedAsset[];
 };
 
 /**
@@ -154,6 +169,24 @@ export async function runPhase3({
   const brokenLinks: Record<string, string[]> = {};
   const brokenAssets: Record<string, string[]> = {};
 
+  // ---- Deleted-asset check ----
+  // Every migrated asset should still exist in the upper environment's
+  // library, independent of whether any document currently references
+  // it — a document could have had that image swapped out or removed
+  // since the asset was migrated, which would otherwise leave a deleted
+  // asset with nothing to flag it (see DeletedAsset's doc comment).
+  const deletedAssets: DeletedAsset[] = [];
+  for (const [lowerAssetId, assetEntry] of Object.entries(assetMapping)) {
+    if (!knownUpperAssetIds.has(assetEntry.upper_asset_id)) {
+      deletedAssets.push({ lowerAssetId, upperAssetId: assetEntry.upper_asset_id });
+      log("warn", "phase3.asset_deleted", {
+        lowerAssetId,
+        upperAssetId: assetEntry.upper_asset_id,
+      });
+    }
+  }
+  log("info", "phase3.deleted_assets", { count: deletedAssets.length });
+
   for (const [lowerId, entry] of syncedEntries) {
     const upperDoc = await getDocumentById(
       pair.upper,
@@ -191,12 +224,14 @@ export async function runPhase3({
       mismatches.length === 0 &&
       Object.keys(brokenLinks).length === 0 &&
       Object.keys(brokenAssets).length === 0 &&
-      deletedDocuments.length === 0,
+      deletedDocuments.length === 0 &&
+      deletedAssets.length === 0,
     countCheck,
     spotCheck: { sampleSize: sample.length, mismatches },
     brokenLinkScan: { affectedDocuments: brokenLinks },
     assetCheck: { affectedDocuments: brokenAssets },
     deletedDocuments,
+    deletedAssets,
   };
 
   log(report.passed ? "info" : "error", "phase3.done", { passed: report.passed });

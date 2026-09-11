@@ -142,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 76 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 78 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -227,6 +227,17 @@ well-defined default action (recreate the document? forget the mapping
 entry?), so it's left for a human to decide, typically via `unlink` if
 the mapping entry should simply be forgotten, or by re-running `migrate`/
 `backsync` after manually recreating the missing document.
+
+`verify` also checks for a **deleted asset** the same way — but by
+walking the asset mapping file directly (`deletedAssets` in
+`Phase3Report`) rather than scanning document data, since a migrated
+asset that's since been deleted from the upper library but is no longer
+referenced by any document would leave nothing for the existing
+`assetCheck` (which only finds a broken reference _inside_ a document) to
+catch at all. `backsync`'s asset step doesn't independently detect this —
+it only walks the upper environment's _current_ asset list, so an entry
+whose asset is now gone simply isn't visited; `verify` is what surfaces
+it.
 
 **Asset back-sync.** `backsync` now migrates assets upper → lower as its
 first step (`runAssetBacksync` in
@@ -371,12 +382,6 @@ dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
   hand" — there is no `restore` command that takes a snapshot and
   actually undoes a bad publish. Build that runbook once the happy path is
   validated against real repositories.
-- **Asset deletions are still out of scope.** A mapping entry whose lower
-  or upper _document_ has been deleted is now caught (see "Document
-  deletion detection" below) — but a deleted _asset_ isn't: `verify`'s
-  asset check only looks for references to assets that were never
-  migrated (a broken link), not for an asset that was migrated and later
-  removed from the upper environment's library.
 - **`reconcile` only handles non-repeatable types.** If the upper
   environment already has pre-existing content for a _repeatable_ custom
   type (many possible documents), there's no automated way to guess which
@@ -471,7 +476,7 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 pnpm test
 ```
 
-76 tests across canonical hashing, the mapping store (including lock
+78 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
 4-quadrant conflict matrix, the rate limiter, retry/backoff behavior,
