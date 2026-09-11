@@ -222,6 +222,90 @@
         font-family: var(--mono);
         font-size: 12px;
       }
+      .view-toggle {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .view-toggle:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .view-toggle:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .view-toggle.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      #summary {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      #summary h2 {
+        font-size: 15px;
+        margin: 24px 0 8px;
+      }
+      #summary h2:first-child {
+        margin-top: 4px;
+      }
+      #summary .meta {
+        color: var(--text-dim);
+        font-size: 12px;
+        margin-bottom: 16px;
+      }
+      #summary .actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      #summary table {
+        margin-bottom: 8px;
+      }
+      #summary th,
+      #summary td {
+        text-align: left;
+        padding: 5px 8px;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      #summary th {
+        color: var(--text-dim);
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      #summary code {
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+      #summary .empty-note {
+        color: var(--text-dim);
+        font-style: italic;
+      }
+      #summary .next-step {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 14px;
+        margin-top: 8px;
+      }
+      #summary .next-step code {
+        display: block;
+        margin-top: 6px;
+        background: var(--panel);
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -247,6 +331,9 @@
           ><input type="checkbox" checked />error</label
         >
       </div>
+      <button class="view-toggle" id="viewToggle" type="button" disabled>
+        Generate summary
+      </button>
       <div id="stats"></div>
     </header>
 
@@ -263,6 +350,7 @@
       <table id="table" style="display: none">
         <tbody id="tbody"></tbody>
       </table>
+      <div id="summary" style="display: none"></div>
     </main>
 
     <script>
@@ -274,13 +362,17 @@
         let activeLevels = new Set(["info", "warn", "error"]);
         let searchTerm = "";
 
+        let view = "table"; // "table" | "summary"
+
         const dropzone = document.getElementById("dropzone");
         const fileInput = document.getElementById("fileInput");
         const searchInput = document.getElementById("search");
         const levelToggle = document.getElementById("levelToggle");
+        const viewToggle = document.getElementById("viewToggle");
         const statsEl = document.getElementById("stats");
         const emptyEl = document.getElementById("empty");
         const tableEl = document.getElementById("table");
+        const summaryEl = document.getElementById("summary");
         const tbody = document.getElementById("tbody");
 
         function parseLog(text) {
@@ -314,10 +406,19 @@
           const reader = new FileReader();
           reader.onload = () => {
             entries = parseLog(String(reader.result));
+            viewToggle.disabled = entries.length === 0;
             render();
           };
           reader.readAsText(file);
         }
+
+        viewToggle.addEventListener("click", () => {
+          view = view === "table" ? "summary" : "table";
+          viewToggle.textContent =
+            view === "summary" ? "Back to log" : "Generate summary";
+          viewToggle.classList.toggle("active", view === "summary");
+          render();
+        });
 
         fileInput.addEventListener("change", () => {
           if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
@@ -411,9 +512,18 @@
           if (entries.length === 0) {
             emptyEl.style.display = "";
             tableEl.style.display = "none";
+            summaryEl.style.display = "none";
             return;
           }
           emptyEl.style.display = "none";
+
+          if (view === "summary") {
+            tableEl.style.display = "none";
+            summaryEl.style.display = "";
+            renderSummary();
+            return;
+          }
+          summaryEl.style.display = "none";
           tableEl.style.display = "";
 
           tbody.innerHTML = "";
@@ -478,6 +588,325 @@
           td.appendChild(pre);
           detailRow.appendChild(td);
           tr.after(detailRow);
+        }
+
+        // ---- Summary view: aggregates the raw log lines into "what went
+        // into this run" — created/updated/failed documents, migrated
+        // assets, and the from/to pair — rather than a written artifact,
+        // since everything needed is already emitted as log events by the
+        // CLI (phase2.created/updated, phase1.asset_migrated,
+        // cli.migrate_had_failures). See the README's "Viewing a run's
+        // logs" section for the rationale.
+        const START_EVENTS = [
+          "phase0.start",
+          "phase1.start",
+          "phase2.start",
+          "phase3.start",
+          "phase4.start",
+          "cli.promote_hop_start",
+        ];
+
+        function buildSummary(allEntries) {
+          const parsed = allEntries.filter((e) => !e.malformed);
+          const startEvent = parsed.find(
+            (e) => START_EVENTS.includes(e.event) && e.fields.from && e.fields.to,
+          );
+          const isBacksync = parsed.some((e) => e.event.startsWith("phase4."));
+          const dryRunEvent = parsed.find((e) => typeof e.fields.dryRun === "boolean");
+
+          const created = parsed
+            .filter((e) => e.event === "phase2.created")
+            .map((e) => e.fields);
+          const updated = parsed
+            .filter((e) => e.event === "phase2.updated")
+            .map((e) => e.fields);
+
+          const failuresEvent = parsed.find(
+            (e) => e.event === "cli.migrate_had_failures",
+          );
+          const failed = failuresEvent ? failuresEvent.fields.failures || [] : [];
+
+          const assetsMigrated = parsed
+            .filter((e) => e.event === "phase1.asset_migrated")
+            .map((e) => e.fields);
+          const phase1Done = parsed.find((e) => e.event === "phase1.done");
+          const pass1Done = parsed.find((e) => e.event === "phase2.pass1_done");
+
+          const firstTs = parsed.length ? parsed[0].ts : "";
+          const lastTs = parsed.length ? parsed[parsed.length - 1].ts : "";
+
+          return {
+            from: startEvent ? startEvent.fields.from : null,
+            to: startEvent ? startEvent.fields.to : null,
+            isBacksync,
+            dryRun: dryRunEvent ? dryRunEvent.fields.dryRun : null,
+            startedAt: firstTs,
+            finishedAt: lastTs,
+            created,
+            updated,
+            failed,
+            documentsSeen: pass1Done ? pass1Done.fields.seen : null,
+            documentsUnchanged: pass1Done ? pass1Done.fields.unchanged : null,
+            assetsMigrated,
+            assetsSkipped: phase1Done ? phase1Done.fields.skipped : null,
+          };
+        }
+
+        function esc(s) {
+          const div = document.createElement("div");
+          div.textContent = s === null || s === undefined ? "" : String(s);
+          return div.innerHTML;
+        }
+
+        function docTable(rows) {
+          if (rows.length === 0) return '<p class="empty-note">None.</p>';
+          const body = rows
+            .map(
+              (r) => `<tr>
+                <td>${esc(r.title || "—")}</td>
+                <td>${esc(r.docType || "—")}</td>
+                <td>${esc(r.uid || "—")}</td>
+                <td>${esc(r.lang || "—")}</td>
+                <td><code>${esc(r.lowerId)}</code></td>
+                <td><code>${esc(r.upperId || "—")}</code></td>
+              </tr>`,
+            )
+            .join("");
+          return `<table><thead><tr>
+              <th>Title</th><th>Type</th><th>UID</th><th>Locale</th><th>Lower id</th><th>Upper id</th>
+            </tr></thead><tbody>${body}</tbody></table>`;
+        }
+
+        function failedTable(rows) {
+          if (rows.length === 0) return '<p class="empty-note">None.</p>';
+          const body = rows
+            .map(
+              (r) => `<tr>
+                <td>${esc(r.docType || "—")}</td>
+                <td>${esc(r.operation || "—")}</td>
+                <td><code>${esc(r.lowerId)}</code></td>
+                <td>${esc(r.status || "—")}</td>
+                <td>${esc(r.message || "—")}</td>
+              </tr>`,
+            )
+            .join("");
+          return `<table><thead><tr>
+              <th>Type</th><th>Operation</th><th>Lower id</th><th>Status</th><th>Message</th>
+            </tr></thead><tbody>${body}</tbody></table>`;
+        }
+
+        function assetTable(rows) {
+          if (rows.length === 0) return '<p class="empty-note">None.</p>';
+          const body = rows
+            .map(
+              (r) => `<tr>
+                <td>${esc(r.filename || "—")}</td>
+                <td><code>${esc(r.lowerAssetId)}</code></td>
+                <td><code>${esc(r.upperAssetId || "—")}</code></td>
+              </tr>`,
+            )
+            .join("");
+          return `<table><thead><tr>
+              <th>Filename</th><th>Lower asset id</th><th>Upper asset id</th>
+            </tr></thead><tbody>${body}</tbody></table>`;
+        }
+
+        function renderSummaryHTML(s) {
+          const direction = s.isBacksync
+            ? "backward (upper → lower)"
+            : "forward (lower → upper)";
+          const pairLabel =
+            s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
+
+          const nextStep =
+            !s.isBacksync &&
+            (s.created.length > 0 || s.updated.length > 0) &&
+            s.dryRun !== true
+              ? `<div class="next-step">
+                  Next: publish the Migration Release in <strong>${esc(s.to)}</strong>'s dashboard, then run:
+                  <code>pnpm cli confirm --from=${esc(s.from)} --to=${esc(s.to)}</code>
+                </div>`
+              : s.isBacksync
+                ? `<div class="next-step">Back-sync writes directly to <strong>${esc(s.to)}</strong>'s Migration Release — this toolkit does not yet track a separate publish/confirm step for that direction.</div>`
+                : "";
+
+          return `
+            <h2>Run summary: ${esc(pairLabel)}</h2>
+            <div class="meta">
+              Started: ${esc(formatTs(s.startedAt) || "—")} &nbsp;·&nbsp;
+              Finished: ${esc(formatTs(s.finishedAt) || "—")} &nbsp;·&nbsp;
+              Direction: ${esc(direction)} &nbsp;·&nbsp;
+              Mode: ${s.dryRun === true ? "dry run (nothing written)" : s.dryRun === false ? "live" : "unknown"}
+            </div>
+            <div class="actions">
+              <button class="view-toggle" id="copyMd" type="button">Copy as Markdown</button>
+              <button class="view-toggle" id="downloadMd" type="button">Download .md</button>
+            </div>
+            <table><thead><tr><th>Metric</th><th>Count</th></tr></thead><tbody>
+              <tr><td>Documents seen</td><td>${esc(s.documentsSeen ?? "—")}</td></tr>
+              <tr><td>Created</td><td>${esc(s.created.length)}</td></tr>
+              <tr><td>Updated</td><td>${esc(s.updated.length)}</td></tr>
+              <tr><td>Unchanged (skipped)</td><td>${esc(s.documentsUnchanged ?? "—")}</td></tr>
+              <tr><td>Failed</td><td>${esc(s.failed.length)}</td></tr>
+              <tr><td>Assets migrated</td><td>${esc(s.assetsMigrated.length)}</td></tr>
+              <tr><td>Assets skipped (already up to date)</td><td>${esc(s.assetsSkipped ?? "—")}</td></tr>
+            </tbody></table>
+
+            <h2>Documents created</h2>
+            ${docTable(s.created)}
+
+            <h2>Documents updated</h2>
+            ${docTable(s.updated)}
+
+            <h2>Documents failed</h2>
+            ${failedTable(s.failed)}
+
+            <h2>Assets migrated</h2>
+            ${assetTable(s.assetsMigrated)}
+
+            ${nextStep}
+          `;
+        }
+
+        function mdRow(cells) {
+          return `| ${cells.map((c) => String(c ?? "—").replace(/\|/g, "\\|")).join(" | ")} |`;
+        }
+
+        function renderSummaryMarkdown(s) {
+          const direction = s.isBacksync
+            ? "backward (upper → lower)"
+            : "forward (lower → upper)";
+          const pairLabel =
+            s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
+          const lines = [];
+          lines.push(`# Migration run: ${pairLabel}`);
+          lines.push(`**Started:** ${formatTs(s.startedAt) || "—"}`);
+          lines.push(`**Finished:** ${formatTs(s.finishedAt) || "—"}`);
+          lines.push(`**Direction:** ${direction}`);
+          lines.push(
+            `**Mode:** ${s.dryRun === true ? "dry run (nothing written)" : s.dryRun === false ? "live" : "unknown"}`,
+          );
+          lines.push("");
+          lines.push("## Summary");
+          lines.push(mdRow(["Metric", "Count"]));
+          lines.push(mdRow(["---", "---"]));
+          lines.push(mdRow(["Documents seen", s.documentsSeen ?? "—"]));
+          lines.push(mdRow(["Created", s.created.length]));
+          lines.push(mdRow(["Updated", s.updated.length]));
+          lines.push(mdRow(["Unchanged (skipped)", s.documentsUnchanged ?? "—"]));
+          lines.push(mdRow(["Failed", s.failed.length]));
+          lines.push(mdRow(["Assets migrated", s.assetsMigrated.length]));
+          lines.push(
+            mdRow(["Assets skipped (already up to date)", s.assetsSkipped ?? "—"]),
+          );
+          lines.push("");
+
+          function section(title, rows, header, mapRow) {
+            lines.push(`## ${title}`);
+            if (rows.length === 0) {
+              lines.push("None.");
+            } else {
+              lines.push(mdRow(header));
+              lines.push(mdRow(header.map(() => "---")));
+              for (const r of rows) lines.push(mdRow(mapRow(r)));
+            }
+            lines.push("");
+          }
+
+          section(
+            "Documents created",
+            s.created,
+            ["Title", "Type", "UID", "Locale", "Lower id", "Upper id"],
+            (r) => [r.title, r.docType, r.uid, r.lang, r.lowerId, r.upperId],
+          );
+          section(
+            "Documents updated",
+            s.updated,
+            ["Title", "Type", "UID", "Locale", "Lower id", "Upper id"],
+            (r) => [r.title, r.docType, r.uid, r.lang, r.lowerId, r.upperId],
+          );
+          section(
+            "Documents failed",
+            s.failed,
+            ["Type", "Operation", "Lower id", "Status", "Message"],
+            (r) => [r.docType, r.operation, r.lowerId, r.status, r.message],
+          );
+          section(
+            "Assets migrated",
+            s.assetsMigrated,
+            ["Filename", "Lower asset id", "Upper asset id"],
+            (r) => [r.filename, r.lowerAssetId, r.upperAssetId],
+          );
+
+          if (
+            !s.isBacksync &&
+            (s.created.length > 0 || s.updated.length > 0) &&
+            s.dryRun !== true
+          ) {
+            lines.push("## Next step");
+            lines.push(
+              `Publish the Migration Release in **${s.to}**'s dashboard, then run:`,
+            );
+            lines.push("```");
+            lines.push(`pnpm cli confirm --from=${s.from} --to=${s.to}`);
+            lines.push("```");
+          } else if (s.isBacksync) {
+            lines.push("## Next step");
+            lines.push(
+              `Back-sync writes directly to **${s.to}**'s Migration Release — this toolkit does not yet track a separate publish/confirm step for that direction.`,
+            );
+          }
+
+          return lines.join("\n");
+        }
+
+        function copyText(text) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+          } else {
+            fallbackCopy(text);
+          }
+        }
+
+        function fallbackCopy(text) {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+          } catch {
+            /* clipboard unavailable — user can still select the downloaded file's text manually */
+          }
+          document.body.removeChild(ta);
+        }
+
+        function renderSummary() {
+          const s = buildSummary(entries);
+          summaryEl.innerHTML = renderSummaryHTML(s);
+
+          document.getElementById("copyMd").addEventListener("click", (e) => {
+            copyText(renderSummaryMarkdown(s));
+            const btn = e.currentTarget;
+            const original = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = original), 1200);
+          });
+
+          document.getElementById("downloadMd").addEventListener("click", () => {
+            const blob = new Blob([renderSummaryMarkdown(s)], { type: "text/markdown" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const label = s.from && s.to ? `${s.from}-${s.to}` : "run";
+            a.href = url;
+            a.download = `migration-summary-${label}.md`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          });
         }
 
         render();

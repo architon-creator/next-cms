@@ -105,6 +105,7 @@ export async function runPhase1({
       log("info", "phase1.asset_migrated", {
         lowerAssetId: asset.id,
         upperAssetId: uploaded.id,
+        filename: asset.filename,
       });
     }
     return mapping;

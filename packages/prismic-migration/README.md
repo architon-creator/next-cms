@@ -402,6 +402,24 @@ never leaves your machine. A non-JSON line (e.g. `pnpm`'s own `$ tsx ...`
 banner, or an `[ELIFECYCLE]` failure line if a command exited non-zero) is
 shown as-is rather than dropped or crashing the page.
 
+### "Generate summary" — what went into this release, from where to where
+
+Click **Generate summary** (top right, enabled once a log is loaded) to
+turn a captured `migrate` (or `promote`) run's raw log lines into a
+release-style report: which documents were created/updated/failed (with
+title, type, uid, locale, and both ids), which assets were migrated, the
+`--from`/`--to` pair, and counts — everything needed to answer "what went
+from dev to sit in this release" without re-deriving it from scattered log
+lines by eye. It's built entirely by aggregating events already in the log
+(`phase2.created`/`phase2.updated`/`cli.migrate_had_failures`/
+`phase1.asset_migrated`) — no new files are written by the CLI itself, so
+there's nothing extra to clean up in `reports/`. **Copy as Markdown** and
+**Download .md** turn the same summary into a paste-able report (e.g. for
+a PR description or a change-log entry). A captured `backsync` run is
+detected too (direction shown as backward), though its synced documents
+aren't currently itemized the same way `migrate`'s are, since `backsync`
+doesn't log a per-document title the way `phase2.created`/`.updated` do.
+
 ## Testing
 
 ```bash

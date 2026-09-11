@@ -232,7 +232,14 @@ export async function runPhase2({
             status: "pending",
           };
           updated += 1;
-          log("info", "phase2.updated", { lowerId: doc.id, upperId: existing.upper_id });
+          log("info", "phase2.updated", {
+            lowerId: doc.id,
+            upperId: existing.upper_id,
+            docType: doc.type,
+            uid: doc.uid,
+            lang: doc.lang,
+            title,
+          });
         } else {
           const created_ = await createMigrationDocument(
             pair.upper,
@@ -258,7 +265,14 @@ export async function runPhase2({
             status: "pending",
           };
           created += 1;
-          log("info", "phase2.created", { lowerId: doc.id, upperId: created_.id });
+          log("info", "phase2.created", {
+            lowerId: doc.id,
+            upperId: created_.id,
+            docType: doc.type,
+            uid: doc.uid,
+            lang: doc.lang,
+            title,
+          });
         }
       } catch (err) {
         // Recorded rather than thrown — see the doc comment above
