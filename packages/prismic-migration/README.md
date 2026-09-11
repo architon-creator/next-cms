@@ -142,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 78 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 83 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -432,6 +432,38 @@ pnpm cli verify --from=dev --to=sit   # confirm the converted mapping still chec
 Then delete `data/mapping.json` and `data/asset-mapping.json` by hand once
 you're satisfied.
 
+### If your asset mapping predates `upper_hash`/`lower_asset_url`
+
+If you converted your mapping with an older version of
+`migrate-legacy-mapping` — or otherwise have asset mapping entries from
+before this session's asset-back-sync work — they won't have
+`upper_hash` or `lower_asset_url` yet (see
+[`src/types.ts`](src/types.ts)). **Check before running `backsync` for
+the first time:**
+
+```bash
+cat data/dev-sit-asset-mapping.json   # look for "upper_hash" on each entry
+```
+
+Missing `upper_hash` is the important one: `backsync`'s asset step treats
+a missing `upper_hash` as "never migrated" and re-uploads a **duplicate**
+copy of every affected asset into the lower environment. If it's absent,
+backfill it first:
+
+```bash
+pnpm backfill-asset-mapping --from=dev --to=sit
+```
+
+Safe to run any time — it only ever fills in a field that's genuinely
+missing, never overwrites one that's already set. It also backfills
+`lower_asset_url` where it can (looked up from the lower environment's
+current asset list), closing the same "backfill an added field
+retroactively" gap `upper_asset_url` itself needed early on (see
+`phase1.backfill_asset_not_found` in
+[`phases/phase1-assets.ts`](src/phases/phase1-assets.ts)) — an entry
+whose lower asset has since been deleted can't get a url backfilled
+either way; `verify` surfaces that case under `deletedAssets`.
+
 ## Viewing a run's logs
 
 Every command logs one JSON object per line (`{ ts, level, event, ...fields }`
@@ -476,7 +508,7 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 pnpm test
 ```
 
-78 tests across canonical hashing, the mapping store (including lock
+83 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
 4-quadrant conflict matrix, the rate limiter, retry/backoff behavior,

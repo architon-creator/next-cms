@@ -10,6 +10,7 @@
   "scripts": {
     "cli": "tsx src/cli.ts",
     "migrate-legacy-mapping": "tsx src/tools/migrate-legacy-mapping.ts",
+    "backfill-asset-mapping": "tsx src/tools/backfill-asset-mapping.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
