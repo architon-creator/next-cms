@@ -9,6 +9,7 @@
   },
   "scripts": {
     "cli": "tsx src/cli.ts",
+    "migrate-legacy-mapping": "tsx src/tools/migrate-legacy-mapping.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
