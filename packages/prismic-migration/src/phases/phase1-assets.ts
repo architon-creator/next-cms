@@ -14,8 +14,13 @@ export type Phase1Options = {
   fetchImpl?: typeof fetch;
 };
 
-/** Hash of the asset's own metadata — the closest proxy for "did this asset change" without re-downloading every file on every run. */
-function assetContentHash(filename: string, size: number): string {
+/**
+ * Hash of the asset's own metadata — the closest proxy for "did this
+ * asset change" without re-downloading every file on every run. Exported
+ * for reuse by phase4-backsync.ts's asset back-sync step, which needs the
+ * exact same hash to compare against `upper_hash`.
+ */
+export function assetContentHash(filename: string, size: number): string {
   return canonicalHash({ filename, size });
 }
 
@@ -98,7 +103,12 @@ export async function runPhase1({
       mapping[asset.id] = {
         upper_asset_id: uploaded.id,
         upper_asset_url: uploaded.url,
+        lower_asset_url: asset.url,
         lower_hash: contentHash,
+        // A migrated asset is a byte-for-byte copy, so its upper-side
+        // metadata hash is the same as the lower-side one right after
+        // upload — see the field's doc comment in types.ts.
+        upper_hash: contentHash,
         migrated_at: new Date().toISOString(),
       };
       migrated += 1;

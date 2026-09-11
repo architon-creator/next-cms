@@ -67,7 +67,7 @@ Every command below is pairwise: it takes mandatory `--from=<env> --to=<env>`
 | `retitle`                     | forward   | —          | One-time bulk fix for documents created with the raw lower-environment id as their title (see below) — only touches the upper document when the lower document is unchanged since the original migration                                                                   |
 | `confirm`                     | forward   | Phase 2    | Marks documents `synced` once they're actually live at the upper environment's master ref (closes the "how do we know the Release was published" gap — see below)                                                                                                          |
 | `verify`                      | either    | Phase 3    | Read-only: document count match, spot-check re-hash, broken-link scan, asset check. Exits non-zero on any failure.                                                                                                                                                         |
-| `backsync`                    | backward  | Phase 4    | Ongoing upper to lower sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict is found.                                                                                                                                            |
+| `backsync`                    | backward  | Phase 4    | Migrates assets upper to lower first, then ongoing document sync, gated by the full 4-quadrant conflict matrix (see below). Exits non-zero if any conflict or deleted document is found.                                                                                   |
 
 Every write command also accepts `--dry-run` and only logs the planned
 diff. Run these from inside this package's own directory
@@ -142,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 73 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 76 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -227,6 +227,36 @@ well-defined default action (recreate the document? forget the mapping
 entry?), so it's left for a human to decide, typically via `unlink` if
 the mapping entry should simply be forgotten, or by re-running `migrate`/
 `backsync` after manually recreating the missing document.
+
+**Asset back-sync.** `backsync` now migrates assets upper → lower as its
+first step (`runAssetBacksync` in
+[`phases/phase4-backsync.ts`](src/phases/phase4-backsync.ts)), mirroring
+`assets`' forward logic but reversed — before this, an asset uploaded
+directly in the upper environment (or changed there) had no path down to
+the lower environment at all, and a back-synced document referencing it
+would end up with a broken or wrong-environment asset reference. This
+needed two schema additions to `AssetMappingEntry` (see
+[`src/types.ts`](src/types.ts)):
+
+- `upper_hash`, symmetric to the existing `lower_hash` — idempotency for
+  an upper-originated or upper-changed asset is checked against this,
+  the same way forward idempotency is checked against `lower_hash`.
+- `lower_asset_url` (optional — entries created before this field existed
+  don't have it), the lower environment's own CDN URL for the asset.
+  Without it, rewriting an Image field's `url` during back-sync would
+  have used `upper_asset_url` by mistake, leaving a document that now
+  lives in the lower environment still hot-linking to the upper
+  environment's CDN.
+
+One mapping file continues to serve both directions per pair, exactly
+like the document mapping — an asset originally migrated forward and one
+pulled down by `backsync` are indistinguishable rows in the same file,
+keyed by whichever side eventually held the lower-environment copy.
+Same accepted trade-off as the forward direction on a changed asset:
+Prismic assets aren't updated in place, so a content change re-uploads a
+fresh copy and inserts a new mapping row, leaving the old one an orphaned,
+un-cleaned-up entry — this codebase doesn't clean up orphaned assets in
+either direction yet.
 
 **Retry on 429 and transient gateway errors.** Confirmed against a real
 run: Prismic's rate limits aren't limited to the Migration API's
@@ -336,11 +366,6 @@ dimensions, alt, copyright, url, id, edit }`, no `link_type` at all)
 "Media", id }`, the only shape originally assumed here). Both are now
   handled — Image fields get both `id` and `url` rewritten, since `id`
   alone would leave the document hot-linking to dev's CDN forever.
-- **Asset back-sync isn't implemented.** Phase 1 only migrates assets
-  lower → upper. If an editor uploads a new asset directly in the upper
-  environment and it later needs to flow back down via `backsync`,
-  there's no lower-ward asset mapping for `rewriteRefs` to use yet — see
-  the note in [`phases/phase4-backsync.ts`](src/phases/phase4-backsync.ts).
 - **Rollback is not implemented.** `preflight`'s snapshots are a restore
   point in the sense of "evidence to diff against and replay from by
   hand" — there is no `restore` command that takes a snapshot and
@@ -446,7 +471,7 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 pnpm test
 ```
 
-73 tests across canonical hashing, the mapping store (including lock
+76 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
 4-quadrant conflict matrix, the rate limiter, retry/backoff behavior,

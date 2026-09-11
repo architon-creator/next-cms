@@ -62,6 +62,14 @@ export function convertLegacyAssetMapping(legacy: LegacyAssetMapping): AssetMapp
       upper_asset_id: entry.sit_asset_id,
       upper_asset_url: entry.sit_url ?? "",
       lower_hash: entry.dev_hash,
+      // Every legacy entry was created by a forward (dev -> sit) asset
+      // migration, back when `upper_hash` didn't exist yet — a migrated
+      // asset is a byte-for-byte copy, so the upper side's metadata hash
+      // was identical to dev_hash at that point (see the field's doc
+      // comment in types.ts). If the sit asset has changed independently
+      // since, `backsync`'s asset step will correctly detect that on its
+      // first run against this converted entry.
+      upper_hash: entry.dev_hash,
       migrated_at: entry.migrated_at,
     };
   }

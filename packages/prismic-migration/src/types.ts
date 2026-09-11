@@ -58,12 +58,40 @@ export type AssetMappingEntry = {
    * environment's own uploaded copy. See lib/rewrite-refs.ts.
    */
   upper_asset_url: string;
-  /** Hash of the asset's own metadata (filename + size) — see phase1-assets.ts. */
+  /**
+   * The lower environment's own CDN URL for the asset — needed so
+   * `backsync`'s asset step can rewrite an Image field's `url` (not just
+   * `id`) when moving a document upper -> lower; using `upper_asset_url`
+   * there would leave the now-lower-environment document hot-linking to
+   * the upper environment's CDN instead. Optional because entries
+   * created before this field existed don't have it — `rewriteRefs`
+   * simply leaves `url` untouched when it's missing, which is the same
+   * limitation `upper_asset_url` itself had before ITS own backfill
+   * routine was added (see phase1-assets.ts) — a symmetric backfill
+   * hasn't been built for this side yet.
+   */
+  lower_asset_url?: string;
+  /**
+   * Hash of the asset's own metadata (filename + size) — see
+   * phase1-assets.ts. Always set equal to `upper_hash` at the moment an
+   * entry is created (a migrated asset is a byte-for-byte copy, so its
+   * filename/size are identical on both sides right after the copy);
+   * they only diverge once one side's asset changes independently and
+   * hasn't been re-synced yet — which is exactly what a re-sync in
+   * either direction checks for, symmetric to MappingEntry's
+   * lower_hash/upper_hash for documents.
+   */
   lower_hash: string;
+  /** Same idea as `lower_hash`, but for the upper environment's copy — lets `backsync`'s asset step detect an upper-originated or upper-changed asset without assuming the lower side is always the source of truth. */
+  upper_hash: string;
   migrated_at: string;
 };
 
-/** Keyed by the lower environment's asset id. */
+/**
+ * Keyed by the lower environment's asset id — whichever side an entry was
+ * originally created from (a `assets` forward migration, or a `backsync`
+ * asset pulled down because it only existed in the upper environment).
+ */
 export type AssetMapping = Record<string, AssetMappingEntry>;
 
 /** Minimal shape of a Prismic document as returned by the REST v2 API. */

@@ -9,10 +9,117 @@ import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
 import {
   getDocumentById,
   getMasterRef,
+  listAssets,
   updateMigrationDocument,
+  uploadAsset,
 } from "../lib/prismic-http.js";
+import { assetContentHash } from "./phase1-assets.js";
 import { rewriteRefs } from "../lib/rewrite-refs.js";
 import type { AssetMapping, DocumentMapping, MappingEntry } from "../types.js";
+
+export type AssetBacksyncResult = { migrated: number; skipped: number };
+
+/**
+ * The asset half of back-sync — mirrors phase1-assets.ts's forward
+ * migration, but upper -> lower: enumerates the upper environment's asset
+ * library and, for any asset not yet recorded (or whose content has
+ * changed since it was), downloads it and uploads a copy into the lower
+ * environment's library. Closes the gap phase4's own doc comment used to
+ * name: "an asset uploaded fresh in the upper environment during
+ * back-sync would need its own lower-ward asset mapping, which this
+ * toolkit does not implement."
+ *
+ * Idempotency works the same way as phase1-assets.ts, just checked
+ * against `upper_hash` instead of `lower_hash` — the two are only ever
+ * set to different values once one side's asset changes independently of
+ * the other (see the fields' doc comments in types.ts). Looked up via a
+ * upper_asset_id -> entry index rather than a direct key lookup, since
+ * this function iterates upper assets (whose id IS known up front) but
+ * the mapping is keyed by the LOWER asset id (not known until a fresh
+ * upload completes).
+ *
+ * On a changed upper asset, this uploads a fresh copy to the lower
+ * environment and inserts a new mapping entry keyed by that new lower
+ * asset id — it does not delete the old, now-stale entry, mirroring
+ * phase1-assets.ts's own accepted trade-off on the forward side (an
+ * orphaned previously-uploaded asset is left behind rather than cleaned
+ * up automatically).
+ *
+ * Runs BEFORE `runPhase4`'s document sync builds its `reverseAssetIds`
+ * map, so a document referencing a brand-new upper asset can be rewritten
+ * correctly in the same run, without requiring two separate `backsync`
+ * invocations.
+ */
+export async function runAssetBacksync(
+  config: Config,
+  pair: ResolvedPair,
+  dryRun: boolean,
+  fetchImpl: typeof fetch,
+): Promise<AssetBacksyncResult> {
+  const assetMappingStore = new MappingStore<AssetMapping>(
+    assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
+  );
+  const upperAssets = await listAssets(pair.upper, fetchImpl);
+  log("info", "phase4.upper_assets_enumerated", { count: upperAssets.length });
+
+  let migrated = 0;
+  let skipped = 0;
+
+  await assetMappingStore.mutate(async (mapping) => {
+    const byUpperAssetId = new Map(
+      Object.entries(mapping).map(([lowerId, entry]) => [entry.upper_asset_id, lowerId]),
+    );
+
+    for (const asset of upperAssets) {
+      const contentHash = assetContentHash(asset.filename, asset.size);
+      const existingLowerId = byUpperAssetId.get(asset.id);
+      const existing = existingLowerId ? mapping[existingLowerId] : undefined;
+
+      if (existing && existing.upper_hash === contentHash) {
+        skipped += 1;
+        continue;
+      }
+
+      if (dryRun) {
+        log("info", "phase4.would_migrate_asset", {
+          upperAssetId: asset.id,
+          filename: asset.filename,
+        });
+        continue;
+      }
+
+      const downloaded = await fetchImpl(asset.url);
+      if (!downloaded.ok) {
+        log("error", "phase4.asset_download_failed", {
+          upperAssetId: asset.id,
+          status: downloaded.status,
+        });
+        continue;
+      }
+      const blob = await downloaded.blob();
+      const uploaded = await uploadAsset(pair.lower, blob, asset.filename, fetchImpl);
+
+      mapping[uploaded.id] = {
+        upper_asset_id: asset.id,
+        upper_asset_url: asset.url,
+        lower_asset_url: uploaded.url,
+        lower_hash: contentHash,
+        upper_hash: contentHash,
+        migrated_at: new Date().toISOString(),
+      };
+      migrated += 1;
+      log("info", "phase4.asset_migrated", {
+        upperAssetId: asset.id,
+        lowerAssetId: uploaded.id,
+        filename: asset.filename,
+      });
+    }
+    return mapping;
+  });
+
+  log("info", "phase4.assets_done", { dryRun, migrated, skipped });
+  return { migrated, skipped };
+}
 
 export type SyncVerdict =
   "noop" | "sync-upper-to-lower" | "pending-lower-to-upper" | "conflict";
@@ -81,6 +188,8 @@ export type Phase4Result = {
     docType: string;
     deletedSide: "lower" | "upper";
   }[];
+  assetsMigrated: number;
+  assetsSkipped: number;
 };
 
 /**
@@ -90,10 +199,10 @@ export type Phase4Result = {
  * `pending` or `conflict` entry is left for a human (or the next
  * Phase 2/migrate run) to resolve, never silently reprocessed here.
  *
- * Note: this back-syncs document content, not assets. Phase 1's asset
- * pipeline is lower -> upper only; an asset uploaded fresh in the upper
- * environment during back-sync would need its own lower-ward asset
- * mapping, which this toolkit does not implement.
+ * Runs the asset half of back-sync first (see runAssetBacksync above),
+ * so a document containing a reference to a brand-new upper asset is
+ * rewritten correctly in the same invocation, not left broken until a
+ * second run.
  */
 export async function runPhase4({
   config,
@@ -103,22 +212,26 @@ export async function runPhase4({
 }: Phase4Options): Promise<Phase4Result> {
   log("info", "phase4.start", { dryRun, from: pair.upperName, to: pair.lowerName });
 
+  const assetResult = await runAssetBacksync(config, pair, dryRun, fetchImpl);
+
   const mappingStore = new MappingStore<DocumentMapping>(
     mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
   const assetMappingStore = new MappingStore<AssetMapping>(
     assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
   );
+  // Loaded AFTER runAssetBacksync so a newly-synced-down asset (or one
+  // whose upper_asset_url just got backfilled) is available for
+  // rewriteRefs below, in this same run.
   const assetMapping = await assetMappingStore.load();
-  // Reverse direction for upper -> lower asset ids (see the caveat above —
-  // this will be empty for anything only ever migrated lower -> upper).
-  // No `url` here — there's no recorded "lower CDN url" to restore to,
-  // unlike the forward direction's upper_asset_url; only `id` gets
-  // rewritten going backward.
+  // `url` here is the LOWER environment's own CDN url (see
+  // AssetMappingEntry.lower_asset_url's doc comment) — the document
+  // being rewritten is moving TO the lower environment, so an Image
+  // field's `url` must point at lower's own copy, not upper's.
   const reverseAssetIds = Object.fromEntries(
     Object.entries(assetMapping).map(([lowerId, e]) => [
       e.upper_asset_id,
-      { id: lowerId },
+      { id: lowerId, url: e.lower_asset_url },
     ]),
   );
 
@@ -130,6 +243,8 @@ export async function runPhase4({
     pending: 0,
     conflicts: [],
     deletedOnOneSide: [],
+    assetsMigrated: assetResult.migrated,
+    assetsSkipped: assetResult.skipped,
   };
 
   await mappingStore.mutate(async (mapping) => {

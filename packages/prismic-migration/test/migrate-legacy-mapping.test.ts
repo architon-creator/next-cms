@@ -113,6 +113,7 @@ describe("convertLegacyAssetMapping", () => {
         upper_asset_id: "sit-asset-1",
         upper_asset_url: "https://sit.cdn/example.png",
         lower_hash: "asset-hash-v1",
+        upper_hash: "asset-hash-v1",
         migrated_at: "2026-01-01T00:00:00.000Z",
       },
     });
