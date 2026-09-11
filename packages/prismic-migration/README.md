@@ -59,6 +59,7 @@ Every command below is pairwise: it takes mandatory `--from=<env> --to=<env>`
 | `preflight`                   | forward   | Phase 0    | Diffs lower vs. upper custom types, pushes missing/differing ones to upper, snapshots both environments, initializes the pair's mapping files                                                                                                                              |
 | `assets`                      | forward   | Phase 1    | Migrates the lower environment's asset library up, idempotent on re-run                                                                                                                                                                                                    |
 | `migrate`                     | forward   | Phase 2    | Two-pass document migration lower to upper (assets first, then document links once every doc has an upper id). Processes every document it can even if some fail — see "Known gaps."                                                                                       |
+| `promote`                     | forward   | —          | Convenience wrapper for ONE hop of `preflight`+`assets`+`migrate` toward `--to`, which may be several hops away. Prints the exact next command to run once you've published that hop's Migration Release. See below.                                                       |
 | `reconcile`                   | forward   | —          | Links a lower document to a pre-existing upper document of the same non-repeatable type + locale, when `migrate` fails with "already exist ... non-repeatable" (see below)                                                                                                 |
 | `link <lowerId> <upperId>`    | —         | —          | Manual fallback when `reconcile` reports a type as `notFound` — the pre-existing upper document is an unpublished draft, invisible to the content API. You supply the upper id (from its dashboard URL).                                                                   |
 | `unlink <lowerId>`            | —         | —          | Undoes a `link`/`reconcile` — forgets the mapping entry, doesn't touch the upper environment. Use when the linked upper document should be discarded instead of kept: delete it in the dashboard, `unlink` here, then `migrate` again for a fresh copy.                    |
@@ -100,6 +101,38 @@ output, for CI. Data paths — `.env`, `./data`, `./snapshots`, `./.cache`,
 from, which is the reason to run it from inside this directory rather
 than the repo root.)
 
+### `promote` — one command instead of three, per hop
+
+`promote` collapses `preflight` + `assets` + `migrate` into a single call
+for one hop, and tells you exactly what to run next — including toward a
+destination several hops away:
+
+```bash
+pnpm cli promote --from=dev --to=prod
+```
+
+`--to=prod` here does NOT mean this one command reaches prod. It can't:
+`migrate` only ever reads a lower environment's **published** content
+(the master ref), so the next hop can't safely run until a human publishes
+the Migration Release this hop just created — running every hop
+unattended would mean either skipping unpublished content or silently
+auto-publishing, and this toolkit never auto-publishes (see "Design
+decisions" below). Instead, `promote` runs the first hop only (`dev` ->
+`sit`) and prints something like:
+
+```
+Hop dev -> sit complete.
+Next: publish the Migration Release in sit's dashboard, then run:
+  pnpm cli confirm --from=dev --to=sit
+Then continue up the chain with:
+  pnpm cli promote --from=sit --to=prod
+```
+
+Publish, run `confirm`, then run the printed `promote` command again to do
+the next hop — repeating until the final hop reports there's nothing more
+to promote. `--dry-run` works the same as any other write command (logs
+the planned diff for that one hop, writes nothing).
+
 ## Setup
 
 Inside this repo, a root-level `pnpm install` already covers this package —
@@ -109,7 +142,7 @@ folder elsewhere):
 ```bash
 cp .env.example .env   # fill in the environments you actually use — see .env.example
 pnpm install
-pnpm test               # 61 tests, all pure logic — no live Prismic credentials needed
+pnpm test               # 68 tests, all pure logic — no live Prismic credentials needed
 ```
 
 `.env.example` documents `ENVIRONMENT_CHAIN` (default `dev,sit,uat,prod`)
@@ -355,12 +388,12 @@ you're satisfied.
 pnpm test
 ```
 
-61 tests across canonical hashing, the mapping store (including lock
+68 tests across canonical hashing, the mapping store (including lock
 contention), the link/asset rewriter (both real field shapes, and the
 denormalization-stripping comparator), the custom-type diff, the
 4-quadrant conflict matrix, the rate limiter, retry/backoff behavior, a
 full `runPhase2` run against a mocked fetch, the Migration/Asset API
-request shapes, environment-chain resolution (`resolvePair`/
+request shapes, environment-chain resolution (`resolvePair`/`resolveNextHop`/
 `requireDirection` — adjacency, direction enforcement, not-configured
 handling), pair-scoped mapping file naming, and the legacy-mapping
 conversion script — all pure logic or mocked `fetch`, no live call, so no

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { config as loadDotenv } from "dotenv";
 import { loadConfig } from "./config.js";
-import { resolvePair, requireDirection } from "./lib/environments.js";
+import { resolveNextHop, resolvePair, requireDirection } from "./lib/environments.js";
 import { log } from "./lib/logger.js";
 import { getDocumentById, getMasterRef, PrismicApiError } from "./lib/prismic-http.js";
 import { runPhase0 } from "./phases/phase0-preflight.js";
@@ -32,6 +32,7 @@ const COMMANDS = [
   "preflight",
   "assets",
   "migrate",
+  "promote",
   "reconcile",
   "link",
   "unlink",
@@ -68,6 +69,11 @@ function usage(): never {
       "  preflight   Phase 0 — schema parity check/push, snapshots, mapping init",
       "  assets      Phase 1 — migrate the lower environment's asset library up",
       "  migrate     Phase 2 — two-pass document migration, lower -> upper",
+      "  promote     Convenience wrapper for ONE hop of preflight+assets+migrate",
+      "              toward --to, which may be several hops away (e.g. dev to",
+      "              prod runs the dev->sit hop only, since the next hop can't",
+      "              safely run until a human publishes this hop's Migration",
+      "              Release). Prints the exact next command to run afterward.",
       "  reconcile   Link lower documents to a pre-existing upper document of",
       "              the same non-repeatable type, so migrate stops trying",
       "              to create a duplicate. Run this after migrate reports",
@@ -121,8 +127,52 @@ async function main(): Promise<void> {
     console.error("Both --from=<env> and --to=<env> are required.");
     usage();
   }
-  const pair = resolvePair(config, fromName, toName);
   const positional = rest.filter((arg) => !arg.startsWith("--"));
+
+  // `promote` is the one command whose --from/--to may span more than one
+  // hop (e.g. dev to prod) — every other command requires an adjacent
+  // pair, resolved below via resolvePair(). Handled before that generic
+  // resolution so promote isn't rejected as "not adjacent".
+  if ((command as Command) === "promote") {
+    const { pair, isFinalHop } = resolveNextHop(config, fromName, toName);
+    log("info", "cli.promote_hop_start", {
+      from: pair.lowerName,
+      to: pair.upperName,
+      finalDestination: toName,
+    });
+
+    await runPhase0({ config, pair, dryRun });
+    await runPhase1({ config, pair, dryRun });
+    const result = await runPhase2({ config, pair, dryRun });
+    if (result.failures.length > 0) {
+      log("error", "cli.promote_hop_had_failures", { failures: result.failures });
+      process.exitCode = 1;
+      return;
+    }
+
+    if (dryRun) {
+      log("info", "cli.promote_dry_run_done", {
+        from: pair.lowerName,
+        to: pair.upperName,
+      });
+      return;
+    }
+
+    console.log(
+      [
+        "",
+        `Hop ${pair.lowerName} -> ${pair.upperName} complete.`,
+        `Next: publish the Migration Release in ${pair.upperName}'s dashboard, then run:`,
+        `  pnpm cli confirm --from=${pair.lowerName} --to=${pair.upperName}`,
+        isFinalHop
+          ? `${pair.upperName} is your requested destination — nothing more to promote.`
+          : `Then continue up the chain with:\n  pnpm cli promote --from=${pair.upperName} --to=${toName}`,
+      ].join("\n"),
+    );
+    return;
+  }
+
+  const pair = resolvePair(config, fromName, toName);
 
   switch (command as Command) {
     case "preflight":

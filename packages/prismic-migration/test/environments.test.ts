@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { requireDirection, resolvePair } from "../src/lib/environments.js";
+import {
+  requireDirection,
+  resolveNextHop,
+  resolvePair,
+} from "../src/lib/environments.js";
 import type { Config, RepoConfig } from "../src/config.js";
 
 function repo(name: string): RepoConfig {
@@ -63,6 +67,51 @@ describe("resolvePair", () => {
 
   it("rejects identical --from and --to", () => {
     expect(() => resolvePair(config(), "dev", "dev")).toThrow(/must be different/);
+  });
+});
+
+describe("resolveNextHop", () => {
+  it("resolves a single hop as itself, marked final", () => {
+    const { pair, isFinalHop } = resolveNextHop(config(), "dev", "sit");
+    expect(pair.lowerName).toBe("dev");
+    expect(pair.upperName).toBe("sit");
+    expect(isFinalHop).toBe(true);
+  });
+
+  it("resolves a multi-hop promotion to its first hop only, marked non-final", () => {
+    const { pair, isFinalHop } = resolveNextHop(config(), "dev", "prod");
+    expect(pair.lowerName).toBe("dev");
+    expect(pair.upperName).toBe("sit");
+    expect(isFinalHop).toBe(false);
+  });
+
+  it("resolves the middle hop of a multi-hop promotion once continued from there", () => {
+    const { pair, isFinalHop } = resolveNextHop(config(), "sit", "prod");
+    expect(pair.lowerName).toBe("sit");
+    expect(pair.upperName).toBe("uat");
+    expect(isFinalHop).toBe(false);
+  });
+
+  it("rejects a backward promotion", () => {
+    expect(() => resolveNextHop(config(), "sit", "dev")).toThrow(
+      /only moves up the chain/,
+    );
+  });
+
+  it("rejects identical --from and --to", () => {
+    expect(() => resolveNextHop(config(), "dev", "dev")).toThrow(/must be different/);
+  });
+
+  it("rejects an environment not in the configured chain", () => {
+    expect(() => resolveNextHop(config(), "dev", "staging")).toThrow(
+      /not part of the configured environment chain/,
+    );
+  });
+
+  it("rejects when the immediate next hop's environment isn't configured", () => {
+    const cfg = config();
+    delete cfg.environments.sit;
+    expect(() => resolveNextHop(cfg, "dev", "prod")).toThrow(/not configured/);
   });
 });
 

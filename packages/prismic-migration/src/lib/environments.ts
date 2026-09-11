@@ -82,6 +82,61 @@ export function resolvePair(
   };
 }
 
+export type NextHop = {
+  /** The single adjacent hop to run right now — always forward (lower -> upper). */
+  pair: ResolvedPair;
+  /** True when this hop's upper environment is the requested final --to, i.e. nothing more to do after it. */
+  isFinalHop: boolean;
+};
+
+/**
+ * Resolves the FIRST hop of a (possibly multi-hop) promotion from
+ * `fromName` toward `toName` — e.g. dev -> prod resolves to dev -> sit,
+ * with `isFinalHop: false` telling the caller there's more chain left
+ * after this hop completes and its Migration Release is published.
+ *
+ * Deliberately only ever returns one hop, not the whole path: `migrate`
+ * reads a lower environment's PUBLISHED content only (master ref), so a
+ * later hop can't safely run until a human has published the Migration
+ * Release this hop creates — see the `promote` command in cli.ts, which
+ * calls this once per invocation and tells the caller what to do next
+ * rather than looping through every hop unattended.
+ */
+export function resolveNextHop(
+  config: Config,
+  fromName: string,
+  toName: string,
+): NextHop {
+  if (fromName === toName) {
+    throw new Error(
+      `--from and --to must be different environments (both were "${fromName}").`,
+    );
+  }
+
+  const fromIndex = config.environmentChain.indexOf(fromName);
+  const toIndex = config.environmentChain.indexOf(toName);
+  if (fromIndex === -1) {
+    throw new Error(
+      `"${fromName}" is not part of the configured environment chain (${config.environmentChain.join(" -> ")}).`,
+    );
+  }
+  if (toIndex === -1) {
+    throw new Error(
+      `"${toName}" is not part of the configured environment chain (${config.environmentChain.join(" -> ")}).`,
+    );
+  }
+  if (fromIndex >= toIndex) {
+    throw new Error(
+      `promote only moves up the chain. --from="${fromName}" --to="${toName}" is not upward ` +
+        `(${config.environmentChain.join(" -> ")}). Use backsync for moving content down instead.`,
+    );
+  }
+
+  const hopUpperName = config.environmentChain[fromIndex + 1];
+  const pair = resolvePair(config, fromName, hopUpperName);
+  return { pair, isFinalHop: hopUpperName === toName };
+}
+
 function requireEnvironment(config: Config, name: string): RepoConfig {
   const repo = config.environments[name];
   if (!repo) {
