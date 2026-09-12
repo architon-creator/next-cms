@@ -154,7 +154,20 @@ async function main() {
   // Pass 2: now that every leaf document has a real id, look each one up
   // and build the hub's Link fields from them.
   const hubMigration = createPrismicMigration();
-  const hubData: Record<string, unknown> = {};
+  const existingHub = await findExistingSingleton(readClient, HUB_TYPE_ID);
+
+  // Fetch-merge-write, not replace-write: this demo currently has only
+  // one label source, so there's nothing else in existingHub.data yet to
+  // lose — but if a second source existed and had already written its
+  // own Link fields into this same hub, starting hubData from {} instead
+  // of existingHub?.data would silently wipe them the moment this runs,
+  // even though the schema (fixed in generate-prismic-models.ts) still
+  // has slots for them. Spreading the existing data first and only
+  // overlaying this run's own keys is what keeps this safe once a second
+  // source is added. See the real project's equivalent fix for the
+  // concrete symptom this prevents (a source's Link fields going empty
+  // on the "ibe" hub whenever a different source's script runs).
+  const hubData: Record<string, unknown> = { ...existingHub?.data };
 
   for (const op of operations) {
     const leafDocument = await findExistingSingleton(readClient, op.modelId);
@@ -167,7 +180,6 @@ async function main() {
     hubData[op.modelId] = { link_type: "Document", id: leafDocument.id };
   }
 
-  const existingHub = await findExistingSingleton(readClient, HUB_TYPE_ID);
   if (existingHub) {
     hubMigration.updateDocument({ ...existingHub, data: hubData }, "App Labels");
   } else {
