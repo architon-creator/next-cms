@@ -62,6 +62,26 @@
           "select": "document"
         },
         "type": "Link"
+      },
+      "contact_page": {
+        "config": {
+          "customtypes": [
+            "contact_page"
+          ],
+          "label": "Contact Page",
+          "select": "document"
+        },
+        "type": "Link"
+      },
+      "feedback_page": {
+        "config": {
+          "customtypes": [
+            "feedback_page"
+          ],
+          "label": "Feedback Page",
+          "select": "document"
+        },
+        "type": "Link"
       }
     }
   },

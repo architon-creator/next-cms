@@ -1,0 +1,65 @@
+{
+  "format": "custom",
+  "id": "contact_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      },
+      "description": {
+        "config": {
+          "label": "Description"
+        },
+        "type": "Text"
+      },
+      "cardTitle": {
+        "config": {
+          "label": "Card Title"
+        },
+        "type": "Text"
+      },
+      "cardDescription": {
+        "config": {
+          "label": "Card Description"
+        },
+        "type": "Text"
+      },
+      "nameLabel": {
+        "config": {
+          "label": "Name Label"
+        },
+        "type": "Text"
+      },
+      "emailLabel": {
+        "config": {
+          "label": "Email Label"
+        },
+        "type": "Text"
+      },
+      "messageLabel": {
+        "config": {
+          "label": "Message Label"
+        },
+        "type": "Text"
+      },
+      "submit": {
+        "config": {
+          "label": "Submit"
+        },
+        "type": "Text"
+      },
+      "successMessage": {
+        "config": {
+          "label": "Success Message"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Contact Page",
+  "repeatable": false,
+  "status": true
+}

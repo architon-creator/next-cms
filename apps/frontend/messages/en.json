@@ -29,5 +29,27 @@
   "AuthNav": {
     "signIn": "Sign in",
     "signOut": "Sign out"
+  },
+  "ContactPage": {
+    "title": "Contact us",
+    "description": "Placeholder page — the form below doesn't send anything anywhere.",
+    "cardTitle": "Get in touch",
+    "cardDescription": "We'll get back to you as soon as we can.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "messageLabel": "Message",
+    "submit": "Send message",
+    "successMessage": "Thanks for reaching out — this is a placeholder page, so nothing was actually sent."
+  },
+  "FeedbackPage": {
+    "title": "Feedback",
+    "description": "Placeholder page — the form below doesn't record anything anywhere.",
+    "cardTitle": "Share your feedback",
+    "cardDescription": "Let us know how we're doing.",
+    "emailLabel": "Email (optional)",
+    "ratingLabel": "How was your experience?",
+    "commentsLabel": "Comments",
+    "submit": "Submit feedback",
+    "successMessage": "Thanks for the feedback — this is a placeholder page, so nothing was actually recorded."
   }
 }

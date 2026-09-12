@@ -29,5 +29,27 @@
   "AuthNav": {
     "signIn": "サインイン",
     "signOut": "サインアウト"
+  },
+  "ContactPage": {
+    "title": "お問い合わせ",
+    "description": "これはプレースホルダーページです。以下のフォームは何も送信しません。",
+    "cardTitle": "お問い合わせフォーム",
+    "cardDescription": "できるだけ早くご返信いたします。",
+    "nameLabel": "お名前",
+    "emailLabel": "メールアドレス",
+    "messageLabel": "メッセージ",
+    "submit": "送信する",
+    "successMessage": "お問い合わせいただきありがとうございます。これはプレースホルダーページのため、実際には何も送信されていません。"
+  },
+  "FeedbackPage": {
+    "title": "フィードバック",
+    "description": "これはプレースホルダーページです。以下のフォームは何も記録しません。",
+    "cardTitle": "フィードバックを送る",
+    "cardDescription": "ご意見をお聞かせください。",
+    "emailLabel": "メールアドレス（任意）",
+    "ratingLabel": "ご利用の感想はいかがでしたか？",
+    "commentsLabel": "コメント",
+    "submit": "フィードバックを送信",
+    "successMessage": "フィードバックをありがとうございます。これはプレースホルダーページのため、実際には何も記録されていません。"
   }
 }
