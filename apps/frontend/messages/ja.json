@@ -1,0 +1,33 @@
+{
+  "Header": {
+    "brand": "next-cms",
+    "home": "ホーム"
+  },
+  "Footer": {
+    "copyright": "© {year} next-cms. Next.js と Prismic で構築されています。",
+    "home": "ホーム",
+    "signIn": "サインイン"
+  },
+  "HomePage": {
+    "title": "ようこそ",
+    "description": "これは Prismic を使用したコンテンツサイトです。以下から利用可能なページをご覧ください。"
+  },
+  "LoginPage": {
+    "title": "サインイン",
+    "description": "アカウントにアクセスするには認証情報を入力してください。",
+    "cardTitle": "おかえりなさい",
+    "cardDescription": "このデバイスではサインイン状態を保持します。"
+  },
+  "LoginForm": {
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "submit": "サインイン",
+    "submitting": "サインイン中…",
+    "loginFailed": "サインインに失敗しました",
+    "genericError": "問題が発生しました。もう一度お試しください。"
+  },
+  "AuthNav": {
+    "signIn": "サインイン",
+    "signOut": "サインアウト"
+  }
+}

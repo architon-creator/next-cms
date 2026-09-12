@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "ui";
 
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import type { SessionUser } from "@/lib/session";
 
 /**
@@ -19,6 +19,7 @@ import type { SessionUser } from "@/lib/session";
  * already signed in reads as being logged out.
  */
 export function AuthNav() {
+  const t = useTranslations("AuthNav");
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -61,7 +62,7 @@ export function AuthNav() {
     return (
       <Button asChild size="lg">
         {/* Sends the visitor back where they were once they're signed in. */}
-        <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign in</Link>
+        <Link href={`/login?next=${encodeURIComponent(pathname)}`}>{t("signIn")}</Link>
       </Button>
     );
   }
@@ -70,7 +71,7 @@ export function AuthNav() {
     <div className="flex items-center gap-3">
       <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
       <Button variant="outline" size="lg" onClick={handleSignOut}>
-        Sign out
+        {t("signOut")}
       </Button>
     </div>
   );

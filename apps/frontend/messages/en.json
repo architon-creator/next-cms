@@ -1,0 +1,33 @@
+{
+  "Header": {
+    "brand": "next-cms",
+    "home": "Home"
+  },
+  "Footer": {
+    "copyright": "© {year} next-cms. Built with Next.js and Prismic.",
+    "home": "Home",
+    "signIn": "Sign in"
+  },
+  "HomePage": {
+    "title": "Welcome",
+    "description": "This is a Prismic-powered content site. Browse the available pages below."
+  },
+  "LoginPage": {
+    "title": "Sign in",
+    "description": "Enter your credentials to access your account.",
+    "cardTitle": "Welcome back",
+    "cardDescription": "We'll keep you signed in on this device."
+  },
+  "LoginForm": {
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "loginFailed": "Login failed",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "AuthNav": {
+    "signIn": "Sign in",
+    "signOut": "Sign out"
+  }
+}

@@ -1,13 +1,15 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { setRequestLocale } from "next-intl/server";
 import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "cms";
 
 import { cn } from "@/lib/utils";
 
-type PageProps = { params: Promise<{ uid: string }> };
+type PageProps = { params: Promise<{ locale: string; uid: string }> };
 
 export default async function Page({ params }: PageProps) {
-  const { uid } = await params;
+  const { locale, uid } = await params;
+  setRequestLocale(locale);
   const client = createClient();
   const page = await client.getByUID("content_page", uid).catch(() => notFound());
 

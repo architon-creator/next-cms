@@ -2,6 +2,8 @@ packages:
   - "packages/*"
   - "apps/*"
 allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
   esbuild: true
   unrs-resolver: true
 overrides:

@@ -1,16 +1,19 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 
-const footerLinks = [
-  { href: "/", label: "Home" },
-  { href: "/login", label: "Sign in" },
-];
+import { Link } from "@/i18n/navigation";
 
 export function Footer() {
+  const t = useTranslations("Footer");
+  const footerLinks = [
+    { href: "/", label: t("home") },
+    { href: "/login", label: t("signIn") },
+  ];
+
   return (
     <footer className="mt-auto border-t bg-muted/40">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} next-cms. Built with Next.js and Prismic.
+          {t("copyright", { year: new Date().getFullYear() })}
         </p>
 
         <nav className="flex items-center gap-6" aria-label="Footer">

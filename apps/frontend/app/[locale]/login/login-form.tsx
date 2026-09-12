@@ -1,11 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Button, Input, Label } from "ui";
 
+import { useRouter } from "@/i18n/navigation";
+
 export function LoginForm() {
+  const t = useTranslations("LoginForm");
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -29,7 +32,7 @@ export function LoginForm() {
 
       if (!response.ok) {
         const failure = await response.json().catch(() => ({}));
-        setError((failure as { error?: string }).error || "Login failed");
+        setError((failure as { error?: string }).error || t("loginFailed"));
         return;
       }
 
@@ -48,7 +51,7 @@ export function LoginForm() {
       router.refresh();
       router.push(destination);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("genericError"));
     } finally {
       setPending(false);
     }
@@ -57,7 +60,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("email")}</Label>
         <Input
           id="email"
           name="email"
@@ -70,7 +73,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("password")}</Label>
         <Input
           id="password"
           name="password"
@@ -89,7 +92,7 @@ export function LoginForm() {
       )}
 
       <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full">
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? t("submitting") : t("submit")}
       </Button>
     </form>
   );
