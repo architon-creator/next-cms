@@ -1,0 +1,21 @@
+name: PR Title Lint
+
+# Squash-merge (the repo's only allowed merge method — see repo settings)
+# uses the PR title as the resulting commit message, so this is what
+# actually enforces Conventional Commits on merged history. The local
+# commitlint/lefthook commit-msg hook only covers individual commits made
+# on a contributor's own machine, and never sees GitHub's own merge commit.
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  lint-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
