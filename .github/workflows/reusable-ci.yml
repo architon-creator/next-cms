@@ -7,6 +7,11 @@ on:
       # (generateStaticParams) is private.
       PRISMIC_ACCESS_TOKEN:
         required: false
+      # Optional: Snyk dependency vulnerability scanning is skipped entirely
+      # (not failed) until this secret is set on the repo, so onboarding
+      # this workflow doesn't require Snyk on day one.
+      SNYK_TOKEN:
+        required: false
     inputs:
       app_name:
         required: true
@@ -51,6 +56,12 @@ jobs:
     # header comment for the full story.)
     permissions:
       contents: read
+
+    # Secrets can't be referenced directly in step `if:` conditions, so this
+    # mirrors it into a job-level env var first — the documented workaround
+    # for making a step conditional on whether a secret is configured.
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -104,6 +115,14 @@ jobs:
 
       - name: Run pnpm Audit
         run: pnpm audit --audit-level=high
+
+      # Skipped (not failed) when SNYK_TOKEN isn't set on the repo yet —
+      # pnpm audit above still catches known-vulnerability failures either
+      # way, this just adds Snyk's broader database + PR-fix workflow once
+      # configured.
+      - name: Security scan (Snyk)
+        if: ${{ env.SNYK_TOKEN != '' }}
+        run: npx --yes snyk test --all-projects --severity-threshold=high
 
       - name: Format check
         run: pnpm run format:check

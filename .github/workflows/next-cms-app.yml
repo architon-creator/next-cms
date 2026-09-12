@@ -13,6 +13,7 @@ jobs:
       app_path: apps/frontend
     secrets:
       PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   # Only runs after ci succeeds, and only on a direct push to master —
   # PRs get no tag (nothing should be tagged until it merges). Pushes a
