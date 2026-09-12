@@ -17,7 +17,9 @@ export function createClient(config: prismicNext.CreateClientConfig = {}) {
     ...config,
   });
 
-  prismicNext.enableAutoPreviews({ client, previewData: config.previewData });
+  // @prismicio/next v2 dropped the `previewData` option here — the client
+  // now detects preview/draft mode from the request itself.
+  prismicNext.enableAutoPreviews({ client });
 
   return client;
 }

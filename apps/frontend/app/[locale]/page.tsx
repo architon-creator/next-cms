@@ -1,20 +1,30 @@
 import { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient } from "cms";
 import { Link } from "@/i18n/navigation";
 import { formatLabel } from "@/lib/format-label";
 import { SearchSection } from "@/components/search-section";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("HomePage");
+type HomePageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
+  const { locale } = await params;
+  // setRequestLocale must run before any other next-intl call in this
+  // function, and again in the page component below — next-intl needs it
+  // in every page/layout that should stay statically rendered, since Next
+  // can invoke generateMetadata and the page independently.
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "HomePage" });
   // No `title` here: the root layout's default title *is* this site title,
   // and the layout's "%s | <site title>" template would otherwise double it
   // up (e.g. "Site | Site") for this one page.
   return { description: t("description") };
 }
 
-export default async function HomePage() {
-  const t = await getTranslations("HomePage");
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "HomePage" });
   const client = createClient();
   const pages = await client.getAllByType("content_page");
 
