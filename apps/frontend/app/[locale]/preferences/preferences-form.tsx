@@ -8,7 +8,10 @@ import { useForm } from "react-hook-form";
 import { Button, Input, Label } from "ui";
 
 import { useRouter } from "@/i18n/navigation";
-import { preferencesSchema, type PreferencesValues } from "@/lib/schemas/preferences-schema";
+import {
+  preferencesSchema,
+  type PreferencesValues,
+} from "@/lib/schemas/preferences-schema";
 import { nextStep, previousStep } from "@/lib/steps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setPreferences } from "@/store/slices/form-data-slice";

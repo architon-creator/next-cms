@@ -29,11 +29,19 @@ export function FeedbackForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("emailLabel")}</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium text-foreground">{t("ratingLabel")}</legend>
+        <legend className="mb-1 text-sm font-medium text-foreground">
+          {t("ratingLabel")}
+        </legend>
         {ratings.map((rating, index) => (
           <label key={rating} className="flex items-center gap-2 text-sm text-foreground">
             <input

@@ -12,7 +12,13 @@ import { useAppSelector } from "@/store/hooks";
  * which middleware — running at the edge, before any client storage is
  * readable — has no access to.
  */
-export function RouteGuard({ stepId, children }: { stepId: StepId; children: React.ReactNode }) {
+export function RouteGuard({
+  stepId,
+  children,
+}: {
+  stepId: StepId;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const rehydrated = useAppSelector((state) => state._persist?.rehydrated ?? false);
   const visited = useAppSelector((state) => state.progress.visited);

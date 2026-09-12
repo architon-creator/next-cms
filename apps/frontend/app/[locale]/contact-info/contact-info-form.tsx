@@ -8,7 +8,10 @@ import { useForm } from "react-hook-form";
 import { Button, Input, Label } from "ui";
 
 import { useRouter } from "@/i18n/navigation";
-import { contactInfoSchema, type ContactInfoValues } from "@/lib/schemas/contact-info-schema";
+import {
+  contactInfoSchema,
+  type ContactInfoValues,
+} from "@/lib/schemas/contact-info-schema";
 import { nextStep, previousStep } from "@/lib/steps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setContactInfo } from "@/store/slices/form-data-slice";
@@ -55,7 +58,12 @@ export function ContactInfoForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" type="tel" {...register("phone")} aria-invalid={errors.phone ? true : undefined} />
+        <Input
+          id="phone"
+          type="tel"
+          {...register("phone")}
+          aria-invalid={errors.phone ? true : undefined}
+        />
         {errors.phone && (
           <p role="alert" className="text-sm text-destructive">
             {tValidation("invalidPhone")}

@@ -5,9 +5,7 @@
     "Main": {
       "header": {
         "config": {
-          "customtypes": [
-            "header"
-          ],
+          "customtypes": ["header"],
           "label": "Header",
           "select": "document"
         },
@@ -15,9 +13,7 @@
       },
       "footer": {
         "config": {
-          "customtypes": [
-            "footer"
-          ],
+          "customtypes": ["footer"],
           "label": "Footer",
           "select": "document"
         },
@@ -25,9 +21,7 @@
       },
       "home_page": {
         "config": {
-          "customtypes": [
-            "home_page"
-          ],
+          "customtypes": ["home_page"],
           "label": "Home Page",
           "select": "document"
         },
@@ -35,9 +29,7 @@
       },
       "login_page": {
         "config": {
-          "customtypes": [
-            "login_page"
-          ],
+          "customtypes": ["login_page"],
           "label": "Login Page",
           "select": "document"
         },
@@ -45,9 +37,7 @@
       },
       "login_form": {
         "config": {
-          "customtypes": [
-            "login_form"
-          ],
+          "customtypes": ["login_form"],
           "label": "Login Form",
           "select": "document"
         },
@@ -55,9 +45,7 @@
       },
       "auth_nav": {
         "config": {
-          "customtypes": [
-            "auth_nav"
-          ],
+          "customtypes": ["auth_nav"],
           "label": "Auth Nav",
           "select": "document"
         },
@@ -65,9 +53,7 @@
       },
       "contact_page": {
         "config": {
-          "customtypes": [
-            "contact_page"
-          ],
+          "customtypes": ["contact_page"],
           "label": "Contact Page",
           "select": "document"
         },
@@ -75,9 +61,7 @@
       },
       "feedback_page": {
         "config": {
-          "customtypes": [
-            "feedback_page"
-          ],
+          "customtypes": ["feedback_page"],
           "label": "Feedback Page",
           "select": "document"
         },

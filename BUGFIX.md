@@ -19,10 +19,11 @@ fields disappear from the schema/content entirely.
 **Root cause:** the hub is shared across every app in `label-source-loader.ts`
 (both `top-app` and `ibe-app` point `parentDocumentType` at the same `"ibe"`),
 but the generator/seeder built the hub's fields/data from scratch using
-*only the current `--source`'s* documents each run, then wrote that as the
+_only the current `--source`'s_ documents each run, then wrote that as the
 whole schema/data — a replace-write, not a merge.
 
 ### 1a. Schema side — commit [`7df150b`](../../commit/7df150bb5ba6213fea1fb3377046f7c64824e2e0)
+
 `Fix real bug: generating from one app's source deletes the other's ibe hub links`
 
 - File: `packages/cms/scripts/generate-prismic-models.ts` (this is the
@@ -41,17 +42,18 @@ whole schema/data — a replace-write, not a merge.
 
 **Port to real project:** apply the same diff to the real
 `generate-prismic-models.ts` + `label-source-loader.ts` — the code in
-this commit *is* the real project's code, so it should apply close to
+this commit _is_ the real project's code, so it should apply close to
 as-is. Watch for indentation: this repo reformatted both files from
 4-space to 2-space as a side effect (noted in the commit message);
 diff logic, not whitespace.
 
 ### 1b. Content side — commit [`6a269db`](../../commit/6a269db9069de60357acdb4cd1e3425d4eb91765)
+
 `Fix demo hub content write: fetch-merge-write, not replace-write`
 
 - File: `packages/cms/scripts/seed-prismic-content-demo.ts` (**this one
   is the demo-only seeder** — the real project's equivalent write path
-  was *not* identified/fixed in this session; see "still needed" below).
+  was _not_ identified/fixed in this session; see "still needed" below).
 - Same bug, one layer down: `hubData` started from `{}` each run instead
   of the hub's existing remote data. Fix: seed `hubData` from
   `{ ...existingHub?.data }` first, then overlay only this run's own
@@ -71,7 +73,7 @@ const hubData: Record<string, unknown> = { ...existingHub?.data };
 ```
 
 **Port to real project — still open:** the commit message flags this
-explicitly — find whatever script *actually writes* the `"ibe"`
+explicitly — find whatever script _actually writes_ the `"ibe"`
 document's content in the real project (not `seed-prismic-content.ts`,
 which only handles leaf documents there) and apply the same
 fetch-merge-write pattern to it. This wasn't identified in this session
@@ -88,9 +90,10 @@ project) on every pull.
 
 **Root cause:** `prismic pull` writes JSON keys in a fixed order that's
 **not** insertion order:
+
 - Top level: alphabetical — `format, id, json, label, repeatable, status`
 - Within each field definition: `config` before `type`, and alphabetical
-  *within* `config` (e.g. `customtypes` before `label` before `select`)
+  _within_ `config` (e.g. `customtypes` before `label` before `select`)
 - Field order **inside** `Main` itself is preserved as-is, not sorted —
   only the model's own top-level keys and each field definition's keys
   get reordered.

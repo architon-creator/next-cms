@@ -8,7 +8,10 @@ import { useForm } from "react-hook-form";
 import { Button, Input, Label } from "ui";
 
 import { useRouter } from "@/i18n/navigation";
-import { personalDetailsSchema, type PersonalDetailsValues } from "@/lib/schemas/personal-details-schema";
+import {
+  personalDetailsSchema,
+  type PersonalDetailsValues,
+} from "@/lib/schemas/personal-details-schema";
 import { nextStep } from "@/lib/steps";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setPersonalDetails } from "@/store/slices/form-data-slice";
@@ -40,7 +43,11 @@ export function PersonalDetailsForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="fullName">Full Name</Label>
-        <Input id="fullName" {...register("fullName")} aria-invalid={errors.fullName ? true : undefined} />
+        <Input
+          id="fullName"
+          {...register("fullName")}
+          aria-invalid={errors.fullName ? true : undefined}
+        />
         {errors.fullName && (
           <p role="alert" className="text-sm text-destructive">
             {tValidation("required")}

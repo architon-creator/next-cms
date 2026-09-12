@@ -44,12 +44,18 @@ const labelService = createLabelService<IBEMessages>({
 // so a new namespace added to en.json is picked up automatically the next
 // time the generator and this map both run off the same source of truth.
 const namespaceByDocumentType: Record<string, string> = Object.fromEntries(
-  Object.keys(localMessages.en).map((namespace) => [tabNameToNamespace(namespace), namespace]),
+  Object.keys(localMessages.en).map((namespace) => [
+    tabNameToNamespace(namespace),
+    namespace,
+  ]),
 );
 
 function toNamespacedMessages(messages: Record<string, unknown>): IBEMessages {
   return Object.fromEntries(
-    Object.entries(messages).map(([key, value]) => [namespaceByDocumentType[key] ?? key, value]),
+    Object.entries(messages).map(([key, value]) => [
+      namespaceByDocumentType[key] ?? key,
+      value,
+    ]),
   ) as IBEMessages;
 }
 
@@ -62,7 +68,10 @@ export async function loadMessages(locale: AppLocale): Promise<IBEMessages> {
   // the stepper flow's copy) would be entirely absent, not just falling
   // back to a key placeholder. Local messages are the base for every
   // namespace; Prismic-backed namespaces are overlaid on top of it.
-  return { ...(localMessages[locale] ?? localMessages.en), ...toNamespacedMessages(messages) };
+  return {
+    ...(localMessages[locale] ?? localMessages.en),
+    ...toNamespacedMessages(messages),
+  };
 }
 
 export function resolveLocale(locale: string | undefined): AppLocale {

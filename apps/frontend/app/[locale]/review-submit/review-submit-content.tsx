@@ -88,7 +88,13 @@ export function ReviewSubmitContent() {
         );
       })}
 
-      <Button type="button" size="lg" disabled={!allConfirmed} onClick={handleSubmit} className="mt-2">
+      <Button
+        type="button"
+        size="lg"
+        disabled={!allConfirmed}
+        onClick={handleSubmit}
+        className="mt-2"
+      >
         {t("submit")}
       </Button>
     </div>

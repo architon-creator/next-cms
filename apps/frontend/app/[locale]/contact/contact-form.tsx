@@ -27,7 +27,13 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">{t("nameLabel")}</Label>
-        <Input id="name" name="name" autoComplete="name" placeholder="Jane Doe" required />
+        <Input
+          id="name"
+          name="name"
+          autoComplete="name"
+          placeholder="Jane Doe"
+          required
+        />
       </div>
 
       <div className="flex flex-col gap-2">
