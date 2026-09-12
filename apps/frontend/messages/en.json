@@ -51,5 +51,51 @@
     "commentsLabel": "Comments",
     "submit": "Submit feedback",
     "successMessage": "Thanks for the feedback — this is a placeholder page, so nothing was actually recorded."
+  },
+  "SearchPage": {
+    "heading": "Find what you're looking for",
+    "searchButton": "Search",
+    "emptyState": "No results found — try adjusting your search"
+  },
+  "ResultCard": {
+    "selectAction": "Select",
+    "continueAction": "Continue"
+  },
+  "Stepper": {
+    "personalDetails": "Personal Details",
+    "contactInfo": "Contact Info",
+    "preferences": "Preferences",
+    "documents": "Documents",
+    "reviewSubmit": "Review & Submit"
+  },
+  "StepNavigation": {
+    "next": "Next",
+    "back": "Back",
+    "submit": "Submit",
+    "saveAndReturn": "Save & Return"
+  },
+  "PersonalDetailsPage": {
+    "title": "Personal Details"
+  },
+  "ContactInfoPage": {
+    "title": "Contact Info"
+  },
+  "PreferencesPage": {
+    "title": "Preferences"
+  },
+  "DocumentsPage": {
+    "title": "Documents"
+  },
+  "Validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidPhone": "Please enter a valid phone number"
+  },
+  "ReviewSubmitPage": {
+    "title": "Review & Submit",
+    "confirmSection": "Confirm",
+    "changeSection": "Change",
+    "confirmedBadge": "Confirmed",
+    "submit": "Submit"
   }
 }

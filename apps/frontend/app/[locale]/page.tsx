@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "cms";
 import { Link } from "@/i18n/navigation";
 import { formatLabel } from "@/lib/format-label";
+import { SearchSection } from "@/components/search-section";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("HomePage");
@@ -16,7 +17,9 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-[800px] p-6">
-      <h1 className="mb-2 text-4xl font-semibold">{t("title")}</h1>
+      <SearchSection />
+
+      <h1 className="mt-10 mb-2 text-4xl font-semibold">{t("title")}</h1>
       <p className="mb-8 text-muted-foreground">{t("description")}</p>
 
       <ul className="flex list-none flex-col gap-2 p-0">

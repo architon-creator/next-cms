@@ -17,3 +17,4 @@ export {
 export { ChevronLink } from "./chevron-link";
 export { Input } from "./input";
 export { Label } from "./label";
+export { Stepper, type StepperStep, type StepperProps } from "./stepper";

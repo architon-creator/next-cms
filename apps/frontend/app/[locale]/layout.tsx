@@ -8,6 +8,7 @@ import { repositoryName } from "cms";
 import { routing } from "@/i18n/routing";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { ReduxProvider } from "@/components/redux-provider";
 
 import "../globals.css";
 
@@ -36,9 +37,11 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       {/* Column layout so Footer's `mt-auto` pins it to the bottom on short pages. */}
       <body className="flex min-h-screen flex-col bg-background text-foreground">
         <NextIntlClientProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <ReduxProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </ReduxProvider>
         </NextIntlClientProvider>
         <PrismicPreview repositoryName={repositoryName} />
       </body>

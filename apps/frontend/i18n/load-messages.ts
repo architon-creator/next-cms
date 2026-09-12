@@ -55,7 +55,14 @@ function toNamespacedMessages(messages: Record<string, unknown>): IBEMessages {
 
 export async function loadMessages(locale: AppLocale): Promise<IBEMessages> {
   const messages = await labelService.getLabels(locale);
-  return toNamespacedMessages(messages);
+
+  // When LABEL_SOURCE=prismic, labelService's result only ever contains
+  // namespaces with a matching Prismic custom type — any namespace that's
+  // deliberately local-only (not modeled in packages/cms/customtypes, e.g.
+  // the stepper flow's copy) would be entirely absent, not just falling
+  // back to a key placeholder. Local messages are the base for every
+  // namespace; Prismic-backed namespaces are overlaid on top of it.
+  return { ...(localMessages[locale] ?? localMessages.en), ...toNamespacedMessages(messages) };
 }
 
 export function resolveLocale(locale: string | undefined): AppLocale {

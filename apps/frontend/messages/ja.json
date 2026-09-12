@@ -51,5 +51,51 @@
     "commentsLabel": "コメント",
     "submit": "フィードバックを送信",
     "successMessage": "フィードバックをありがとうございます。これはプレースホルダーページのため、実際には何も記録されていません。"
+  },
+  "SearchPage": {
+    "heading": "お探しのものを見つける",
+    "searchButton": "検索",
+    "emptyState": "結果が見つかりません。検索条件を変更してください。"
+  },
+  "ResultCard": {
+    "selectAction": "選択",
+    "continueAction": "続ける"
+  },
+  "Stepper": {
+    "personalDetails": "個人情報",
+    "contactInfo": "連絡先情報",
+    "preferences": "希望条件",
+    "documents": "書類",
+    "reviewSubmit": "確認と送信"
+  },
+  "StepNavigation": {
+    "next": "次へ",
+    "back": "戻る",
+    "submit": "送信",
+    "saveAndReturn": "保存して戻る"
+  },
+  "PersonalDetailsPage": {
+    "title": "個人情報"
+  },
+  "ContactInfoPage": {
+    "title": "連絡先情報"
+  },
+  "PreferencesPage": {
+    "title": "希望条件"
+  },
+  "DocumentsPage": {
+    "title": "書類"
+  },
+  "Validation": {
+    "required": "この項目は必須です",
+    "invalidEmail": "有効なメールアドレスを入力してください",
+    "invalidPhone": "有効な電話番号を入力してください"
+  },
+  "ReviewSubmitPage": {
+    "title": "確認と送信",
+    "confirmSection": "確認する",
+    "changeSection": "変更する",
+    "confirmedBadge": "確認済み",
+    "submit": "送信"
   }
 }
