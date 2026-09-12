@@ -7,7 +7,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "types": "prismic-ts-codegen",
-    "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts"
+    "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts",
+    "prismic-seed-content": "tsx scripts/seed-prismic-content-demo.ts"
   },
   "peerDependencies": {
     "react": "^18.3.1"
