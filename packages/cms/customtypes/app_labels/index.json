@@ -1,0 +1,71 @@
+{
+  "id": "app_labels",
+  "label": "App Labels",
+  "format": "custom",
+  "repeatable": false,
+  "status": true,
+  "json": {
+    "Main": {
+      "header": {
+        "type": "Link",
+        "config": {
+          "label": "Header",
+          "select": "document",
+          "customtypes": [
+            "header"
+          ]
+        }
+      },
+      "footer": {
+        "type": "Link",
+        "config": {
+          "label": "Footer",
+          "select": "document",
+          "customtypes": [
+            "footer"
+          ]
+        }
+      },
+      "home_page": {
+        "type": "Link",
+        "config": {
+          "label": "Home Page",
+          "select": "document",
+          "customtypes": [
+            "home_page"
+          ]
+        }
+      },
+      "login_page": {
+        "type": "Link",
+        "config": {
+          "label": "Login Page",
+          "select": "document",
+          "customtypes": [
+            "login_page"
+          ]
+        }
+      },
+      "login_form": {
+        "type": "Link",
+        "config": {
+          "label": "Login Form",
+          "select": "document",
+          "customtypes": [
+            "login_form"
+          ]
+        }
+      },
+      "auth_nav": {
+        "type": "Link",
+        "config": {
+          "label": "Auth Nav",
+          "select": "document",
+          "customtypes": [
+            "auth_nav"
+          ]
+        }
+      }
+    }
+  }
+}

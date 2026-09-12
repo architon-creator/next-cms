@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadSharedEnvIntoProcessEnv } from "../src/prismic/config.js";
+import { HUB_TYPE_ID } from "./generate-prismic-models-demo.js";
 
 /**
  * Local demo adaptation of the real project's seed-prismic-content.ts
@@ -126,16 +127,57 @@ async function main() {
         .join("\n"),
   );
 
+  const hubAction = (await findExistingSingleton(readClient, HUB_TYPE_ID))
+    ? "update"
+    : "create";
+  console.log(
+    `${shouldWrite ? "Then linking" : "Then would link"} them all from the "${HUB_TYPE_ID}" hub (${hubAction}) — required for label-service.ts's real fetch mechanism to find them.`,
+  );
+
   if (!shouldWrite) {
     console.log("\nRun again with --write to actually create/update these documents.");
     return;
   }
 
   const writeClient = createPrismicWriteClient();
-  await writeClient.migrate(migration, {
-    reporter: (event: { type: string }) =>
-      console.log(`[prismic:migration] ${event.type}`),
-  });
+  const migrationReporter = (event: { type: string }) =>
+    console.log(`[prismic:migration] ${event.type}`);
+
+  // Pass 1: create/update the 6 leaf documents. Their real Prismic ids
+  // don't exist until this migration actually runs — migration.createDocument()
+  // only queues the write, it doesn't return one synchronously — so the
+  // hub can't be built until after this completes. Same two-pass shape
+  // as the prismic-migration toolkit's own phase2-migrate.ts, for the
+  // same reason: a document-link field needs the target's real id.
+  await writeClient.migrate(migration, { reporter: migrationReporter });
+
+  // Pass 2: now that every leaf document has a real id, look each one up
+  // and build the hub's Link fields from them.
+  const hubMigration = createPrismicMigration();
+  const hubData: Record<string, unknown> = {};
+
+  for (const op of operations) {
+    const leafDocument = await findExistingSingleton(readClient, op.modelId);
+    if (!leafDocument) {
+      console.warn(
+        `Could not find "${op.modelId}" after seeding it — skipping its hub link.`,
+      );
+      continue;
+    }
+    hubData[op.modelId] = { link_type: "Document", id: leafDocument.id };
+  }
+
+  const existingHub = await findExistingSingleton(readClient, HUB_TYPE_ID);
+  if (existingHub) {
+    hubMigration.updateDocument({ ...existingHub, data: hubData }, "App Labels");
+  } else {
+    hubMigration.createDocument(
+      { type: HUB_TYPE_ID, lang: prismicLocale, tags: [], data: hubData },
+      "App Labels",
+    );
+  }
+
+  await writeClient.migrate(hubMigration, { reporter: migrationReporter });
 }
 
 function buildDocumentData(

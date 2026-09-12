@@ -2,6 +2,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+function isMainModule() {
+  return process.argv[1]
+    ? fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+    : false;
+}
+
 /**
  * Local demo adaptation of the real project's generate-prismic-models.ts
  * (see ./generate-prismic-models.ts for the verbatim baseline copy) — NOT
@@ -21,9 +27,24 @@ import { fileURLToPath } from "node:url";
  * generated ids (header, footer, home_page, login_page, login_form,
  * auth_nav) collide with the real "content_page" type, so this only ever
  * adds sibling folders alongside it.
+ *
+ * Also generates a "hub" custom type (HUB_TYPE_ID below) with one Link
+ * field per namespace type, mirroring the real project's "ibe" parent
+ * document — packages/cms/src/services/label-service.ts (the baseline,
+ * unmodified copy of the real label-fetching mechanism) fetches labels
+ * by reading this parent's Link fields to find each child document's id,
+ * not by querying each child type directly. Without this hub,
+ * label-service.ts's real mechanism has nothing to fetch through.
  */
 
+export const HUB_TYPE_ID = "app_labels";
+
 type PrismicField = { type: "Text"; config: { label: string } };
+
+type PrismicLinkField = {
+  type: "Link";
+  config: { label: string; select: "document"; customtypes: string[] };
+};
 
 type PrismicModel = {
   id: string;
@@ -33,6 +54,17 @@ type PrismicModel = {
   status: true;
   json: {
     Main: Record<string, PrismicField>;
+  };
+};
+
+type HubModel = {
+  id: string;
+  label: string;
+  format: "custom";
+  repeatable: false;
+  status: true;
+  json: {
+    Main: Record<string, PrismicLinkField>;
   };
 };
 
@@ -48,6 +80,7 @@ function main() {
     string,
     unknown
   >;
+  const namespaces: string[] = [];
   let generated = 0;
 
   for (const [namespace, fields] of Object.entries(messages)) {
@@ -56,11 +89,51 @@ function main() {
     }
 
     writeModel(namespace, createModel(namespace, fields));
+    namespaces.push(namespace);
     generated += 1;
   }
 
+  writeHubModel(namespaces);
+  generated += 1;
+
   console.log(
-    `Generated ${generated} custom type model(s) from ${messagesPath} into ${outputRoot}`,
+    `Generated ${generated} custom type model(s) (including the "${HUB_TYPE_ID}" hub) from ${messagesPath} into ${outputRoot}`,
+  );
+}
+
+function createHubModel(namespaces: string[]): HubModel {
+  const linkFields: Record<string, PrismicLinkField> = {};
+
+  for (const namespace of namespaces) {
+    const modelId = toModelId(namespace);
+    linkFields[modelId] = {
+      type: "Link",
+      config: {
+        label: toReadableLabel(namespace),
+        select: "document",
+        customtypes: [modelId],
+      },
+    };
+  }
+
+  return {
+    id: HUB_TYPE_ID,
+    label: "App Labels",
+    format: "custom",
+    repeatable: false,
+    status: true,
+    json: { Main: linkFields },
+  };
+}
+
+function writeHubModel(namespaces: string[]) {
+  const model = createHubModel(namespaces);
+  const outputDirectory = path.join(outputRoot, HUB_TYPE_ID);
+
+  mkdirSync(outputDirectory, { recursive: true });
+  writeFileSync(
+    path.join(outputDirectory, "index.json"),
+    `${JSON.stringify(model, null, 2)}\n`,
   );
 }
 
@@ -112,4 +185,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-main();
+if (isMainModule()) {
+  main();
+}
