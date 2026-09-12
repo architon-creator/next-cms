@@ -5,6 +5,8 @@ import type { DocumentsValues } from "@/lib/schemas/documents-schema";
 import type { PersonalDetailsValues } from "@/lib/schemas/personal-details-schema";
 import type { PreferencesValues } from "@/lib/schemas/preferences-schema";
 
+import { startNewFlow } from "./progress-slice";
+
 export type FormDataState = {
   personalDetails: PersonalDetailsValues | null;
   contactInfo: ContactInfoValues | null;
@@ -35,6 +37,9 @@ const formDataSlice = createSlice({
     setDocuments(state, action: PayloadAction<DocumentsValues>) {
       state.documents = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(startNewFlow, () => initialState);
   },
 });
 

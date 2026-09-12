@@ -26,8 +26,14 @@ const progressSlice = createSlice({
         state.visited.push(action.payload);
       }
     },
+    // Starts a fresh run of the flow (e.g. selecting a search result) —
+    // otherwise a previously completed run's visited/current state would
+    // leak into what should be a brand new pass through the steps.
+    startNewFlow() {
+      return initialState;
+    },
   },
 });
 
-export const { setCurrent, markVisited } = progressSlice.actions;
+export const { setCurrent, markVisited, startNewFlow } = progressSlice.actions;
 export default progressSlice.reducer;

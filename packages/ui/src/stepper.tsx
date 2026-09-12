@@ -16,40 +16,62 @@ export type StepperProps = {
 // stepper never drives navigation — Next/Back buttons do).
 function Stepper({ steps, current, visited }: StepperProps) {
   return (
-    <ol className="flex w-full items-start gap-2" aria-label="Progress">
-      {steps.map((step) => {
-        const isCurrent = step.id === current;
-        const isVisited = !isCurrent && visited.includes(step.id);
-        const state = isCurrent ? "current" : isVisited ? "visited" : "unvisited";
+    <div className="w-full" aria-label="Progress">
+      <ol className="flex items-center">
+        {steps.map((step, index) => {
+          const isCurrent = step.id === current;
+          const isVisited = !isCurrent && visited.includes(step.id);
+          const state = isCurrent ? "current" : isVisited ? "visited" : "unvisited";
+          const isLast = index === steps.length - 1;
 
-        return (
-          <li
-            key={step.id}
-            className="flex flex-1 flex-col items-center gap-1.5 text-center"
-            aria-current={isCurrent ? "step" : undefined}
-          >
-            <span
-              className={cn(
-                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium",
-                state === "current" && "border-primary bg-primary text-primary-foreground",
-                state === "visited" && "border-primary bg-background text-primary",
-                state === "unvisited" && "border-border bg-background text-muted-foreground",
-              )}
+          return (
+            <li
+              key={step.id}
+              className={cn("flex items-center", !isLast && "flex-1")}
+              aria-current={isCurrent ? "step" : undefined}
             >
-              {state === "visited" ? <Check className="h-3.5 w-3.5" /> : null}
-            </span>
-            <span
+              <span
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors",
+                  state === "current" && "border-primary bg-primary text-primary-foreground",
+                  state === "visited" && "border-primary bg-primary/10 text-primary",
+                  state === "unvisited" && "border-border bg-background text-muted-foreground",
+                )}
+              >
+                {state === "visited" ? <Check className="h-4 w-4" /> : index + 1}
+              </span>
+              {!isLast && (
+                <span
+                  className={cn(
+                    "mx-2 h-0.5 flex-1 rounded-full transition-colors",
+                    state === "visited" ? "bg-primary" : "bg-border",
+                  )}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      <ol className="mt-2 flex">
+        {steps.map((step) => {
+          const isCurrent = step.id === current;
+          const isVisited = !isCurrent && visited.includes(step.id);
+
+          return (
+            <li
+              key={step.id}
               className={cn(
-                "text-xs font-medium",
-                state === "unvisited" ? "text-muted-foreground" : "text-foreground",
+                "flex-1 px-1 text-center text-xs font-medium first:text-left last:text-right",
+                isCurrent || isVisited ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {step.label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

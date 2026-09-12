@@ -8,6 +8,7 @@ import {
   setPersonalDetails,
   setPreferences,
 } from "./form-data-slice";
+import { startNewFlow } from "./progress-slice";
 
 export type ConfirmationsState = Record<DataStepId, boolean>;
 
@@ -45,7 +46,8 @@ const confirmationsSlice = createSlice({
       })
       .addCase(setDocuments, (state) => {
         state.documents = false;
-      });
+      })
+      .addCase(startNewFlow, () => initialState);
   },
 });
 
