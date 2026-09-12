@@ -27,11 +27,18 @@ on:
     - cron: "0 6 * * *"
 
 jobs:
-  # ---- CI gate: typecheck/test/format for the toolkit itself ----
+  # ---- CI gate: typecheck/test/format + this toolkit's own process guards ----
   # Credential-free by design (see the package's own README) — runs on
-  # every PR/push touching this package, no secrets required.
+  # every PR/push touching this package, no secrets required. The two
+  # "process" steps at the end enforce this codebase's own domain rules
+  # mechanically, rather than relying on code review alone:
+  #   - token safety: a migrationToken/accessToken must never reach a
+  #     log(...) call (see the doc comment on RepoConfig in config.ts).
+  #   - CLI safety: the environment-chain guards (adjacency, direction
+  #     enforcement, --from/--to required) must keep failing loudly with
+  #     fake credentials, before any real network call is attempted.
   ci:
-    name: "prismic-migration: typecheck / test / format"
+    name: "prismic-migration: typecheck / test / format / process guards"
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     permissions:
@@ -66,6 +73,14 @@ jobs:
       - name: Test
         working-directory: packages/prismic-migration
         run: pnpm run test
+
+      - name: Migration-token leak guard
+        working-directory: packages/prismic-migration
+        run: pnpm run check:token-safety
+
+      - name: CLI process safety check
+        working-directory: packages/prismic-migration
+        run: pnpm run check:cli-safety
 
   # ---- Scheduled / on-demand verify check against real environments ----
   # Requires this repo's Actions secrets to actually configure an

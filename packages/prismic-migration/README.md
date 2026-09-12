@@ -507,9 +507,21 @@ doesn't log a per-document title the way `phase2.created`/`.updated` do.
 [`.github/workflows/prismic-migration.yml`](../../.github/workflows/prismic-migration.yml)
 has two jobs:
 
-- **`ci`** — typecheck, test, and format-check this package, on every PR
-  or push that touches `packages/prismic-migration/**`. Credential-free,
-  runs with no setup.
+- **`ci`** — typecheck, test, format-check, and two process-specific
+  guards for this package, on every PR or push that touches
+  `packages/prismic-migration/**`. Credential-free, runs with no setup:
+  - `pnpm run check:token-safety` — fails if any `log(...)` call
+    anywhere in `src/` references `migrationToken`/`accessToken`,
+    mechanically enforcing the rule (repeated throughout this codebase's
+    own comments) that a token must never reach a log line. See
+    [`scripts/check-token-safety.mjs`](scripts/check-token-safety.mjs).
+  - `pnpm run check:cli-safety` — runs the CLI against fake credentials
+    and asserts that missing `--from`/`--to`, a non-adjacent pair, an
+    unconfigured environment, and each direction-enforcement rule
+    (`migrate` vs `backsync`) all still fail loudly with the expected
+    message, before any real network call — the automated form of the
+    manual checks used to validate the environment-chain refactor. See
+    [`scripts/check-cli-safety.sh`](scripts/check-cli-safety.sh).
 - **`verify`** — runs `pnpm cli verify --from=<env> --to=<env>` on a
   daily schedule (06:00 UTC) and via manual dispatch (pick the pair from
   the Actions tab). **Requires repo secrets to do anything** — until

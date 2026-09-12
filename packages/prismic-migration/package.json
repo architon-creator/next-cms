@@ -13,7 +13,9 @@
     "backfill-asset-mapping": "tsx src/tools/backfill-asset-mapping.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:token-safety": "node scripts/check-token-safety.mjs",
+    "check:cli-safety": "bash scripts/check-cli-safety.sh"
   },
   "engines": {
     "node": ">=18.17"
