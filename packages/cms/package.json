@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "types": "prismic-ts-codegen"
+    "types": "prismic-ts-codegen",
+    "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts"
   },
   "peerDependencies": {
     "react": "^18.3.1"
@@ -24,6 +25,7 @@
     "next": "^15.5.25",
     "prismic": "^1.16.0",
     "prismic-ts-codegen": "^0.1.20",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.4"
   }
 }

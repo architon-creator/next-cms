@@ -200,6 +200,9 @@ importers:
       prismic-ts-codegen:
         specifier: ^0.1.20
         version: 0.1.30(@prismicio/client@7.22.0)(@prismicio/types@0.2.9)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.13
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
