@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { AuthNav } from "./auth-nav";
+import { LanguageSwitcher } from "./language-switcher";
 
 export function Header() {
   const t = useTranslations("Header");
@@ -26,6 +27,7 @@ export function Header() {
           ))}
         </nav>
 
+        <LanguageSwitcher />
         <AuthNav />
       </div>
     </header>
