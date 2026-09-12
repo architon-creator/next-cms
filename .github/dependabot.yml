@@ -1,0 +1,42 @@
+version: 2
+updates:
+  # Covers the whole pnpm workspace (root + apps/* + packages/*) from one
+  # entry — Dependabot detects pnpm-workspace.yaml and updates pnpm-lock.yaml
+  # accordingly, the same way it does for npm/yarn workspaces.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      # Bundles routine minor/patch bumps into one PR instead of dozens.
+      # next/react/react-dom are deliberately excluded so they always get
+      # their own PR for review, even on a patch bump — they're the app's
+      # core runtime.
+      non-major:
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
