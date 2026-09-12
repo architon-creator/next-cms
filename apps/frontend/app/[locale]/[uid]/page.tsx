@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "cms";
 
 import { cn } from "@/lib/utils";
+import { formatLabel } from "@/lib/format-label";
 
 type PageProps = { params: Promise<{ locale: string; uid: string }> };
 
@@ -78,7 +79,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const client = createClient();
   const page = await client.getByUID("content_page", uid).catch(() => notFound());
 
-  return { title: page.uid };
+  // Falls back to the slug when editors haven't filled in the Meta tab yet.
+  const title = page.data.meta_title || formatLabel(page.uid!);
+  const description = page.data.meta_description || undefined;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/${page.uid}` },
+    openGraph: { title, description, type: "article" },
+  };
 }
 
 export async function generateStaticParams() {

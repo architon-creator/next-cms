@@ -1,11 +1,13 @@
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PrismicPreview } from "@prismicio/next";
 
 import { repositoryName } from "cms";
 
 import { routing } from "@/i18n/routing";
+import { getSiteUrl } from "@/lib/site-url";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { ReduxProvider } from "@/components/redux-provider";
@@ -19,6 +21,21 @@ type LocaleLayoutProps = {
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "HomePage" });
+
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    title: { default: t("title"), template: `%s | ${t("title")}` },
+    description: t("description"),
+  };
 }
 
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {

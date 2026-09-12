@@ -2,6 +2,22 @@
   "format": "custom",
   "id": "content_page",
   "json": {
+    "Meta": {
+      "meta_title": {
+        "config": {
+          "label": "Meta Title",
+          "placeholder": "Title shown in search results and browser tabs"
+        },
+        "type": "Text"
+      },
+      "meta_description": {
+        "config": {
+          "label": "Meta Description",
+          "placeholder": "Summary shown in search results (~150-160 characters)"
+        },
+        "type": "Text"
+      }
+    },
     "Heading": {
       "uid": {
         "config": {

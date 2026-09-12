@@ -179,6 +179,28 @@ type ContentPageDocumentDataFooterSlice = AccordionSlice | BreadcrumbsSlice | Bu
  */
 interface ContentPageDocumentData {
 	/**
+	 * Meta Title field in *Content Page*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Title shown in search results and browser tabs
+	 * - **API ID Path**: content_page.meta_title
+	 * - **Tab**: Meta
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+
+	/**
+	 * Meta Description field in *Content Page*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Summary shown in search results (~150-160 characters)
+	 * - **API ID Path**: content_page.meta_description
+	 * - **Tab**: Meta
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+
+	/**
 	 * Breadcrumb Level 1 Label field in *Content Page*
 	 *
 	 * - **Field Type**: Text

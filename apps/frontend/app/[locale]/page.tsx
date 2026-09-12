@@ -7,7 +7,10 @@ import { SearchSection } from "@/components/search-section";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("HomePage");
-  return { title: t("title") };
+  // No `title` here: the root layout's default title *is* this site title,
+  // and the layout's "%s | <site title>" template would otherwise double it
+  // up (e.g. "Site | Site") for this one page.
+  return { description: t("description") };
 }
 
 export default async function HomePage() {
