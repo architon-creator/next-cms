@@ -1,6 +1,6 @@
 import * as prismic from "@prismicio/client";
-import { prismicConfig } from "./config.js";
-import { getRepositoryName } from "./repository.js";
+import { prismicConfig } from "./config";
+import { getRepositoryName } from "./repository";
 
 type CreatePrismicClientOptions = prismic.ClientConfig & {
   repositoryName?: string;

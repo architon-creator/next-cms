@@ -1,4 +1,4 @@
-import { prismicConfig } from "./config.js";
+import { prismicConfig } from "./config";
 
 export function getRepositoryName() {
     if (!prismicConfig.repositoryName) {

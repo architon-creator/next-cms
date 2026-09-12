@@ -6,3 +6,5 @@
 
 export * from "./slices";
 export * from "./prismicio";
+export * from "./prismic/label-contract";
+export * from "./services/label-service";
