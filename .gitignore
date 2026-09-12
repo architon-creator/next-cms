@@ -33,7 +33,3 @@ next-env.d.ts
 
 # build output (apps/*)
 apps/*/dist
-
-# demo output from packages/cms's prismic-model-generate script (regenerable,
-# never pushed anywhere) -- not the real content model (packages/cms/customtypes/)
-packages/cms/generated-customtypes/

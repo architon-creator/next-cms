@@ -1,0 +1,35 @@
+{
+  "id": "login_page",
+  "label": "Login Page",
+  "format": "custom",
+  "repeatable": false,
+  "status": true,
+  "json": {
+    "Main": {
+      "title": {
+        "type": "Text",
+        "config": {
+          "label": "Title"
+        }
+      },
+      "description": {
+        "type": "Text",
+        "config": {
+          "label": "Description"
+        }
+      },
+      "cardTitle": {
+        "type": "Text",
+        "config": {
+          "label": "Card Title"
+        }
+      },
+      "cardDescription": {
+        "type": "Text",
+        "config": {
+          "label": "Card Description"
+        }
+      }
+    }
+  }
+}

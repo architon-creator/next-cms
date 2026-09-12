@@ -1,0 +1,47 @@
+{
+  "id": "login_form",
+  "label": "Login Form",
+  "format": "custom",
+  "repeatable": false,
+  "status": true,
+  "json": {
+    "Main": {
+      "email": {
+        "type": "Text",
+        "config": {
+          "label": "Email"
+        }
+      },
+      "password": {
+        "type": "Text",
+        "config": {
+          "label": "Password"
+        }
+      },
+      "submit": {
+        "type": "Text",
+        "config": {
+          "label": "Submit"
+        }
+      },
+      "submitting": {
+        "type": "Text",
+        "config": {
+          "label": "Submitting"
+        }
+      },
+      "loginFailed": {
+        "type": "Text",
+        "config": {
+          "label": "Login Failed"
+        }
+      },
+      "genericError": {
+        "type": "Text",
+        "config": {
+          "label": "Generic Error"
+        }
+      }
+    }
+  }
+}

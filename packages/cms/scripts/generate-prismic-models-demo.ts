@@ -13,11 +13,14 @@ import { fileURLToPath } from "node:url";
  * next-intl message file) and turns each top-level namespace
  * (Header, Footer, HomePage, ...) into one Prismic custom type — one flat
  * Text field per string key. It exists to demonstrate the underlying
- * concept end-to-end in this repo, not to manage this repo's real content
- * model: it writes to its own generated-customtypes/ folder here in
- * packages/cms, never to packages/cms/customtypes/ (which holds the
- * actual "content_page" type apps/frontend already depends on) — so
- * running this can never silently overwrite real content-model state.
+ * concept end-to-end in this repo.
+ *
+ * Writes into the real customtypes/ folder as customtypes/<id>/index.json
+ * — the same folder-per-type shape "content_page" already uses — so
+ * these are immediately ready to push with the Prismic CLI. None of the
+ * generated ids (header, footer, home_page, login_page, login_form,
+ * auth_nav) collide with the real "content_page" type, so this only ever
+ * adds sibling folders alongside it.
  */
 
 type PrismicField = { type: "Text"; config: { label: string } };
@@ -38,7 +41,7 @@ const messagesPath = path.resolve(
   scriptDirectory,
   "../../../apps/frontend/messages/en.json",
 );
-const outputRoot = path.resolve(scriptDirectory, "../generated-customtypes");
+const outputRoot = path.resolve(scriptDirectory, "../customtypes");
 
 function main() {
   const messages = JSON.parse(readFileSync(messagesPath, "utf8")) as Record<
