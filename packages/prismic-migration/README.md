@@ -502,6 +502,42 @@ detected too (direction shown as backward), though its synced documents
 aren't currently itemized the same way `migrate`'s are, since `backsync`
 doesn't log a per-document title the way `phase2.created`/`.updated` do.
 
+## CI: GitHub Actions
+
+[`.github/workflows/prismic-migration.yml`](../../.github/workflows/prismic-migration.yml)
+has two jobs:
+
+- **`ci`** — typecheck, test, and format-check this package, on every PR
+  or push that touches `packages/prismic-migration/**`. Credential-free,
+  runs with no setup.
+- **`verify`** — runs `pnpm cli verify --from=<env> --to=<env>` on a
+  daily schedule (06:00 UTC) and via manual dispatch (pick the pair from
+  the Actions tab). **Requires repo secrets to do anything** — until
+  they're set, it posts a clear "skipped, not configured" note to the job
+  summary and exits 0 rather than failing every day for a pair nobody's
+  wired up:
+
+  | Secret                        | Maps to               |
+  | ----------------------------- | --------------------- |
+  | `PRISMIC_DEV_REPOSITORY`      | `DEV_REPOSITORY`      |
+  | `PRISMIC_DEV_ACCESS_TOKEN`    | `DEV_ACCESS_TOKEN`    |
+  | `PRISMIC_DEV_MIGRATION_TOKEN` | `DEV_MIGRATION_TOKEN` |
+  | `PRISMIC_SIT_REPOSITORY`      | `SIT_REPOSITORY`      |
+  | `PRISMIC_SIT_ACCESS_TOKEN`    | `SIT_ACCESS_TOKEN`    |
+  | `PRISMIC_SIT_MIGRATION_TOKEN` | `SIT_MIGRATION_TOKEN` |
+
+  Add whichever pair's secrets you want checked (e.g. add `PRISMIC_UAT_*`
+  too, and dispatch with `from_env: sit`, `to_env: uat`, once that pair
+  exists). The job checks out a fresh clone each run — it does **not**
+  have access to whatever `data/*-mapping.json` your local machine has,
+  so it's only meaningful once your mapping files are themselves
+  committed or otherwise restored in CI; if they're gitignored locally,
+  decide how this job should get them before relying on its result.
+
+  As with everywhere else in this codebase: `*_MIGRATION_TOKEN` is a
+  write-scoped permanent token — store it only as a GitHub Actions
+  secret, never as a plain repo/environment variable.
+
 ## Testing
 
 ```bash

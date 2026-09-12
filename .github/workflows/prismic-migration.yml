@@ -1,0 +1,139 @@
+name: prismic-migration
+
+on:
+  pull_request:
+    paths:
+      - "packages/prismic-migration/**"
+  push:
+    branches: [master]
+    paths:
+      - "packages/prismic-migration/**"
+  # Lets anyone trigger a verify check on demand from the Actions tab,
+  # picking which adjacent pair to check without editing this file.
+  workflow_dispatch:
+    inputs:
+      from_env:
+        description: "Lower environment (e.g. dev)"
+        required: true
+        default: "dev"
+      to_env:
+        description: "Upper environment (e.g. sit)"
+        required: true
+        default: "sit"
+  # Daily health check that the two environments are still in sync —
+  # catches drift (a manual edit in sit, a deleted document/asset)
+  # between real migration runs, not just right after one.
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  # ---- CI gate: typecheck/test/format for the toolkit itself ----
+  # Credential-free by design (see the package's own README) — runs on
+  # every PR/push touching this package, no secrets required.
+  ci:
+    name: "prismic-migration: typecheck / test / format"
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: |
+          npx prettier --check \
+            "packages/prismic-migration/{src,test,tools}/**/*.{ts,html}" \
+            "packages/prismic-migration/*.md" \
+            "packages/prismic-migration/package.json"
+
+      - name: Type check
+        working-directory: packages/prismic-migration
+        run: pnpm run typecheck
+
+      - name: Test
+        working-directory: packages/prismic-migration
+        run: pnpm run test
+
+  # ---- Scheduled / on-demand verify check against real environments ----
+  # Requires this repo's Actions secrets to actually configure an
+  # environment pair — see the "Configuring this workflow" section in
+  # packages/prismic-migration/README.md. Until those secrets exist,
+  # this job reports that plainly and exits 0 rather than failing the
+  # whole workflow every day for a pair nobody has wired up yet.
+  verify:
+    name: "prismic-migration: verify"
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    permissions:
+      contents: read
+    env:
+      FROM_ENV: ${{ github.event.inputs.from_env || 'dev' }}
+      TO_ENV: ${{ github.event.inputs.to_env || 'sit' }}
+      DEV_REPOSITORY: ${{ secrets.PRISMIC_DEV_REPOSITORY }}
+      DEV_ACCESS_TOKEN: ${{ secrets.PRISMIC_DEV_ACCESS_TOKEN }}
+      DEV_MIGRATION_TOKEN: ${{ secrets.PRISMIC_DEV_MIGRATION_TOKEN }}
+      SIT_REPOSITORY: ${{ secrets.PRISMIC_SIT_REPOSITORY }}
+      SIT_ACCESS_TOKEN: ${{ secrets.PRISMIC_SIT_ACCESS_TOKEN }}
+      SIT_MIGRATION_TOKEN: ${{ secrets.PRISMIC_SIT_MIGRATION_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check required secrets are configured
+        id: guard
+        working-directory: packages/prismic-migration
+        run: |
+          if [ -z "$DEV_REPOSITORY" ] || [ -z "$DEV_MIGRATION_TOKEN" ] || [ -z "$SIT_REPOSITORY" ] || [ -z "$SIT_MIGRATION_TOKEN" ]; then
+            {
+              echo "# prismic-migration verify — skipped"
+              echo ""
+              echo "No PRISMIC_${FROM_ENV^^}_* / PRISMIC_${TO_ENV^^}_* secrets are configured on this repo yet."
+              echo "See packages/prismic-migration/README.md and this workflow's header comment for what to add."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run verify
+        if: steps.guard.outputs.configured == 'true'
+        working-directory: packages/prismic-migration
+        # Mirrors data/mapping.json etc. living in the checkout — a real
+        # setup should instead restore these from wherever the migration
+        # commands themselves ran (this job is read-only verification,
+        # not a place to also run migrate/backsync).
+        run: |
+          set -o pipefail
+          pnpm cli verify --from="$FROM_ENV" --to="$TO_ENV" 2>&1 | tee verify.log
+          {
+            echo "# prismic-migration verify: ${FROM_ENV} -> ${TO_ENV}"
+            echo ""
+            echo '```'
+            cat verify.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
