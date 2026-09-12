@@ -1,23 +1,23 @@
 {
-  "id": "auth_nav",
-  "label": "Auth Nav",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "auth_nav",
   "json": {
     "Main": {
       "signIn": {
-        "type": "Text",
         "config": {
           "label": "Sign In"
-        }
+        },
+        "type": "Text"
       },
       "signOut": {
-        "type": "Text",
         "config": {
           "label": "Sign Out"
-        }
+        },
+        "type": "Text"
       }
     }
-  }
+  },
+  "label": "Auth Nav",
+  "repeatable": false,
+  "status": true
 }

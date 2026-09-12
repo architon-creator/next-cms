@@ -106,23 +106,28 @@ function createHubModel(namespaces: string[]): HubModel {
 
   for (const namespace of namespaces) {
     const modelId = toModelId(namespace);
+    // Key order matches what `prismic pull` itself writes (confirmed by
+    // diffing a freshly-pulled file): alphabetical within `config`, and
+    // `config` before `type`. Without this, every pull re-sorts these
+    // keys and shows as a "changed" file in git even when nothing about
+    // the model actually changed remotely.
     linkFields[modelId] = {
-      type: "Link",
       config: {
+        customtypes: [modelId],
         label: toReadableLabel(namespace),
         select: "document",
-        customtypes: [modelId],
       },
+      type: "Link",
     };
   }
 
   return {
-    id: HUB_TYPE_ID,
-    label: "App Labels",
     format: "custom",
+    id: HUB_TYPE_ID,
+    json: { Main: linkFields },
+    label: "App Labels",
     repeatable: false,
     status: true,
-    json: { Main: linkFields },
   };
 }
 
@@ -141,19 +146,23 @@ function createModel(namespace: string, fields: Record<string, unknown>): Prismi
   const modelFields: Record<string, PrismicField> = {};
 
   for (const key of Object.keys(fields)) {
+    // Same key-order-matches-`prismic pull` reasoning as createHubModel
+    // above: config before type at the field level, and the top-level
+    // model keys below are alphabetical (format, id, json, label,
+    // repeatable, status) to match the CLI's own output byte-for-byte.
     modelFields[key] = {
-      type: "Text",
       config: { label: toReadableLabel(key) },
+      type: "Text",
     };
   }
 
   return {
-    id: toModelId(namespace),
-    label: toReadableLabel(namespace),
     format: "custom",
+    id: toModelId(namespace),
+    json: { Main: modelFields },
+    label: toReadableLabel(namespace),
     repeatable: false,
     status: true,
-    json: { Main: modelFields },
   };
 }
 

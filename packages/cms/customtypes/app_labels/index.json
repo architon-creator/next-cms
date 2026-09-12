@@ -1,71 +1,71 @@
 {
-  "id": "app_labels",
-  "label": "App Labels",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "app_labels",
   "json": {
     "Main": {
       "header": {
-        "type": "Link",
         "config": {
-          "label": "Header",
-          "select": "document",
           "customtypes": [
             "header"
-          ]
-        }
+          ],
+          "label": "Header",
+          "select": "document"
+        },
+        "type": "Link"
       },
       "footer": {
-        "type": "Link",
         "config": {
-          "label": "Footer",
-          "select": "document",
           "customtypes": [
             "footer"
-          ]
-        }
+          ],
+          "label": "Footer",
+          "select": "document"
+        },
+        "type": "Link"
       },
       "home_page": {
-        "type": "Link",
         "config": {
-          "label": "Home Page",
-          "select": "document",
           "customtypes": [
             "home_page"
-          ]
-        }
+          ],
+          "label": "Home Page",
+          "select": "document"
+        },
+        "type": "Link"
       },
       "login_page": {
-        "type": "Link",
         "config": {
-          "label": "Login Page",
-          "select": "document",
           "customtypes": [
             "login_page"
-          ]
-        }
+          ],
+          "label": "Login Page",
+          "select": "document"
+        },
+        "type": "Link"
       },
       "login_form": {
-        "type": "Link",
         "config": {
-          "label": "Login Form",
-          "select": "document",
           "customtypes": [
             "login_form"
-          ]
-        }
+          ],
+          "label": "Login Form",
+          "select": "document"
+        },
+        "type": "Link"
       },
       "auth_nav": {
-        "type": "Link",
         "config": {
-          "label": "Auth Nav",
-          "select": "document",
           "customtypes": [
             "auth_nav"
-          ]
-        }
+          ],
+          "label": "Auth Nav",
+          "select": "document"
+        },
+        "type": "Link"
       }
     }
-  }
+  },
+  "label": "App Labels",
+  "repeatable": false,
+  "status": true
 }

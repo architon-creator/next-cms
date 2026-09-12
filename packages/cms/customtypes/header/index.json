@@ -1,23 +1,23 @@
 {
-  "id": "header",
-  "label": "Header",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "header",
   "json": {
     "Main": {
       "brand": {
-        "type": "Text",
         "config": {
           "label": "Brand"
-        }
+        },
+        "type": "Text"
       },
       "home": {
-        "type": "Text",
         "config": {
           "label": "Home"
-        }
+        },
+        "type": "Text"
       }
     }
-  }
+  },
+  "label": "Header",
+  "repeatable": false,
+  "status": true
 }

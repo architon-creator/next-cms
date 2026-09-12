@@ -1,23 +1,23 @@
 {
-  "id": "home_page",
-  "label": "Home Page",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "home_page",
   "json": {
     "Main": {
       "title": {
-        "type": "Text",
         "config": {
           "label": "Title"
-        }
+        },
+        "type": "Text"
       },
       "description": {
-        "type": "Text",
         "config": {
           "label": "Description"
-        }
+        },
+        "type": "Text"
       }
     }
-  }
+  },
+  "label": "Home Page",
+  "repeatable": false,
+  "status": true
 }

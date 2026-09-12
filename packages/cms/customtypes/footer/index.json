@@ -1,29 +1,29 @@
 {
-  "id": "footer",
-  "label": "Footer",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "footer",
   "json": {
     "Main": {
       "copyright": {
-        "type": "Text",
         "config": {
           "label": "Copyright"
-        }
+        },
+        "type": "Text"
       },
       "home": {
-        "type": "Text",
         "config": {
           "label": "Home"
-        }
+        },
+        "type": "Text"
       },
       "signIn": {
-        "type": "Text",
         "config": {
           "label": "Sign In"
-        }
+        },
+        "type": "Text"
       }
     }
-  }
+  },
+  "label": "Footer",
+  "repeatable": false,
+  "status": true
 }

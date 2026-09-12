@@ -1,35 +1,35 @@
 {
-  "id": "login_page",
-  "label": "Login Page",
   "format": "custom",
-  "repeatable": false,
-  "status": true,
+  "id": "login_page",
   "json": {
     "Main": {
       "title": {
-        "type": "Text",
         "config": {
           "label": "Title"
-        }
+        },
+        "type": "Text"
       },
       "description": {
-        "type": "Text",
         "config": {
           "label": "Description"
-        }
+        },
+        "type": "Text"
       },
       "cardTitle": {
-        "type": "Text",
         "config": {
           "label": "Card Title"
-        }
+        },
+        "type": "Text"
       },
       "cardDescription": {
-        "type": "Text",
         "config": {
           "label": "Card Description"
-        }
+        },
+        "type": "Text"
       }
     }
-  }
+  },
+  "label": "Login Page",
+  "repeatable": false,
+  "status": true
 }
