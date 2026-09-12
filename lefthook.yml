@@ -1,0 +1,7 @@
+# https://lefthook.dev — installed into .git/hooks by `pnpm install`'s
+# `prepare` script (see root package.json).
+commit-msg:
+  commands:
+    lint-commit-message:
+      # lefthook passes the path to the commit message file as {1}.
+      run: pnpm exec commitlint --edit {1}

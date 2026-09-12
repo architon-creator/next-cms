@@ -7,6 +7,7 @@
     "node": ">=22.13"
   },
   "scripts": {
+    "prepare": "lefthook install",
     "dev": "pnpm --filter frontend run dev",
     "build": "pnpm --filter frontend run build",
     "start": "pnpm --filter frontend run start",
@@ -22,9 +23,12 @@
     "api:build": "pnpm --filter api run build"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.25",
     "eslint-config-prettier": "^10.1.8",
+    "lefthook": "^2.1.12",
     "prettier": "^3.9.6",
     "typescript": "^5.5.4"
   }
