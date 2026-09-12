@@ -2,7 +2,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getPrismicDocuments, type PrismicLabelDocument } from "@repo/cms/prismic";
-import { getPrismicLabelSource, loadPrismicLabelMessages } from "./label-source-loader";
+import {
+  getAllPrismicLabelSources,
+  getPrismicLabelSource,
+  loadPrismicLabelMessages,
+} from "./label-source-loader";
 
 type PrismicField =
   | {
@@ -53,7 +57,28 @@ if (isMainModule()) {
     writeModel(document.modelId, createPrismicModel(document));
   }
 
-  writeModel(labelSource.parentDocumentType, createIbeModel(documents));
+  // The parent ("ibe") is shared across every app in labelSources, not
+  // just the one --source targets here — always rebuild it from every
+  // source's documents, never just this run's. Regenerating it from a
+  // single source's documents would silently drop every other source's
+  // Link fields the next time this runs for that source (confirmed: this
+  // is exactly what was happening before this fix — running with
+  // --source=ibe-app was deleting top-app's Link fields from "ibe").
+  writeModel(labelSource.parentDocumentType, createIbeModel(getAllSourceDocuments("en")));
+}
+
+function getAllSourceDocuments(locale: string): PrismicLabelDocument[] {
+  const documentsByModelId = new Map<string, PrismicLabelDocument>();
+
+  for (const source of getAllPrismicLabelSources()) {
+    for (const document of getPrismicDocuments(
+      loadPrismicLabelMessages(source, locale),
+    )) {
+      documentsByModelId.set(document.modelId, document);
+    }
+  }
+
+  return [...documentsByModelId.values()];
 }
 
 export function createPrismicModel(document: PrismicLabelDocument): PrismicModel {
@@ -215,7 +240,8 @@ function createTextField(pathKey: string): PrismicField {
   const isPopularRoutesTitle =
     normalizedPath === "sections.popularroutes.title" ||
     normalizedPath === "sections.popular_routes.title";
-  const isLongText = !isSeoField && (isTitleField || isSubtitleField || isDescriptionField);
+  const isLongText =
+    !isSeoField && (isTitleField || isSubtitleField || isDescriptionField);
 
   if (isLongText) {
     return {
@@ -255,7 +281,9 @@ function toReadableLabel(value: string) {
 }
 
 function isMainModule() {
-  return process.argv[1] ? fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) : false;
+  return process.argv[1]
+    ? fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+    : false;
 }
 
 function readArgValue(name: string) {
@@ -268,5 +296,8 @@ function writeModel(modelId: string, model: PrismicModel) {
   const outputDirectory = path.join(outputRoot, modelId);
 
   mkdirSync(outputDirectory, { recursive: true });
-  writeFileSync(path.join(outputDirectory, "index.json"), `${JSON.stringify(model, null, 2)}\n`);
+  writeFileSync(
+    path.join(outputDirectory, "index.json"),
+    `${JSON.stringify(model, null, 2)}\n`,
+  );
 }
