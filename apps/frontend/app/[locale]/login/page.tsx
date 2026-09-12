@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui";
 
 import { LoginForm } from "./login-form";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("LoginPage");
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "LoginPage" });
   return { title: t("title") };
 }
 
-export default async function LoginPage() {
-  const t = await getTranslations("LoginPage");
+export default async function LoginPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "LoginPage" });
 
   return (
     <div className="mx-auto flex w-full max-w-[400px] flex-col gap-6 px-6 py-16">

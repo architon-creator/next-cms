@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui";
 
 import { ContactForm } from "./contact-form";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("ContactPage");
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  // Required in both this function and the page component below — next-intl
+  // needs setRequestLocale called wherever the locale is read for a route to
+  // stay statically rendered instead of forced dynamic.
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "ContactPage" });
   return { title: t("title") };
 }
 
-export default async function ContactPage() {
-  const t = await getTranslations("ContactPage");
+export default async function ContactPage({ params }: PageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "ContactPage" });
 
   return (
     <div className="mx-auto flex w-full max-w-[400px] flex-col gap-6 px-6 py-16">

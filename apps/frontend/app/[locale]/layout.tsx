@@ -29,6 +29,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  // Required here too (not just in the layout component below) — next-intl
+  // needs setRequestLocale called in every function that reads the locale
+  // for a route to stay statically rendered instead of forced dynamic.
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "HomePage" });
 
   return {
