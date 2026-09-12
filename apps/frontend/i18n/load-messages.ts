@@ -4,6 +4,7 @@ import {
   createLabelContractFromCustomTypes,
   createLabelService,
   getServerLabelSource,
+  tabNameToNamespace,
   type LabelSource,
 } from "cms";
 
@@ -37,14 +38,14 @@ const labelService = createLabelService<IBEMessages>({
 // en.json/ja.json) are PascalCase, e.g. "HomePage". The local-message path
 // already returns PascalCase keys as-is; only the Prismic path needs remapping,
 // so unrecognized keys are passed through unchanged.
-const namespaceByDocumentType: Record<string, string> = {
-  header: "Header",
-  footer: "Footer",
-  home_page: "HomePage",
-  login_page: "LoginPage",
-  login_form: "LoginForm",
-  auth_nav: "AuthNav",
-};
+//
+// Derived from localMessages via the same slugifier the custom-type generator
+// uses (generate-prismic-models-demo.ts's toModelId), rather than hand-listed,
+// so a new namespace added to en.json is picked up automatically the next
+// time the generator and this map both run off the same source of truth.
+const namespaceByDocumentType: Record<string, string> = Object.fromEntries(
+  Object.keys(localMessages.en).map((namespace) => [tabNameToNamespace(namespace), namespace]),
+);
 
 function toNamespacedMessages(messages: Record<string, unknown>): IBEMessages {
   return Object.fromEntries(
