@@ -166,33 +166,14 @@ jobs:
           docker push ${{ env.ECR_IMAGE_URI }}:${{ steps.resolve_tag.outputs.version_tag }}
         shell: bash
 
-      - name: Save image URI artifact
-        if: ${{ inputs.push_to_ecr }}
-        run: |
-          echo "${ECR_IMAGE_URI}:${{ steps.resolve_tag.outputs.version_tag }}" > image_uri.txt
-        shell: bash
-
-      - name: Save version tag artifact
-        if: ${{ inputs.push_to_ecr }}
-        run: |
-          echo "${{ steps.resolve_tag.outputs.version_tag }}" > version_tag.txt
-        shell: bash
-
-      - name: Upload image URI artifact
-        if: ${{ inputs.push_to_ecr }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-image-uri
-          path: image_uri.txt
-          retention-days: 1
-
-      - name: Upload version tag artifact
-        if: ${{ inputs.push_to_ecr }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APP_NAME }}-version-tag
-          path: version_tag.txt
-          retention-days: 1
-
-      # Issue 4 — post-build job removed (was a no-op: only downloaded artifact with no further steps).
-      # Re-add a post-build job here when there is a concrete need (e.g. smoke tests, notifications).
+      # The image URI and version tag used to be written to files and
+      # uploaded as artifacts here (image_uri.txt / version_tag.txt), for a
+      # post-build job to pick up. That job was removed as a no-op (it only
+      # downloaded the artifact with no further steps) and nothing else in
+      # this pipeline consumes them — every caller already gets version_tag
+      # directly via this workflow's own `outputs.version_tag`, and the
+      # image URI is trivially reconstructible from ecr_repository +
+      # aws_account_id + aws_region + version_tag, which callers already
+      # have. Re-add an equivalent artifact (or a proper `image_uri` job
+      # output, if a consumer needs the exact string) when there's a real
+      # need — e.g. smoke tests or a notification step reading it.
