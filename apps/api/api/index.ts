@@ -11,29 +11,36 @@
 // http/express before either is ever required).
 import "dotenv/config";
 import "../src/instrumentation.js";
-import type { IncomingMessage, ServerResponse } from "node:http";
+import { waitUntil } from "@vercel/functions";
 import { createApp } from "../src/app.js";
 import { flushOtel } from "../src/instrumentation.js";
 
 const app = createApp();
 
-// A plain `export default createApp()` (an Express app is just a request
-// handler function) would let Vercel return the response and freeze the
-// execution environment immediately after — before the OTel batch exporter's
-// async HTTP call to the OTLP endpoint has actually completed. Wrapping it
-// so this async function itself is the handler means Vercel awaits us, and
-// we don't resolve until the response has finished AND the resulting spans
-// have been flushed out.
-export default async function handler(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
-  await new Promise<void>((resolve) => {
+// Wrapping the Express app (rather than exporting it directly) is what
+// lets us hook the OTel flush in. Awaiting our own promise here would NOT
+// be enough on its own — Vercel finalizes an invocation's logs and freezes
+// the execution environment based on when the HTTP response itself
+// finishes, not on when the exported handler's returned promise resolves,
+// so any work started after `res.finish` was silently getting cut off
+// mid-export even inside an awaited async handler (confirmed via
+// OTEL_DEBUG diagnostics: spans were queued but the export's success/
+// failure was never logged). `waitUntil` is Vercel's supported mechanism
+// for exactly this: it tells the runtime to keep the invocation alive
+// until the given promise settles, even after the response has been sent.
+export default function handler(
+  req: Parameters<typeof app>[0],
+  res: Parameters<typeof app>[1],
+): void {
+  const flushed = new Promise<void>((resolve) => {
     res.once("finish", resolve);
     res.once("close", resolve);
     app(req, res);
-  });
+  }).then(() => flushOtel());
 
-  await flushOtel();
-  console.log("[otel-debug] flushOtel() resolved");
+  waitUntil(
+    flushed.then(() => {
+      console.log("[otel-debug] flushOtel() resolved via waitUntil");
+    }),
+  );
 }
