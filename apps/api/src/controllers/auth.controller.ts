@@ -4,7 +4,11 @@ import type { LoginRequest, LoginResponse } from "../types/auth.js";
 import { SESSION_TTL_SECONDS, signSessionToken } from "../lib/tokens.js";
 import { findUserById, toPublicUser, verifyCredentials } from "../lib/users.js";
 
-const logger = createLogger("api/auth/login");
+// Named distinctly from apps/frontend's own "frontend/api/auth/login"
+// logger — the frontend's login route proxies to this handler, so both
+// appear in the same trace, and an identical logger name would make them
+// indistinguishable in Jaeger's log.logger tag / the trace timeline.
+const logger = createLogger("backend/api/auth/login");
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body as Partial<LoginRequest>;
@@ -18,7 +22,7 @@ export async function login(req: Request, res: Response) {
     // Never log the email/password — only the outcome. Deliberately
     // identical for "no such user" and "wrong password" — a distinct
     // message would turn this endpoint into an account enumerator.
-    logger.warn("Login rejected");
+    logger.warn("Backend: login rejected");
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
@@ -28,7 +32,7 @@ export async function login(req: Request, res: Response) {
     user: toPublicUser(user),
   };
 
-  logger.info("Login succeeded", { userId: user.id });
+  logger.info("Backend: login succeeded", { userId: user.id });
 
   res.json(body);
 }

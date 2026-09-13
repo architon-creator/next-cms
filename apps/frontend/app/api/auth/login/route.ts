@@ -3,7 +3,11 @@ import { createLogger } from "otel";
 
 import { apiBaseUrl, SESSION_COOKIE, type SessionUser } from "@/lib/session";
 
-const logger = createLogger("api/auth/login");
+// Named distinctly from apps/api's own "api/auth/login" logger — this route
+// and the API's login handler both appear in the same trace (this route
+// proxies to it), so an identical logger name makes them indistinguishable
+// in Jaeger's log.logger tag / the trace timeline.
+const logger = createLogger("frontend/api/auth/login");
 
 type ApiLoginResponse = {
   token: string;
@@ -45,7 +49,7 @@ export async function POST(request: Request) {
   } catch (err) {
     // The API being down is an infrastructure problem, not a bad password —
     // 502 keeps the two distinguishable in logs and in the form's messaging.
-    logger.error("Login API unreachable", { apiBaseUrl: apiBaseUrl() }, err);
+    logger.error("Frontend: login API unreachable", { apiBaseUrl: apiBaseUrl() }, err);
     return NextResponse.json(
       { error: "Could not reach the login service" },
       { status: 502 },
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
   if (!apiResponse.ok) {
     const failure = await apiResponse.json().catch(() => ({}));
     // Never log the email/password here — only the outcome.
-    logger.warn("Login rejected", { status: apiResponse.status });
+    logger.warn("Frontend: login rejected by API", { status: apiResponse.status });
     return NextResponse.json(
       { error: (failure as { error?: string }).error || "Login failed" },
       { status: apiResponse.status },
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
   }
 
   const { token, expiresIn, user } = (await apiResponse.json()) as ApiLoginResponse;
-  logger.info("Login succeeded", { userId: user.id });
+  logger.info("Frontend: login succeeded", { userId: user.id });
 
   const response = NextResponse.json({ user });
   response.cookies.set(SESSION_COOKIE, token, {
