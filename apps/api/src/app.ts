@@ -3,6 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { authRouter } from "./routes/auth.routes.js";
 import { cartRouter } from "./routes/cart.routes.js";
 import { flightRouter } from "./routes/flight.routes.js";
+import { otelDemoRouter } from "./routes/otel-demo.routes.js";
 
 export function createApp() {
   const app = express();
@@ -19,6 +20,8 @@ export function createApp() {
   app.use("/auth", authRouter);
   app.use("/cart", cartRouter);
   app.use("/flights", flightRouter);
+  // OTel SSR/CSR tracing demo — see apps/frontend/app/[locale]/otel-demo.
+  app.use("/demo/items", otelDemoRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ error: "Not found" });
