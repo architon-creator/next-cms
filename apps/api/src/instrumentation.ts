@@ -20,6 +20,14 @@ import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
+import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+
+// OTel swallows export failures (auth errors, network errors, wrong
+// endpoint) silently unless diagnostics are turned on — this surfaces them
+// in stderr/Vercel logs instead of a mysterious "no traces arrived".
+if (process.env.OTEL_DEBUG === "true") {
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+}
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
