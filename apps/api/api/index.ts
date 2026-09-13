@@ -35,4 +35,5 @@ export default async function handler(
   });
 
   await flushOtel();
+  console.log("[otel-debug] flushOtel() resolved");
 }
