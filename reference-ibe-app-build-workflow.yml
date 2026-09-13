@@ -50,6 +50,7 @@ jobs:
     secrets:
       NEXUZ_SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
       ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     with:
       app_name: ibe-app
       app_path: apps/ibe-app

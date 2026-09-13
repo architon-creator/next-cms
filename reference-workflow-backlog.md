@@ -16,6 +16,15 @@ struck through with the commit that fixed them; open items are next up.
   name regardless of branch~~ — added `resolve_deploy_env` to split
   develop-*/release-* deploy targets and Environment name. Fixed in
   `b559264`.
+- ~~No Turborepo caching, so the push-triggered `ci` run always fully
+  re-executes lint/type-check/test even when the code is byte-identical
+  to what the PR's run already validated~~ — added `TURBO_TOKEN`/
+  `TURBO_TEAM` env vars to `reusable-ci.yml` (declared the secret in its
+  `workflow_call.secrets` schema, forwarded from both callers). **Still
+  needs**: an actual Vercel access token created and stored as the
+  `TURBO_TOKEN` repo secret, and the Vercel team/account ID stored as
+  the `TURBO_TEAM` repo variable — the workflow change alone is a no-op
+  until those exist.
 
 ## Open — next up
 - **Dead artifact uploads in `reusable-app-build.yml`** — the "Save/

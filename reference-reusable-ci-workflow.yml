@@ -8,6 +8,10 @@ on:
         required: false
       ACCESSIBILITY_API_KEY:
         required: false
+      # Optional: enables Turborepo Remote Caching. Falls back to
+      # local-only caching (no error) if not provided.
+      TURBO_TOKEN:
+        required: false
     inputs:
       app_name:
         required: true
@@ -46,6 +50,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TURBO_TELEMETRY_DISABLED: "1"
+      # Enables Turborepo Remote Caching (Vercel's), so `pnpm turbo run
+      # lint check-types` / `test:coverage` below hit cache instead of
+      # fully re-executing on the push-triggered run when the code is
+      # byte-identical to what the PR's run already validated — see
+      # reference-workflow-backlog.md for the "why run CI twice" context.
+      # Requires the TURBO_TOKEN secret and TURBO_TEAM variable to be set
+      # on the repo (or org); harmless no-op if either is unset — Turbo
+      # just falls back to local-only caching.
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
       SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
     permissions:
