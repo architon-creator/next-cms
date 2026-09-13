@@ -99,23 +99,66 @@ jobs:
       ecr_repository: ${{ vars.IBE_ECR_REPO }}
       version_tag: ${{ needs.create_git_tag.outputs.version_tag }}
 
+  # Resolves the whole deploy target (GitHub Environment for the approval
+  # gate, ECS cluster, service, task family, container name) from ONE
+  # branch-type check, instead of repeating startsWith(github.ref_name, ...)
+  # separately for each of those five values — they'd otherwise risk
+  # drifting out of sync if a future edit touches one but not the others.
+  # develop-* deploys straight through (no reviewers on the "staging"
+  # Environment); release-* pauses for manual approval, since "production"
+  # has Required reviewers configured under Settings -> Environments.
+  resolve_deploy_env:
+    name: Resolve Deploy Target
+    needs: create_git_tag
+    if: ${{ startsWith(github.ref_name, 'develop-') || startsWith(github.ref_name, 'release-') }}
+    runs-on: ubuntu-latest
+    outputs:
+      gh_environment: ${{ steps.resolve.outputs.gh_environment }}
+      ecs_cluster: ${{ steps.resolve.outputs.ecs_cluster }}
+      ecs_service: ${{ steps.resolve.outputs.ecs_service }}
+      task_definition_family: ${{ steps.resolve.outputs.task_definition_family }}
+      container_name: ${{ steps.resolve.outputs.container_name }}
+    permissions:
+      contents: read
+    steps:
+      - name: Resolve environment-specific deploy target
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_NAME}" == release-* ]]; then
+            echo "gh_environment=production" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ vars.IBE_RELEASE_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ vars.IBE_RELEASE_SERVICE_NAME }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition_family=${{ vars.IBE_RELEASE_TASK_FAMILY }}" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ vars.IBE_RELEASE_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "gh_environment=staging" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ vars.IBE_DEVELOP_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ vars.IBE_DEVELOP_SERVICE_NAME }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition_family=${{ vars.IBE_DEVELOP_TASK_FAMILY }}" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ vars.IBE_DEVELOP_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     name: Deploy ibe-app to ECS
     needs:
       - build
       - create_git_tag
-    if: ${{ startsWith(github.ref_name, 'develop/') }}
+      - resolve_deploy_env
+    if: ${{ startsWith(github.ref_name, 'develop-') || startsWith(github.ref_name, 'release-') }}
     permissions:
       id-token: write
       contents: read
     uses: ./.github/workflows/reusable-app-deploy.yml
     with:
-      environment: production
+      environment: ${{ needs.resolve_deploy_env.outputs.gh_environment }}
       aws_region: ap-northeast-1
       aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
       ecr_repository: ${{ vars.IBE_ECR_REPO }}
-      ecs_cluster: ${{ vars.ECS_CLUSTER }}
-      ecs_service: ${{ vars.IBE_SERVICE_NAME }}
-      container_name: ${{ vars.CONTAINER_NAME }}
-      task_definition_family: ${{ vars.IBE_TASK_FAMILY }}
+      ecs_cluster: ${{ needs.resolve_deploy_env.outputs.ecs_cluster }}
+      ecs_service: ${{ needs.resolve_deploy_env.outputs.ecs_service }}
+      container_name: ${{ needs.resolve_deploy_env.outputs.container_name }}
+      task_definition_family: ${{ needs.resolve_deploy_env.outputs.task_definition_family }}
       image_tag: ${{ needs.create_git_tag.outputs.version_tag }}
