@@ -17,7 +17,7 @@
 // fetch call already started — no custom extraction code needed.
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
@@ -25,9 +25,14 @@ const sdk = new NodeSDK({
   resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? "next-cms-api",
   }),
-  // Defaults to http://localhost:4317 (the otel-collector's gRPC receiver —
-  // see docker-compose.yml at the repo root) via OTEL_EXPORTER_OTLP_ENDPOINT
-  // if unset, same as the frontend's OTLPTraceExporter default.
+  // HTTP, not gRPC — matches the frontend's @vercel/otel exporter (which
+  // only speaks OTLP/HTTP) and, more importantly, matches any public
+  // managed OTLP endpoint (e.g. Grafana Cloud's gateway), which only
+  // accepts HTTP. Defaults to http://localhost:4318 (the otel-collector's
+  // HTTP receiver) via OTEL_EXPORTER_OTLP_ENDPOINT if unset; this exporter
+  // appends the standard /v1/traces suffix itself, and reads
+  // OTEL_EXPORTER_OTLP_HEADERS automatically for auth (e.g. Grafana
+  // Cloud's Basic auth token) — no extra config needed here.
   traceExporter: new OTLPTraceExporter(),
   instrumentations: [getNodeAutoInstrumentations()],
 });
