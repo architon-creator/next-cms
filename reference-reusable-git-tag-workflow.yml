@@ -32,7 +32,7 @@ on:
         default: false
     outputs:
       version_tag:
-        description: Branch semantic version tag created by this workflow.
+        description: Per-app, per-branch semantic version tag created by this workflow.
         value: ${{ jobs.create_tag.outputs.version_tag }}
 
 jobs:
@@ -72,6 +72,20 @@ jobs:
             SANITIZED_BRANCH="branch"
           fi
 
+          # Sanitized the same way as the branch name, and folded into every
+          # tag lookup/creation below alongside it. Previously `app_name`
+          # was accepted as an input but never actually used here, so the
+          # tag series was scoped by branch alone — two apps sharing a
+          # branch (e.g. both pushing to develop-p1/w1) would read each
+          # other's patch numbers and collide on the same next tag.
+          SANITIZED_APP="$(echo "${{ inputs.app_name }}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+          SANITIZED_APP="${SANITIZED_APP#-}"
+          SANITIZED_APP="${SANITIZED_APP%-}"
+
+          if [ -z "${SANITIZED_APP}" ]; then
+            SANITIZED_APP="app"
+          fi
+
           if [[ "${{ inputs.major_minor }}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
             TARGET_MAJOR="${BASH_REMATCH[1]}"
             TARGET_MINOR="${BASH_REMATCH[2]}"
@@ -80,8 +94,9 @@ jobs:
             TARGET_MINOR="0"
           fi
 
-          ESCAPED_BRANCH="$(printf '%s' "${SANITIZED_BRANCH}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
-          TAG_REGEX="^${ESCAPED_BRANCH}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
+          TAG_PREFIX="${SANITIZED_APP}-${SANITIZED_BRANCH}"
+          ESCAPED_PREFIX="$(printf '%s' "${TAG_PREFIX}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
+          TAG_REGEX="^${ESCAPED_PREFIX}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
 
           MAX_PATCH=0
           FOUND_SERIES=false
@@ -133,7 +148,7 @@ jobs:
           while IFS= read -r tag; do
             [ -n "${tag}" ] || continue
             update_max_patch "${tag}"
-          done < <(git tag -l "${SANITIZED_BRANCH}-*")
+          done < <(git tag -l "${TAG_PREFIX}-*")
 
           if [ "${{ inputs.include_ecr_tags }}" = "true" ]; then
             ECR_TAGS="$(aws ecr describe-images \
@@ -153,7 +168,7 @@ jobs:
             NEXT_PATCH=1
           fi
 
-          VERSION_TAG="${SANITIZED_BRANCH}-${TARGET_MAJOR}.${TARGET_MINOR}.${NEXT_PATCH}"
+          VERSION_TAG="${TAG_PREFIX}-${TARGET_MAJOR}.${TARGET_MINOR}.${NEXT_PATCH}"
           echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
