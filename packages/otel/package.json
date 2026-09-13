@@ -2,14 +2,24 @@
   "name": "otel",
   "version": "0.1.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./logging": "./src/logging.ts",
-    "./trace-context": "./src/trace-context.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./logging": {
+      "types": "./dist/logging.d.ts",
+      "default": "./dist/logging.js"
+    },
+    "./trace-context": {
+      "types": "./dist/trace-context.d.ts",
+      "default": "./dist/trace-context.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

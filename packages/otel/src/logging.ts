@@ -6,16 +6,16 @@
 // require-in-the-middle's CJS interception the way a Node SDK's auto-
 // instrumentation does — it throws "Cannot access 'require' before
 // initialization"). Import from here instead: `otel/logging`.
-export { getLogger } from "./logger";
-export { createLogger, getTraceContext } from "./log-helper";
-export type { Logger, LogLevel, LogAttributes } from "./log-helper";
+export { getLogger } from "./logger.js";
+export { createLogger, getTraceContext } from "./log-helper.js";
+export type { Logger, LogLevel, LogAttributes } from "./log-helper.js";
 export {
   runWithExternalCorrelationId,
   getExternalCorrelationId,
-} from "./external-correlation";
+} from "./external-correlation.js";
 export {
   runWithJourneyId,
   getJourneyId,
   tagJourneyStep,
   tagJourneyStatus,
-} from "./journey";
+} from "./journey.js";

@@ -1,6 +1,6 @@
 import { trace, SpanStatusCode } from "@opentelemetry/api";
-import { getExternalCorrelationId } from "./external-correlation";
-import { getJourneyId } from "./journey";
+import { getExternalCorrelationId } from "./external-correlation.js";
+import { getJourneyId } from "./journey.js";
 
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 

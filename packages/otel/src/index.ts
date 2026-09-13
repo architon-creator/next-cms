@@ -1,19 +1,19 @@
 import { registerOTel } from "@vercel/otel";
-import { initializeLoggerProvider } from "./logger";
+import { initializeLoggerProvider } from "./logger.js";
 
-export { getLogger } from "./logger";
-export { createLogger, getTraceContext } from "./log-helper";
-export type { Logger, LogLevel, LogAttributes } from "./log-helper";
+export { getLogger } from "./logger.js";
+export { createLogger, getTraceContext } from "./log-helper.js";
+export type { Logger, LogLevel, LogAttributes } from "./log-helper.js";
 export {
   runWithExternalCorrelationId,
   getExternalCorrelationId,
-} from "./external-correlation";
+} from "./external-correlation.js";
 export {
   runWithJourneyId,
   getJourneyId,
   tagJourneyStep,
   tagJourneyStatus,
-} from "./journey";
+} from "./journey.js";
 
 // NOTE: generateTraceparent (trace-context.ts) is intentionally NOT
 // re-exported here. This file's top-level import of @vercel/otel is
