@@ -154,15 +154,27 @@ jobs:
 
             echo "Using manual major_minor override: ${NEXT_MAJOR}.${NEXT_MINOR}"
           else
-            # Auto-detect the bump type from Conventional Commit messages
-            # pushed since the last tag in this series — a `BREAKING
-            # CHANGE:` footer or `!` before the `:` (e.g. `feat!:`) bumps
-            # major; a plain `feat:` bumps minor; everything else (fix/
-            # chore/docs/refactor/etc.) bumps patch. This is what makes
-            # major/minor mean something instead of being frozen forever:
-            # the bump type is a real decision, just read off commit intent
-            # instead of a changeset file, since PR titles are already
-            # enforced as Conventional Commits.
+            # Auto-detect the bump type from an explicit checkbox in the PR
+            # description — see .github/pull_request_template.md:
+            #
+            #   - [ ] major
+            #   - [ ] minor
+            #   - [ ] patch
+            #
+            # This depends on the repo's squash-merge default commit message
+            # being set to "Pull request title and description" (Settings ->
+            # General -> Pull Requests) — that's what actually puts the PR
+            # description's text into the squashed commit's body, which is
+            # all `git log` sees here. Without that setting, this step will
+            # always fail with "no bump type selected."
+            #
+            # Deliberately explicit rather than inferred from commit-message
+            # text (a prior version of this workflow scanned for `feat:`/
+            # `feat!:`/`BREAKING CHANGE:` patterns): checkbox intent can't be
+            # misparsed, and the build hard-fails instead of silently
+            # defaulting when nobody made a decision — the exact problem
+            # that led to major/minor being frozen at 0.0 in the first
+            # place.
             if [ -n "${LATEST_TAG}" ]; then
               COMMIT_RANGE="${LATEST_TAG}..HEAD"
             else
@@ -174,13 +186,26 @@ jobs:
 
             COMMIT_MESSAGES="$(git log ${COMMIT_RANGE} --pretty=format:'%B' 2>/dev/null || true)"
 
-            BUMP="patch"
-            if echo "${COMMIT_MESSAGES}" | grep -qE '^BREAKING CHANGE:'; then
+            CHECKED_MAJOR=0
+            CHECKED_MINOR=0
+            CHECKED_PATCH=0
+            echo "${COMMIT_MESSAGES}" | grep -qiE '^[-*] \[[xX]\] *major\b' && CHECKED_MAJOR=1
+            echo "${COMMIT_MESSAGES}" | grep -qiE '^[-*] \[[xX]\] *minor\b' && CHECKED_MINOR=1
+            echo "${COMMIT_MESSAGES}" | grep -qiE '^[-*] \[[xX]\] *patch\b' && CHECKED_PATCH=1
+            CHECKED_COUNT=$((CHECKED_MAJOR + CHECKED_MINOR + CHECKED_PATCH))
+
+            if [ "${CHECKED_COUNT}" -eq 0 ]; then
+              echo "::error::No version-bump checkbox (major/minor/patch) was checked in the PR description for this commit. Check exactly one before merging. (If this keeps failing, confirm the repo's squash-merge default commit message includes the PR description — Settings > General > Pull Requests.)"
+              exit 1
+            elif [ "${CHECKED_COUNT}" -gt 1 ]; then
+              echo "::error::More than one version-bump checkbox was checked in the PR description. Check exactly one (major, minor, or patch)."
+              exit 1
+            elif [ "${CHECKED_MAJOR}" -eq 1 ]; then
               BUMP="major"
-            elif echo "${COMMIT_MESSAGES}" | grep -qE '^[a-zA-Z]+(\([^)]*\))?!:'; then
-              BUMP="major"
-            elif echo "${COMMIT_MESSAGES}" | grep -qE '^feat(\([^)]*\))?:'; then
+            elif [ "${CHECKED_MINOR}" -eq 1 ]; then
               BUMP="minor"
+            else
+              BUMP="patch"
             fi
 
             case "${BUMP}" in
@@ -201,7 +226,7 @@ jobs:
                 ;;
             esac
 
-            echo "Detected bump type: ${BUMP} (from commits in ${COMMIT_RANGE})"
+            echo "Detected bump type: ${BUMP} (checkbox in commit body, range ${COMMIT_RANGE})"
           fi
 
           # ECR safety net: if an image is already published tagged with the
