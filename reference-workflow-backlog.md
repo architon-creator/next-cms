@@ -18,13 +18,16 @@ struck through with the commit that fixed them; open items are next up.
   `b559264`.
 - ~~No Turborepo caching, so the push-triggered `ci` run always fully
   re-executes lint/type-check/test even when the code is byte-identical
-  to what the PR's run already validated~~ — added `TURBO_TOKEN`/
-  `TURBO_TEAM` env vars to `reusable-ci.yml` (declared the secret in its
-  `workflow_call.secrets` schema, forwarded from both callers). **Still
-  needs**: an actual Vercel access token created and stored as the
-  `TURBO_TOKEN` repo secret, and the Vercel team/account ID stored as
-  the `TURBO_TEAM` repo variable — the workflow change alone is a no-op
-  until those exist.
+  to what the PR's run already validated~~ — chose the GitHub Actions
+  cache over Turborepo Remote Caching (Vercel's) to avoid needing a new
+  third-party account. Added an `actions/cache@v4` step in
+  `reusable-ci.yml` caching `.turbo` (Turbo's local cache dir), keyed on
+  `github.sha` with an OS-only `restore-keys` fallback. No new secrets/
+  variables needed — works as soon as this merges. Weaker than Remote
+  Caching (scoped per-runner, subject to GitHub's cache eviction, exact
+  key won't match across a squash-merge's new SHA — relies on the
+  `restore-keys` prefix pulling in *some* prior `.turbo` dir that
+  happens to contain matching task hashes), but zero setup cost.
 
 ## Open — next up
 - **Dead artifact uploads in `reusable-app-build.yml`** — the "Save/

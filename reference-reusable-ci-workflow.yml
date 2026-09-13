@@ -8,10 +8,6 @@ on:
         required: false
       ACCESSIBILITY_API_KEY:
         required: false
-      # Optional: enables Turborepo Remote Caching. Falls back to
-      # local-only caching (no error) if not provided.
-      TURBO_TOKEN:
-        required: false
     inputs:
       app_name:
         required: true
@@ -50,16 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TURBO_TELEMETRY_DISABLED: "1"
-      # Enables Turborepo Remote Caching (Vercel's), so `pnpm turbo run
-      # lint check-types` / `test:coverage` below hit cache instead of
-      # fully re-executing on the push-triggered run when the code is
-      # byte-identical to what the PR's run already validated — see
-      # reference-workflow-backlog.md for the "why run CI twice" context.
-      # Requires the TURBO_TOKEN secret and TURBO_TEAM variable to be set
-      # on the repo (or org); harmless no-op if either is unset — Turbo
-      # just falls back to local-only caching.
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
       SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
     permissions:
@@ -82,6 +68,27 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
+
+      # Turbo hashes task inputs by file content, so a restored .turbo dir
+      # from an earlier run lets it serve "lint"/"check-types"/
+      # "test:coverage" from cache instead of fully re-executing — most
+      # useful for the push-triggered run right after a clean PR merge,
+      # where the code is often byte-identical to what the PR's own CI
+      # run already validated. Chose the GitHub Actions cache over
+      # Turborepo Remote Caching (Vercel's) to avoid a third-party account
+      # dependency — weaker (scoped per-runner, subject to GitHub's cache
+      # eviction, exact key won't match across a squash-merge's new SHA)
+      # but zero extra accounts/secrets to manage. restore-keys' OS-only
+      # prefix intentionally falls back to the nearest previous cache;
+      # Turbo's own internal file-hash check still catches anything that
+      # actually changed.
+      - name: Cache Turbo build outputs
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.aws_oidc_role_arn != '' && inputs.aws_region != '' }}
