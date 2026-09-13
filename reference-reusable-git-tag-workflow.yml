@@ -25,7 +25,14 @@ on:
       major_minor:
         required: false
         type: string
-        default: '0.0'
+        default: ''
+        # Manual override escape hatch. Leave unset (the default) to have
+        # this workflow derive the bump itself from Conventional Commit
+        # messages pushed since the last tag in this app+branch series —
+        # see the "Compute next semantic tag" step below. Only pass this
+        # when you need to force a specific MAJOR.MINOR outside what
+        # commit messages alone would produce (e.g. seeding a brand new
+        # series, or a deliberate major bump that wasn't marked as such).
       force_update:
         required: false
         type: boolean
@@ -86,56 +93,21 @@ jobs:
             SANITIZED_APP="app"
           fi
 
-          if [[ "${{ inputs.major_minor }}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
-            TARGET_MAJOR="${BASH_REMATCH[1]}"
-            TARGET_MINOR="${BASH_REMATCH[2]}"
-          else
-            TARGET_MAJOR="0"
-            TARGET_MINOR="0"
-          fi
-
           TAG_PREFIX="${SANITIZED_APP}-${SANITIZED_BRANCH}"
           ESCAPED_PREFIX="$(printf '%s' "${TAG_PREFIX}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
           TAG_REGEX="^${ESCAPED_PREFIX}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
 
-          MAX_PATCH=0
-          FOUND_SERIES=false
-          EXISTING_HEAD_TAG=""
-          EXISTING_HEAD_PATCH=-1
-
-          update_max_patch() {
-            local tag="$1"
-
-            if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
-              local major="${BASH_REMATCH[1]}"
-              local minor="${BASH_REMATCH[2]}"
-              local patch="${BASH_REMATCH[3]}"
-
-              if [ "${major}" -eq "${TARGET_MAJOR}" ] && [ "${minor}" -eq "${TARGET_MINOR}" ]; then
-                FOUND_SERIES=true
-                if [ "${patch}" -gt "${MAX_PATCH}" ]; then
-                  MAX_PATCH="${patch}"
-                fi
-              fi
-            fi
-          }
-
           git fetch --tags --force
 
-          # Enterprise guard: if this commit already has a matching release tag, reuse it.
+          # Enterprise guard: if this commit already has a matching release tag
+          # anywhere in this app+branch series, reuse it instead of computing
+          # a new one (covers reruns/retries of the same commit).
+          EXISTING_HEAD_TAG=""
           while IFS= read -r tag; do
             [ -n "${tag}" ] || continue
             if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
-              major="${BASH_REMATCH[1]}"
-              minor="${BASH_REMATCH[2]}"
-              patch="${BASH_REMATCH[3]}"
-
-              if [ "${major}" -eq "${TARGET_MAJOR}" ] && [ "${minor}" -eq "${TARGET_MINOR}" ]; then
-                if [ "${patch}" -gt "${EXISTING_HEAD_PATCH}" ]; then
-                  EXISTING_HEAD_PATCH="${patch}"
-                  EXISTING_HEAD_TAG="${tag}"
-                fi
-              fi
+              EXISTING_HEAD_TAG="${tag}"
+              break
             fi
           done < <(git tag --points-at HEAD)
 
@@ -145,11 +117,97 @@ jobs:
             exit 0
           fi
 
-          while IFS= read -r tag; do
-            [ -n "${tag}" ] || continue
-            update_max_patch "${tag}"
-          done < <(git tag -l "${TAG_PREFIX}-*")
+          # Highest existing version in this app+branch series (or 0.0.0 if
+          # this is the series' first tag). --sort=-v:refname is a version-
+          # aware sort, so this correctly orders e.g. ...-0.10.0 above
+          # ...-0.9.0 despite the plain-string comparison being the other
+          # way round.
+          LATEST_TAG="$(git tag -l "${TAG_PREFIX}-*" --sort=-v:refname | grep -E "${TAG_REGEX}" | head -n1 || true)"
 
+          if [ -n "${LATEST_TAG}" ] && [[ "${LATEST_TAG}" =~ ${TAG_REGEX} ]]; then
+            CURRENT_MAJOR="${BASH_REMATCH[1]}"
+            CURRENT_MINOR="${BASH_REMATCH[2]}"
+            CURRENT_PATCH="${BASH_REMATCH[3]}"
+          else
+            CURRENT_MAJOR=0
+            CURRENT_MINOR=0
+            CURRENT_PATCH=0
+          fi
+
+          if [ -n "${{ inputs.major_minor }}" ]; then
+            # Manual override: caller pinned MAJOR.MINOR explicitly. Patch
+            # still auto-increments within that pinned pair, same as this
+            # workflow's original (pre-auto-detect) behavior.
+            if [[ "${{ inputs.major_minor }}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+              NEXT_MAJOR="${BASH_REMATCH[1]}"
+              NEXT_MINOR="${BASH_REMATCH[2]}"
+            else
+              echo "::error::major_minor override '${{ inputs.major_minor }}' is not MAJOR.MINOR"
+              exit 1
+            fi
+
+            if [ "${NEXT_MAJOR}" -eq "${CURRENT_MAJOR}" ] && [ "${NEXT_MINOR}" -eq "${CURRENT_MINOR}" ]; then
+              NEXT_PATCH=$((CURRENT_PATCH + 1))
+            else
+              NEXT_PATCH=0
+            fi
+
+            echo "Using manual major_minor override: ${NEXT_MAJOR}.${NEXT_MINOR}"
+          else
+            # Auto-detect the bump type from Conventional Commit messages
+            # pushed since the last tag in this series — a `BREAKING
+            # CHANGE:` footer or `!` before the `:` (e.g. `feat!:`) bumps
+            # major; a plain `feat:` bumps minor; everything else (fix/
+            # chore/docs/refactor/etc.) bumps patch. This is what makes
+            # major/minor mean something instead of being frozen forever:
+            # the bump type is a real decision, just read off commit intent
+            # instead of a changeset file, since PR titles are already
+            # enforced as Conventional Commits.
+            if [ -n "${LATEST_TAG}" ]; then
+              COMMIT_RANGE="${LATEST_TAG}..HEAD"
+            else
+              # First tag ever in this series — nothing to diff against, so
+              # only look at HEAD's own commit rather than the whole branch
+              # history back to the repo root.
+              COMMIT_RANGE="HEAD~1..HEAD"
+            fi
+
+            COMMIT_MESSAGES="$(git log ${COMMIT_RANGE} --pretty=format:'%B' 2>/dev/null || true)"
+
+            BUMP="patch"
+            if echo "${COMMIT_MESSAGES}" | grep -qE '^BREAKING CHANGE:'; then
+              BUMP="major"
+            elif echo "${COMMIT_MESSAGES}" | grep -qE '^[a-zA-Z]+(\([^)]*\))?!:'; then
+              BUMP="major"
+            elif echo "${COMMIT_MESSAGES}" | grep -qE '^feat(\([^)]*\))?:'; then
+              BUMP="minor"
+            fi
+
+            case "${BUMP}" in
+              major)
+                NEXT_MAJOR=$((CURRENT_MAJOR + 1))
+                NEXT_MINOR=0
+                NEXT_PATCH=0
+                ;;
+              minor)
+                NEXT_MAJOR="${CURRENT_MAJOR}"
+                NEXT_MINOR=$((CURRENT_MINOR + 1))
+                NEXT_PATCH=0
+                ;;
+              *)
+                NEXT_MAJOR="${CURRENT_MAJOR}"
+                NEXT_MINOR="${CURRENT_MINOR}"
+                NEXT_PATCH=$((CURRENT_PATCH + 1))
+                ;;
+            esac
+
+            echo "Detected bump type: ${BUMP} (from commits in ${COMMIT_RANGE})"
+          fi
+
+          # ECR safety net: if an image is already published tagged with the
+          # version just computed, keep bumping patch until we land on one
+          # that isn't — guards against a rerun landing on a tag whose image
+          # already shipped under a different git tag.
           if [ "${{ inputs.include_ecr_tags }}" = "true" ]; then
             ECR_TAGS="$(aws ecr describe-images \
               --repository-name "${{ inputs.ecr_repository }}" \
@@ -157,18 +215,17 @@ jobs:
               --query 'imageDetails[].imageTags' \
               --output json | jq -r '.[]?[]?' 2>/dev/null || true)"
 
-            for tag in ${ECR_TAGS}; do
-              update_max_patch "${tag}"
+            while :; do
+              CANDIDATE="${TAG_PREFIX}-${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
+              if echo "${ECR_TAGS}" | grep -qxF "${CANDIDATE}"; then
+                NEXT_PATCH=$((NEXT_PATCH + 1))
+              else
+                break
+              fi
             done
           fi
 
-          if [ "${FOUND_SERIES}" = "true" ]; then
-            NEXT_PATCH=$((MAX_PATCH + 1))
-          else
-            NEXT_PATCH=1
-          fi
-
-          VERSION_TAG="${TAG_PREFIX}-${TARGET_MAJOR}.${TARGET_MINOR}.${NEXT_PATCH}"
+          VERSION_TAG="${TAG_PREFIX}-${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
           echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag

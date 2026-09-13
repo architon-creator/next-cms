@@ -36,6 +36,23 @@ struck through with the commit that fixed them; open items are next up.
   relevant changed.
 
 ## Fixed (cont.)
+- ~~`major_minor: 0.0` hardcoded by every caller, so tags were never real
+  semantic versions~~ — patch auto-incremented forever but major/minor
+  never moved, so nothing ever signaled a breaking change or a new
+  feature. `reusable-git-tag.yml` now derives the bump itself from
+  Conventional Commit messages pushed since the series' last tag: a
+  `BREAKING CHANGE:` footer or `!` before the `:` (e.g. `feat!:`) bumps
+  major, a plain `feat:` bumps minor, everything else bumps patch — same
+  classification semantic-release/Changesets use, without needing either
+  tool since PR titles are already enforced as Conventional Commits.
+  `major_minor` stays as an optional manual override for edge cases (e.g.
+  seeding a new series) instead of being forced on every call. Both
+  `ibe-app-build.yml` and `top-app-build.yml` no longer pass it.
+  **Verified** with a standalone local simulation: a `fix:`/`chore:`
+  commit bumps patch, `feat:` bumps minor and resets patch, `feat!:` and
+  a `BREAKING CHANGE:` footer both bump major and reset minor+patch, and
+  rerunning on an already-tagged HEAD correctly reuses the existing tag
+  instead of double-bumping.
 - ~~Dead artifact uploads in `reusable-app-build.yml`~~ — removed the
   "Save/Upload image URI artifact" and "Save/Upload version tag
   artifact" steps (`image_uri.txt`/`version_tag.txt`), which nothing
@@ -47,6 +64,14 @@ struck through with the commit that fixed them; open items are next up.
   `e2197c6`.
 
 ## Open — waiting on the user
+- **Version doesn't survive promotion across branches** — the patch
+  counter (and now the auto-detected major/minor) is scoped per
+  `(app, branch)` pair, since `TAG_PREFIX` includes the branch name. So
+  e.g. `ibe-app-develop-p1-w1-0.3.2` and `ibe-app-release-p1-w1-0.1.0`
+  are two independent series: promoting a build from develop to release
+  doesn't carry its version forward, it starts a fresh count on the new
+  branch's series. Deferred — not tackled yet; flagging so it doesn't get
+  lost.
 - **Waiting on `reusable-app-deploy.yml`** (user will share it) — need to
   verify its job actually declares `environment: ${{ inputs.environment }}`
   at the job level. Without that, the `staging`/`production` Environment
