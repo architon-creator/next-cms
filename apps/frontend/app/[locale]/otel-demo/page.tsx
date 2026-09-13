@@ -22,7 +22,7 @@ async function fetchItemsForSSR(): Promise<OtelDemoResponse> {
 
   logger.info("Rendering otel-demo page (SSR)");
 
-  const res = await fetch(`${getSiteUrl()}/api/otel-demo`, {
+  const res = await fetch(`${getSiteUrl()}/api/otel-demo?source=ssr`, {
     headers: { traceparent },
     cache: "no-store",
   });

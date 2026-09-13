@@ -21,11 +21,19 @@ export type OtelDemoResponse = {
 // instrumentation in both instrumentation.ts (this app) and apps/api's own
 // instrumentation.ts extracts and continues that trace automatically, so
 // getTraceContext().traceId below is exactly the trace-id the caller chose.
+//
+// The `source` query param is the ONLY thing that differs between the two
+// callers' requests — it exists purely so the log lines below (and the
+// span's own URL/http.target tag in Jaeger) say which path triggered this
+// particular call, since otherwise this shared route's own logs read
+// identically for both.
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const traceId = getTraceContext()?.traceId;
+  const source = request.nextUrl.searchParams.get("source") ?? "unknown";
 
-  logger.info("GET /api/otel-demo called", {
+  logger.info(`GET /api/otel-demo called (source: ${source})`, {
+    source,
     userAgent: request.headers.get("user-agent"),
   });
 
@@ -36,7 +44,8 @@ export async function GET(request: NextRequest) {
     const data = (await apiResponse.json()) as { items: OtelDemoResponse["items"] };
     const duration = Date.now() - startTime;
 
-    logger.info("GET /api/otel-demo succeeded", {
+    logger.info(`GET /api/otel-demo succeeded (source: ${source})`, {
+      source,
       count: data.items?.length ?? 0,
       duration: `${duration}ms`,
     });
@@ -47,7 +56,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     const duration = Date.now() - startTime;
-    logger.error("GET /api/otel-demo failed", { duration: `${duration}ms` }, err);
+    logger.error(
+      `GET /api/otel-demo failed (source: ${source})`,
+      {
+        source,
+        duration: `${duration}ms`,
+      },
+      err,
+    );
 
     const body: OtelDemoResponse = {
       success: false,

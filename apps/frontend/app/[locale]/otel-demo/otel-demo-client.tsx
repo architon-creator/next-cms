@@ -23,7 +23,9 @@ export function OtelDemoClient() {
     // correlation-id code needed on either end.
     const traceparent = generateTraceparent();
 
-    const response = await fetch("/api/otel-demo", { headers: { traceparent } });
+    const response = await fetch("/api/otel-demo?source=csr", {
+      headers: { traceparent },
+    });
     const data = (await response.json()) as OtelDemoResponse;
     setResult(data);
     setLoading(false);
