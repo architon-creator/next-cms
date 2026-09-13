@@ -19,7 +19,9 @@
     "types": "pnpm --filter cms run types",
     "prismic": "pnpm --filter cms exec prismic",
     "api:dev": "pnpm --filter api run dev",
-    "api:build": "pnpm --filter api run build"
+    "api:build": "pnpm --filter api run build",
+    "otel:up": "docker-compose up -d",
+    "otel:down": "docker-compose down"
   },
   "devDependencies": {
     "eslint": "^8.57.1",
