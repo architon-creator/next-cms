@@ -35,14 +35,16 @@ struck through with the commit that fixed them; open items are next up.
   `cache miss` again. Confirms cache hits only happen when nothing
   relevant changed.
 
-## Open — next up
-- **Dead artifact uploads in `reusable-app-build.yml`** — the "Save/
-  Upload image URI artifact" and "Save/Upload version tag artifact"
-  steps produce `image_uri.txt`/`version_tag.txt` artifacts that nothing
-  downloads anymore. The file's own comment confirms it: "Issue 4 — post-
-  build job removed (was a no-op: only downloaded artifact with no
-  further steps)." Fix: remove the two Save + two Upload steps, unless a
-  real consumer is about to be added.
+## Fixed (cont.)
+- ~~Dead artifact uploads in `reusable-app-build.yml`~~ — removed the
+  "Save/Upload image URI artifact" and "Save/Upload version tag
+  artifact" steps (`image_uri.txt`/`version_tag.txt`), which nothing
+  downloaded anymore since the consuming post-build job was already
+  removed as a no-op. `version_tag` is still available to every caller
+  via this workflow's own `outputs.version_tag`; the image URI is
+  trivially reconstructible from `ecr_repository`/`aws_account_id`/
+  `aws_region`/`version_tag`, which callers already have. Fixed in
+  `e2197c6`.
 
 ## Open — waiting on the user
 - **Waiting on `reusable-app-deploy.yml`** (user will share it) — need to
