@@ -39,20 +39,30 @@ struck through with the commit that fixed them; open items are next up.
 - ~~`major_minor: 0.0` hardcoded by every caller, so tags were never real
   semantic versions~~ — patch auto-incremented forever but major/minor
   never moved, so nothing ever signaled a breaking change or a new
-  feature. `reusable-git-tag.yml` now derives the bump itself from
-  Conventional Commit messages pushed since the series' last tag: a
-  `BREAKING CHANGE:` footer or `!` before the `:` (e.g. `feat!:`) bumps
-  major, a plain `feat:` bumps minor, everything else bumps patch — same
-  classification semantic-release/Changesets use, without needing either
-  tool since PR titles are already enforced as Conventional Commits.
-  `major_minor` stays as an optional manual override for edge cases (e.g.
-  seeding a new series) instead of being forced on every call. Both
-  `ibe-app-build.yml` and `top-app-build.yml` no longer pass it.
-  **Verified** with a standalone local simulation: a `fix:`/`chore:`
-  commit bumps patch, `feat:` bumps minor and resets patch, `feat!:` and
-  a `BREAKING CHANGE:` footer both bump major and reset minor+patch, and
-  rerunning on an already-tagged HEAD correctly reuses the existing tag
-  instead of double-bumping.
+  feature. `reusable-git-tag.yml` now derives the bump from an explicit
+  checkbox in the PR description (`reference-pull_request_template.md` —
+  copy to `.github/pull_request_template.md`):
+  ```
+  - [ ] major
+  - [ ] minor
+  - [ ] patch
+  ```
+  Requires the repo's squash-merge default commit message set to
+  "Pull request title and description" (Settings -> General -> Pull
+  Requests) — that's what puts the checklist into the squashed commit's
+  body, which is all this workflow's `git log` can see. The build fails
+  if zero or more than one box is checked, rather than silently
+  defaulting — the same silent-default problem that left major/minor
+  frozen at 0.0 in the first place. (An earlier version of this fix
+  parsed `feat:`/`feat!:`/`BREAKING CHANGE:` out of commit-message text
+  instead of a checkbox; replaced as too implicit/easy to misparse.)
+  `major_minor` stays as an optional manual override for edge cases
+  (e.g. seeding a new series). Both `ibe-app-build.yml` and
+  `top-app-build.yml` no longer pass it.
+  **Verified** with a standalone local simulation: patch/minor/major
+  checkbox selection each produce the correct tag, zero-checked and
+  multi-checked both fail the build, and rerunning on an already-tagged
+  HEAD reuses the existing tag instead of double-bumping.
 - ~~Dead artifact uploads in `reusable-app-build.yml`~~ — removed the
   "Save/Upload image URI artifact" and "Save/Upload version tag
   artifact" steps (`image_uri.txt`/`version_tag.txt`), which nothing
