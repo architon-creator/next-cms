@@ -38,9 +38,5 @@ export default function handler(
     app(req, res);
   }).then(() => flushOtel());
 
-  waitUntil(
-    flushed.then(() => {
-      console.log("[otel-debug] flushOtel() resolved via waitUntil");
-    }),
-  );
+  waitUntil(flushed);
 }
