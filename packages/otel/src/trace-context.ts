@@ -3,8 +3,8 @@
 // and the Edge runtime (middleware/proxy), neither of which can load the
 // rest of this package (log-helper.ts, external-correlation.ts etc. depend
 // on Node's async_hooks). Import this file directly via its subpath
-// ("otel/src/trace-context"), never through the package's main index —
-// that index eagerly imports @vercel/otel, which is Node-only.
+// ("otel/trace-context"), never through the package's main index — that
+// index eagerly imports @vercel/otel, which is Next.js-specific.
 //
 // Generates a W3C Trace Context header (https://www.w3.org/TR/trace-context/):
 //   traceparent: 00-<32 hex trace-id>-<16 hex parent-id>-<2 hex flags>

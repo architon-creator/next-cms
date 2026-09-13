@@ -17,9 +17,11 @@ export {
 
 // NOTE: generateTraceparent (trace-context.ts) is intentionally NOT
 // re-exported here. This file's top-level import of @vercel/otel is
-// Node-only; anything imported from this main entry point is unsafe in a
-// browser or Edge-runtime file. Import the browser-safe generator via its
-// direct subpath instead: `otel/src/trace-context`.
+// Next.js-specific; anything imported from this main entry point is unsafe
+// in a browser, Edge-runtime, or plain Node (e.g. apps/api) file. Import
+// the browser-safe generator via its direct subpath instead:
+// `otel/trace-context`. For a plain Node consumer's logger/correlation
+// needs, see `otel/logging`.
 
 export function register() {
   initializeLoggerProvider();

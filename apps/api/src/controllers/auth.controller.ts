@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
+import { createLogger } from "otel/logging";
 import type { LoginRequest, LoginResponse } from "../types/auth.js";
 import { SESSION_TTL_SECONDS, signSessionToken } from "../lib/tokens.js";
 import { findUserById, toPublicUser, verifyCredentials } from "../lib/users.js";
+
+const logger = createLogger("api/auth/login");
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body as Partial<LoginRequest>;
@@ -12,8 +15,10 @@ export async function login(req: Request, res: Response) {
 
   const user = await verifyCredentials(email, password);
   if (!user) {
-    // Deliberately identical for "no such user" and "wrong password" — a
-    // distinct message would turn this endpoint into an account enumerator.
+    // Never log the email/password — only the outcome. Deliberately
+    // identical for "no such user" and "wrong password" — a distinct
+    // message would turn this endpoint into an account enumerator.
+    logger.warn("Login rejected");
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
@@ -22,6 +27,8 @@ export async function login(req: Request, res: Response) {
     expiresIn: SESSION_TTL_SECONDS,
     user: toPublicUser(user),
   };
+
+  logger.info("Login succeeded", { userId: user.id });
 
   res.json(body);
 }
