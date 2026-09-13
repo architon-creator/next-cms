@@ -1,0 +1,185 @@
+name: Build top-app
+
+on:
+  push:
+    branches:
+      - main
+      - develop/**
+      - release/**
+    paths:
+      - 'apps/top-app/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+      - 'packages/cms/**'
+      - 'packages/global-styles/**'
+      - 'packages/typescript-config/**'
+      - '.github/workflows/top-app-build.yml'
+      - '.github/workflows/reusable-ci.yml'
+      - '.github/workflows/reusable-app-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop/**
+      - release/**
+    paths:
+      - 'apps/top-app/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+      - 'packages/cms/**'
+      - 'packages/global-styles/**'
+      - 'packages/typescript-config/**'
+      - '.github/workflows/top-app-build.yml'
+      - '.github/workflows/reusable-ci.yml'
+      - '.github/workflows/reusable-app-build.yml'
+  workflow_dispatch:
+
+# Cancel any in-progress run for the same branch/PR when a new run is triggered.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI Quality Gate
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      id-token: write
+    uses: ./.github/workflows/reusable-ci.yml
+    secrets:
+      NEXUZ_SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
+      ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
+    with:
+      app_name: top-app
+      app_path: apps/top-app
+      run_tests: true
+      aws_region: ${{ vars.NEXUZ_AWS_REGION }}
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      aws_account_id: ${{ vars.AWS_ACCOUNT_ID }}
+      aws_codeartifact_domain: ${{ vars.AWS_CODEARTIFACT_DOMAIN }}
+      aws_codeartifact_repository: ${{ vars.AWS_CODEARTIFACT_REPOSITORY }}
+
+  create_git_tag:
+    name: Create Branch Git Tag
+    needs: ci
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-git-tag.yml
+    with:
+      app_name: top-app
+      include_ecr_tags: true
+      aws_region: ap-northeast-1
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      ecr_repository: ${{ vars.TOP_ECR_REPO }}
+      major_minor: 0.0
+      force_update: false
+
+  resolve_release_tag:
+    name: Resolve Release Tag
+    needs: create_git_tag
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.resolve.outputs.version_tag }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve latest branch tag
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SANITIZED_BRANCH="$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH#-}"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH%-}"
+          if [ -z "${SANITIZED_BRANCH}" ]; then
+            SANITIZED_BRANCH="branch"
+          fi
+
+          ESCAPED_BRANCH="$(printf '%s' "${SANITIZED_BRANCH}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
+          TAG_REGEX="^${ESCAPED_BRANCH}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
+
+          git fetch --tags --force
+
+          MAX_MAJOR=-1
+          MAX_MINOR=-1
+          MAX_PATCH=-1
+          LATEST_TAG=""
+
+          while IFS= read -r tag; do
+            [ -n "${tag}" ] || continue
+            if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+
+              if [ "${MAJOR}" -gt "${MAX_MAJOR}" ] || \
+                 ([ "${MAJOR}" -eq "${MAX_MAJOR}" ] && [ "${MINOR}" -gt "${MAX_MINOR}" ]) || \
+                 ([ "${MAJOR}" -eq "${MAX_MAJOR}" ] && [ "${MINOR}" -eq "${MAX_MINOR}" ] && [ "${PATCH}" -gt "${MAX_PATCH}" ]); then
+                MAX_MAJOR="${MAJOR}"
+                MAX_MINOR="${MINOR}"
+                MAX_PATCH="${PATCH}"
+                LATEST_TAG="${tag}"
+              fi
+            fi
+          done < <(git tag -l "${SANITIZED_BRANCH}-*")
+
+          if [ -z "${LATEST_TAG}" ]; then
+            echo "No release tag found for branch ${SANITIZED_BRANCH}"
+            exit 1
+          fi
+
+          echo "version_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build and Push Docker Image for top-app
+    needs: resolve_release_tag
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    uses: ./.github/workflows/reusable-app-build.yml
+    with:
+      app_name: top-app
+      app_path: apps/top-app
+      build_image: true
+      push_to_ecr: true
+      aws_region: ap-northeast-1
+      aws_account_id: ${{ vars.AWS_ACCOUNT_ID }}
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      aws_codeartifact_domain: ${{ vars.AWS_CODEARTIFACT_DOMAIN }}
+      aws_codeartifact_repository: ${{ vars.AWS_CODEARTIFACT_REPOSITORY }}
+      ecr_repository: ${{ vars.TOP_ECR_REPO }}
+      version_tag: ${{ needs.resolve_release_tag.outputs.version_tag }}
+
+  deploy:
+    name: Deploy top-app to ECS
+    needs:
+      - build
+      - resolve_release_tag
+    if: ${{ startsWith(github.ref_name, 'develop/') }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      environment: production
+      aws_region: ap-northeast-1
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      ecr_repository: ${{ vars.TOP_ECR_REPO }}
+      ecs_cluster: ${{ vars.ECS_CLUSTER }}
+      ecs_service: ${{ vars.TOP_SERVICE_NAME }}
+      container_name: ${{ vars.CONTAINER_NAME }}
+      task_definition_family: ${{ vars.TOP_TASK_FAMILY }}
+      image_tag: ${{ needs.resolve_release_tag.outputs.version_tag }}

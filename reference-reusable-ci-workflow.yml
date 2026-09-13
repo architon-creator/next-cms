@@ -1,0 +1,161 @@
+name: Reusable CI
+
+on:
+  workflow_call:
+    secrets:
+      # Optional: falls back to pnpm audit if not provided (Guideline 6.2.2)
+      NEXUZ_SNYK_TOKEN:
+        required: false
+      ACCESSIBILITY_API_KEY:
+        required: false
+    inputs:
+      app_name:
+        required: true
+        type: string
+      app_path:
+        required: true
+        type: string
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+      aws_region:
+        required: false
+        type: string
+        default: ""
+      aws_oidc_role_arn:
+        required: false
+        type: string
+        default: ""
+      aws_account_id:
+        required: false
+        type: string
+        default: ""
+      aws_codeartifact_domain:
+        required: false
+        type: string
+        default: ""
+      aws_codeartifact_repository:
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  ci:
+    name: "Quality Gate (Install / Lint / Format / Type Check / Test / Accessibility)"
+    runs-on: ubuntu-latest
+    env:
+      TURBO_TELEMETRY_DISABLED: "1"
+      ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
+      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws_oidc_role_arn != '' && inputs.aws_region != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Configure npm for AWS CodeArtifact
+        if: ${{ inputs.aws_codeartifact_domain != '' && inputs.aws_codeartifact_repository != '' && inputs.aws_account_id != '' && inputs.aws_region != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REGISTRY_HOST="${{ inputs.aws_codeartifact_domain }}-${{ inputs.aws_account_id }}.d.codeartifact.${{ inputs.aws_region }}.amazonaws.com"
+          REGISTRY_PATH="npm/${{ inputs.aws_codeartifact_repository }}/"
+
+          CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain "${{ inputs.aws_codeartifact_domain }}" \
+            --domain-owner "${{ inputs.aws_account_id }}" \
+            --region "${{ inputs.aws_region }}" \
+            --query authorizationToken \
+            --output text)
+
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:_authToken=${CODEARTIFACT_AUTH_TOKEN}" >> ~/.npmrc
+          echo "@nexuz:registry=https://${REGISTRY_HOST}/${REGISTRY_PATH}" >> ~/.npmrc
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:always-auth=true" >> ~/.npmrc
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # Guideline 6.2.2 / 7.2.1: Blocking scan, pinned version (no continue-on-error, no @master).
+      - name: Run Snyk Open Source Scan
+        if: env.SNYK_TOKEN_AVAILABLE == 'true'
+        uses: snyk/actions/node@v1.0.0
+        env:
+          SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+
+      # Guideline 6.2.2: Fallback scan when Snyk token is unavailable.
+      - name: Run pnpm Audit (Fallback)
+        if: env.SNYK_TOKEN_AVAILABLE != 'true'
+        run: pnpm audit --audit-level=high
+
+      - name: Run Axe Linter
+        uses: dequelabs/axe-linter-action@v2.0.0
+        with:
+          api_key: ${{ secrets.ACCESSIBILITY_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format check
+        run: pnpm check
+
+      - name: Lint and type check
+        run: pnpm turbo run lint check-types --filter=${{ inputs.app_name }}...
+
+      - name: Run tests with coverage
+        if: ${{ inputs.run_tests }}
+        run: pnpm turbo run test:coverage --filter=${{ inputs.app_name }}...
+
+      - name: Publish coverage summary
+        if: ${{ inputs.run_tests }}
+        shell: bash
+        run: |
+          COVERAGE_THRESHOLD=80
+          COVERAGE_FILE=$(find . -name coverage-summary.json | head -n 1)
+
+          if [ -f "$COVERAGE_FILE" ]; then
+            LINES=$(jq '.total.lines.pct' "$COVERAGE_FILE")
+            FUNCTIONS=$(jq '.total.functions.pct' "$COVERAGE_FILE")
+            BRANCHES=$(jq '.total.branches.pct' "$COVERAGE_FILE")
+            STATEMENTS=$(jq '.total.statements.pct' "$COVERAGE_FILE")
+
+            {
+              echo "# Vitest Coverage Report"
+              echo ""
+              echo "## Summary"
+              echo ""
+              echo "- Lines: **${LINES}%**"
+              echo "- Functions: **${FUNCTIONS}%**"
+              echo "- Branches: **${BRANCHES}%**"
+              echo "- Statements: **${STATEMENTS}%**"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$(printf '%.0f' "$LINES")" -lt "$COVERAGE_THRESHOLD" ]; then
+              echo "Coverage threshold of ${COVERAGE_THRESHOLD}% was not met." >&2
+              exit 1
+            fi
+          fi

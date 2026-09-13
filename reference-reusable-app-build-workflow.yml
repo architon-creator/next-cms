@@ -1,0 +1,198 @@
+name: Reusable App Build
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      app_path:
+        required: true
+        type: string
+      build_image:
+        required: false
+        type: boolean
+        default: true
+      push_to_ecr:
+        required: false
+        type: boolean
+        default: false
+        description: 'Set to true to authenticate with AWS and push the image to ECR'
+      aws_region:
+        required: false
+        type: string
+        default: ''
+      aws_account_id:
+        required: false
+        type: string
+        default: ''
+      aws_oidc_role_arn:
+        required: false
+        type: string
+        default: ''
+      aws_codeartifact_domain:
+        required: false
+        type: string
+        default: ''
+      aws_codeartifact_repository:
+        required: false
+        type: string
+        default: ''
+      ecr_repository:
+        required: false
+        type: string
+        default: ''
+      version_tag:
+        required: false
+        type: string
+        default: ''
+    outputs:
+      version_tag:
+        description: Version tag used for ECR image tagging.
+        value: ${{ jobs.build.outputs.version_tag }}
+
+jobs:
+  build:
+    if: ${{ inputs.build_image }}
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.resolve_tag.outputs.version_tag }}
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    env:
+      AWS_REGION: ${{ inputs.aws_region }}
+      AWS_ACCOUNT_ID: ${{ inputs.aws_account_id }}
+      ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+      APP_NAME: ${{ inputs.app_name }}
+      APP_PATH: ${{ inputs.app_path }}
+      IMAGE_TAG: ${{ github.sha }}
+      VERSION_TAG: ${{ inputs.version_tag }}
+      ECR_IMAGE_URI: ${{ inputs.aws_account_id }}.dkr.ecr.${{ inputs.aws_region }}.amazonaws.com/${{ inputs.ecr_repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version tag
+        id: resolve_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VERSION_TAG}" ]; then
+            echo "Missing required input: version_tag when build_image=true"
+            exit 1
+          fi
+
+          echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.push_to_ecr }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Verify Identity
+        if: ${{ inputs.push_to_ecr }}
+        run: aws sts get-caller-identity
+
+      - name: Get AWS CodeArtifact authorization token
+        id: codeartifact-token
+        if: ${{ inputs.push_to_ecr }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN=$(aws codeartifact get-authorization-token \
+            --domain "${{ inputs.aws_codeartifact_domain }}" \
+            --domain-owner "${{ inputs.aws_account_id }}" \
+            --region "${{ inputs.aws_region }}" \
+            --query authorizationToken \
+            --output text)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Debug CodeArtifact registry config
+        if: ${{ inputs.push_to_ecr }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REGISTRY_HOST="${{ inputs.aws_codeartifact_domain }}-${{ inputs.aws_account_id }}.d.codeartifact.${{ inputs.aws_region }}.amazonaws.com"
+          REGISTRY_PATH="npm/${{ inputs.aws_codeartifact_repository }}"
+
+          echo "CodeArtifact registry host: ${REGISTRY_HOST}"
+          echo "CodeArtifact registry path: ${REGISTRY_PATH}/"
+          echo "CodeArtifact package scope: @nexuz"
+          echo "CodeArtifact token retrieved: yes"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Amazon ECR
+        if: ${{ inputs.push_to_ecr }}
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ env.APP_PATH }}/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            COMMIT_SHA=${{ env.IMAGE_TAG }}
+            AWS_ACCOUNT_ID=${{ inputs.aws_account_id }}
+            AWS_REGION=${{ inputs.aws_region }}
+            AWS_CODEARTIFACT_DOMAIN=${{ inputs.aws_codeartifact_domain }}
+            AWS_CODEARTIFACT_REPOSITORY=${{ inputs.aws_codeartifact_repository }}
+          secrets: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            CODEARTIFACT_AUTH_TOKEN=${{ steps.codeartifact-token.outputs.token }}
+
+      - name: Tag and push image to ECR
+        if: ${{ inputs.push_to_ecr }}
+        run: |
+          docker tag ${{ env.APP_NAME }}:${{ env.IMAGE_TAG }} \
+            ${{ env.ECR_IMAGE_URI }}:${{ steps.resolve_tag.outputs.version_tag }}
+          docker push ${{ env.ECR_IMAGE_URI }}:${{ steps.resolve_tag.outputs.version_tag }}
+        shell: bash
+
+      - name: Save image URI artifact
+        if: ${{ inputs.push_to_ecr }}
+        run: |
+          echo "${ECR_IMAGE_URI}:${{ steps.resolve_tag.outputs.version_tag }}" > image_uri.txt
+        shell: bash
+
+      - name: Save version tag artifact
+        if: ${{ inputs.push_to_ecr }}
+        run: |
+          echo "${{ steps.resolve_tag.outputs.version_tag }}" > version_tag.txt
+        shell: bash
+
+      - name: Upload image URI artifact
+        if: ${{ inputs.push_to_ecr }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-image-uri
+          path: image_uri.txt
+          retention-days: 1
+
+      - name: Upload version tag artifact
+        if: ${{ inputs.push_to_ecr }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-version-tag
+          path: version_tag.txt
+          retention-days: 1
+
+      # Issue 4 — post-build job removed (was a no-op: only downloaded artifact with no further steps).
+      # Re-add a post-build job here when there is a concrete need (e.g. smoke tests, notifications).
