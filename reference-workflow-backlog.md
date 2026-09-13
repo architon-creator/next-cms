@@ -28,6 +28,12 @@ struck through with the commit that fixed them; open items are next up.
   key won't match across a squash-merge's new SHA — relies on the
   `restore-keys` prefix pulling in *some* prior `.turbo` dir that
   happens to contain matching task hashes), but zero setup cost.
+  **Verified** with a standalone local Turborepo simulation: cold run →
+  `cache miss, executing <hash>` (real execution, ~3.5s); rerun with no
+  source changes → `cache hit, replaying logs <hash>` (same hash, 42ms,
+  no real execution); rerun after actually changing a file → new hash,
+  `cache miss` again. Confirms cache hits only happen when nothing
+  relevant changed.
 
 ## Open — next up
 - **Dead artifact uploads in `reusable-app-build.yml`** — the "Save/
