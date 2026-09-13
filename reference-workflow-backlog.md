@@ -17,7 +17,16 @@ struck through with the commit that fixed them; open items are next up.
   develop-*/release-* deploy targets and Environment name. Fixed in
   `b559264`.
 
-## Open
+## Open — next up
+- **Dead artifact uploads in `reusable-app-build.yml`** — the "Save/
+  Upload image URI artifact" and "Save/Upload version tag artifact"
+  steps produce `image_uri.txt`/`version_tag.txt` artifacts that nothing
+  downloads anymore. The file's own comment confirms it: "Issue 4 — post-
+  build job removed (was a no-op: only downloaded artifact with no
+  further steps)." Fix: remove the two Save + two Upload steps, unless a
+  real consumer is about to be added.
+
+## Open — waiting on the user
 - **Waiting on `reusable-app-deploy.yml`** (user will share it) — need to
   verify its job actually declares `environment: ${{ inputs.environment }}`
   at the job level. Without that, the `staging`/`production` Environment
@@ -39,10 +48,6 @@ struck through with the commit that fixed them; open items are next up.
   - Accessibility (Axe Linter) step isn't gated on `ACCESSIBILITY_API_KEY`
     being set, unlike the Snyk step's `SNYK_TOKEN_AVAILABLE` pattern —
     likely fails outright for any caller that doesn't set that secret.
-  - `reusable-app-build.yml`: two `actions/upload-artifact@v4` steps
-    (`image_uri.txt`, `version_tag.txt`) upload artifacts nothing
-    downloads anymore — the file's own comment says the consuming
-    post-build job was already removed as a no-op.
   - `reusable-git-tag.yml`'s ECR tag lookup swallows AWS failures via
     `2>/dev/null || true` — a transient AWS error is indistinguishable
     from "no images exist yet."
