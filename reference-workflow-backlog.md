@@ -63,6 +63,22 @@ struck through with the commit that fixed them; open items are next up.
   checkbox selection each produce the correct tag, zero-checked and
   multi-checked both fail the build, and rerunning on an already-tagged
   HEAD reuses the existing tag instead of double-bumping.
+- ~~No Slack success/fail notification for the dependency scan (Snyk /
+  pnpm audit fallback), required by the security team's SOP~~ — added a
+  "Notify Slack of dependency scan result" step to `reusable-ci.yml`,
+  right after the Snyk/pnpm-audit steps. `if: always()` makes it run even
+  when the scan step failed; since it doesn't `continue-on-error` and
+  doesn't touch the earlier step's outcome, the job still ends in
+  failure and CI stays blocked on a high-severity finding — Slack just
+  also hears about it. Reports whichever scanner actually ran
+  (`steps.snyk_scan.outcome` / `steps.pnpm_audit.outcome`), posted via a
+  plain `curl` to an incoming webhook. New required `workflow_call`
+  secret `SLACK_WEBHOOK_URL`, threaded through from `ibe-app-build.yml`
+  and `top-app-build.yml`.
+  **Needs a repo/org secret `SLACK_WEBHOOK_URL`** (Settings -> Secrets and
+  variables -> Actions) pointing at the security team's Slack app's
+  incoming webhook before this will actually deliver — flagging under
+  Open below until that's created.
 - ~~Dead artifact uploads in `reusable-app-build.yml`~~ — removed the
   "Save/Upload image URI artifact" and "Save/Upload version tag
   artifact" steps (`image_uri.txt`/`version_tag.txt`), which nothing
@@ -87,6 +103,10 @@ struck through with the commit that fixed them; open items are next up.
   at the job level. Without that, the `staging`/`production` Environment
   names `resolve_deploy_env` now produces don't actually wire up to
   GitHub's Required-reviewers approval gate — they'd just be inert labels.
+- **New GitHub repo/org secret not yet created**: `SLACK_WEBHOOK_URL`, for
+  the dependency-scan notification step added above — without it, the
+  `ci` job fails outright (the `workflow_call` secret is `required: true`)
+  rather than silently no-op'ing.
 - **New GitHub repo/org Variables not yet created**: `IBE_DEVELOP_*` /
   `IBE_RELEASE_*` and `TOP_DEVELOP_*` / `TOP_RELEASE_*` for
   `ECS_CLUSTER`, `SERVICE_NAME`, `TASK_FAMILY`, `CONTAINER_NAME` (8 per

@@ -8,6 +8,10 @@ on:
         required: false
       ACCESSIBILITY_API_KEY:
         required: false
+      # SOP requirement (security team's reference workflow): the
+      # dependency-scan stage posts its success/fail result to Slack.
+      SLACK_WEBHOOK_URL:
+        required: true
     inputs:
       app_name:
         required: true
@@ -122,6 +126,7 @@ jobs:
 
       # Guideline 6.2.2 / 7.2.1: Blocking scan, pinned version (no continue-on-error, no @master).
       - name: Run Snyk Open Source Scan
+        id: snyk_scan
         if: env.SNYK_TOKEN_AVAILABLE == 'true'
         uses: snyk/actions/node@v1.0.0
         env:
@@ -132,8 +137,56 @@ jobs:
 
       # Guideline 6.2.2: Fallback scan when Snyk token is unavailable.
       - name: Run pnpm Audit (Fallback)
+        id: pnpm_audit
         if: env.SNYK_TOKEN_AVAILABLE != 'true'
         run: pnpm audit --audit-level=high
+
+      # SOP requirement (security team's reference workflow): report the
+      # dependency scan's outcome to Slack regardless of which of the two
+      # scan steps above actually ran. `if: always()` is what makes this
+      # step run even after the scan step above failed — a normal step
+      # would just be skipped, and the high-severity failure needs to stay
+      # visible in Slack, not just in the (blocked) CI run. Because this
+      # step doesn't set `continue-on-error`, and a step failing here
+      # doesn't unfail the earlier scan step, the job as a whole still
+      # ends in failure when the scan found something — CI stays blocked.
+      - name: Notify Slack of dependency scan result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SNYK_OUTCOME="${{ steps.snyk_scan.outcome }}"
+          AUDIT_OUTCOME="${{ steps.pnpm_audit.outcome }}"
+
+          if [ "${SNYK_OUTCOME}" != "skipped" ]; then
+            SCANNER="Snyk"
+            OUTCOME="${SNYK_OUTCOME}"
+          else
+            SCANNER="pnpm audit (Snyk token unavailable)"
+            OUTCOME="${AUDIT_OUTCOME}"
+          fi
+
+          if [ "${OUTCOME}" = "success" ]; then
+            COLOR="#2eb67d"
+            EMOJI=":white_check_mark:"
+            HEADLINE="Dependency scan passed"
+          else
+            COLOR="#e01e5a"
+            EMOJI=":x:"
+            HEADLINE="Dependency scan found high-severity issues — build blocked"
+          fi
+
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          TEXT="${EMOJI} *${HEADLINE}*"$'\n'"*App:* \`${{ inputs.app_name }}\`   *Branch:* \`${{ github.ref_name }}\`"$'\n'"*Scanner:* ${SCANNER}   *Triggered by:* ${{ github.actor }}"$'\n'"*Run:* ${RUN_URL}"
+
+          PAYLOAD="$(jq -n --arg color "${COLOR}" --arg text "${TEXT}" \
+            '{attachments: [{color: $color, text: $text}]}')"
+
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "${PAYLOAD}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
 
       - name: Run Axe Linter
         uses: dequelabs/axe-linter-action@v2.0.0
