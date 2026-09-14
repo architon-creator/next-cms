@@ -109,6 +109,8 @@ function usage(): never {
       "--only=<lowerId>[,<lowerId>...] narrows migrate/promote to just these",
       "lower-environment document ids instead of the whole content library —",
       "e.g. trying one document's migration before committing to all of them.",
+      "--lang=<code> narrows migrate/promote to one Prismic locale (e.g.",
+      "ja-jp) instead of every locale. Ignored if --only is also given.",
     ].join("\n"),
   );
   process.exit(1);
@@ -133,13 +135,14 @@ async function main(): Promise<void> {
   const positional = rest.filter((arg) => !arg.startsWith("--"));
   const onlyFlag = getFlag(rest, "only");
   const onlyLowerIds = onlyFlag ? onlyFlag.split(",").map((id) => id.trim()).filter(Boolean) : undefined;
+  const onlyLang = getFlag(rest, "lang");
 
   // `promote` is the one command whose --from/--to may span more than one
   // hop (e.g. dev to prod) — every other command requires an adjacent
   // pair, resolved below via resolvePair(). Handled before that generic
   // resolution so promote isn't rejected as "not adjacent".
   if ((command as Command) === "promote") {
-    const result = await runPromoteHop(config, fromName, toName, dryRun, onlyLowerIds);
+    const result = await runPromoteHop(config, fromName, toName, dryRun, onlyLowerIds, onlyLang);
     if (!result.ok) {
       process.exitCode = 1;
       return;
@@ -174,7 +177,7 @@ async function main(): Promise<void> {
       return;
     case "migrate": {
       requireDirection(pair, "forward", "migrate");
-      const result = await runPhase2({ config, pair, dryRun, onlyLowerIds });
+      const result = await runPhase2({ config, pair, dryRun, onlyLowerIds, onlyLang });
       if (result.failures.length > 0) {
         // Every document this run COULD process still got processed —
         // runPhase2 never aborts the batch on one failure. This is what

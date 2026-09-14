@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const onlyLowerIds = onlyParam
     ? onlyParam.split(",").map((id) => id.trim()).filter(Boolean)
     : undefined;
+  const onlyLang = searchParams.get("lang") || undefined;
 
   if (!from || !to) {
     return new Response("from and to query params are required", { status: 400 });
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
       try {
         const config = loadConfig();
         const result = await runWithLogSink(sink, () =>
-          runPromoteHop(config, from, to, dryRun, onlyLowerIds),
+          runPromoteHop(config, from, to, dryRun, onlyLowerIds, onlyLang),
         );
         send("done", result);
       } catch (err) {

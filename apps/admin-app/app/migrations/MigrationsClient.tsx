@@ -64,6 +64,7 @@ export default function MigrationsClient() {
   const [docsError, setDocsError] = useState<string | null>(null);
   const [docFilter, setDocFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedLang, setSelectedLang] = useState(""); // "" = every locale
 
   useEffect(() => {
     fetch("/api/migrations/environments")
@@ -79,13 +80,19 @@ export default function MigrationsClient() {
       .catch((err) => setErrorMsg(`Couldn't load environment chain: ${String(err)}`));
   }, []);
 
-  // Document ids belong to whichever repo `from` currently points at —
-  // a stale selection from a different `from` would silently apply to
-  // the wrong environment, so clear it whenever from/to change.
+  // Document ids (and languages) belong to whichever repo `from`
+  // currently points at — a stale selection from a different `from`
+  // would silently apply to the wrong environment, so clear it whenever
+  // from/to change, and reload the (cheap, ~dozens of rows) document
+  // list eagerly so the language dropdown is populated without requiring
+  // the picker to have been opened first.
   useEffect(() => {
     setSelectedIds(new Set());
+    setSelectedLang("");
     setDocuments([]);
     setDocsError(null);
+    loadDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);
 
   function loadDocuments() {
@@ -103,9 +110,7 @@ export default function MigrationsClient() {
   }
 
   function togglePicker() {
-    const next = !showPicker;
-    setShowPicker(next);
-    if (next && documents.length === 0 && !docsLoading) loadDocuments();
+    setShowPicker((prev) => !prev);
   }
 
   function toggleDoc(id: string) {
@@ -117,7 +122,10 @@ export default function MigrationsClient() {
     });
   }
 
+  const availableLangs = Array.from(new Set(documents.map((d) => d.lang))).sort();
+
   const filteredDocuments = documents.filter((doc) => {
+    if (selectedLang && doc.lang !== selectedLang) return false;
     if (!docFilter.trim()) return true;
     const q = docFilter.toLowerCase();
     return (
@@ -166,9 +174,17 @@ export default function MigrationsClient() {
   function runPromote() {
     if (!from || !to) return;
     const onlyCount = selectedIds.size;
+    // Picking specific documents already implies which locale they're
+    // in, so it takes precedence over the language dropdown — same
+    // precedence the backend applies (see phase2-migrate.ts).
+    const langScope = onlyCount === 0 && selectedLang ? selectedLang : null;
     if (!dryRun) {
       const scope =
-        onlyCount > 0 ? `${onlyCount} selected document(s)` : "the entire content library";
+        onlyCount > 0
+          ? `${onlyCount} selected document(s)`
+          : langScope
+            ? `every "${langScope}" document`
+            : "the entire content library";
       const ok = window.confirm(
         `This will write real content into "${to}" (${scope}). This is NOT a dry run.\n\nContinue?`,
       );
@@ -177,6 +193,8 @@ export default function MigrationsClient() {
     let url = `/api/migrations/promote?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&dryRun=${dryRun}`;
     if (onlyCount > 0) {
       url += `&only=${encodeURIComponent(Array.from(selectedIds).join(","))}`;
+    } else if (langScope) {
+      url += `&lang=${encodeURIComponent(langScope)}`;
     }
     startStream(url, (data) => setPromoteResult(data as PromoteResult));
   }
@@ -262,6 +280,25 @@ export default function MigrationsClient() {
           />
           Dry run (log the plan, write nothing)
         </label>
+        <Field label="Language">
+          <select
+            value={selectedLang}
+            onChange={(e) => setSelectedLang(e.target.value)}
+            disabled={running || selectedIds.size > 0 || availableLangs.length === 0}
+            title={
+              selectedIds.size > 0
+                ? "Ignored while specific documents are selected below"
+                : undefined
+            }
+          >
+            <option value="">All</option>
+            {availableLangs.map((lang) => (
+              <option key={lang} value={lang}>
+                {lang}
+              </option>
+            ))}
+          </select>
+        </Field>
         <button
           onClick={togglePicker}
           disabled={running || !from || !to}
@@ -282,11 +319,13 @@ export default function MigrationsClient() {
         <button onClick={runPromote} disabled={running || !from || !to} style={btnStyle("primary")}>
           {running
             ? "Running…"
-            : selectedIds.size > 0
-              ? `${dryRun ? "Run dry run" : "Run promote hop"} (${selectedIds.size} doc${selectedIds.size === 1 ? "" : "s"})`
-              : dryRun
-                ? "Run dry run"
-                : "Run promote hop"}
+            : `${dryRun ? "Run dry run" : "Run promote hop"}${
+                selectedIds.size > 0
+                  ? ` (${selectedIds.size} doc${selectedIds.size === 1 ? "" : "s"})`
+                  : selectedLang
+                    ? ` (${selectedLang} only)`
+                    : ""
+              }`}
         </button>
       </div>
 
@@ -303,7 +342,8 @@ export default function MigrationsClient() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <p style={{ margin: 0, fontSize: 12.5, color: "var(--text-dim)" }}>
               Migrate only the checked document(s) from <strong>{from}</strong> — leave nothing
-              checked to migrate the whole content library, same as before.
+              checked to migrate the whole content library (or everything in the Language
+              filter above, if one's set), same as before.
             </p>
             {selectedIds.size > 0 && (
               <button

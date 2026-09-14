@@ -22,8 +22,10 @@ export type Phase2Options = {
   config: Config;
   pair: ResolvedPair;
   dryRun: boolean;
-  /** When set, migrate only these lower-environment document ids instead of the whole content library — e.g. testing one document's migration before committing to all of them. Any id not found in the lower environment is logged and skipped, not an error. */
+  /** When set, migrate only these lower-environment document ids instead of the whole content library — e.g. testing one document's migration before committing to all of them. Any id not found in the lower environment is logged and skipped, not an error. Takes precedence over onlyLang if both are somehow given. */
   onlyLowerIds?: string[];
+  /** When set (and onlyLowerIds isn't), narrow to one Prismic locale (e.g. "ja-jp") via the content API's own lang filter, rather than fetching every locale and discarding the rest. */
+  onlyLang?: string;
   fetchImpl?: typeof fetch;
 };
 
@@ -163,11 +165,14 @@ export async function runPhase2({
   pair,
   dryRun,
   onlyLowerIds,
+  onlyLang,
   fetchImpl = fetch,
 }: Phase2Options): Promise<Phase2Result> {
   log("info", "phase2.start", { dryRun, from: pair.lowerName, to: pair.upperName });
   if (onlyLowerIds && onlyLowerIds.length > 0) {
     log("warn", "phase2.only_filter_active", { lowerIds: onlyLowerIds });
+  } else if (onlyLang) {
+    log("warn", "phase2.only_lang_active", { lang: onlyLang });
   }
 
   const mappingStore = new MappingStore<DocumentMapping>(
@@ -218,7 +223,7 @@ export async function runPhase2({
   const pass1Source =
     onlyLowerIds && onlyLowerIds.length > 0
       ? iterateOnlyDocuments(pair.lower, lowerRef, onlyLowerIds, fetchImpl)
-      : iterateAllDocuments(pair.lower, lowerRef, fetchImpl);
+      : iterateAllDocuments(pair.lower, lowerRef, fetchImpl, onlyLang ?? "*");
 
   await mappingStore.mutate(async (mapping) => {
     for await (const doc of pass1Source) {

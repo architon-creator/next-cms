@@ -361,6 +361,13 @@ export async function* iterateAllDocuments(
   repo: RepoConfig,
   ref: string,
   fetchImpl: FetchFn = fetch,
+  /**
+   * A specific Prismic locale code (e.g. "en-us", "ja-jp") to narrow the
+   * query to server-side, instead of fetching every locale and filtering
+   * client-side. Defaults to every locale — see the comment below on why
+   * that has to be explicit at all.
+   */
+  lang: string = "*",
 ): AsyncGenerator<PrismicDocument> {
   let page = 1;
   for (;;) {
@@ -374,7 +381,7 @@ export async function* iterateAllDocuments(
     // no error. `*` fetches every locale, which is what a full migration
     // needs. (Confirmed against a real repository: an unfiltered query
     // returned 0 documents despite 49 assets existing and no auth error.)
-    url.searchParams.set("lang", "*");
+    url.searchParams.set("lang", lang);
     url.searchParams.set("pageSize", "100");
     url.searchParams.set("page", String(page));
     if (repo.accessToken) url.searchParams.set("access_token", repo.accessToken);

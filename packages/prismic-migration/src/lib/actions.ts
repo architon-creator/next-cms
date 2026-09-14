@@ -43,8 +43,11 @@ export type PromoteHopResult = {
  * `onlyLowerIds`, when given, narrows just the document-migration step
  * (phase2) to those specific lower-environment document ids — e.g.
  * trying one document's migration before committing to the whole
- * library. Phase 0 (schema) and Phase 1 (the whole asset library) still
- * run in full either way — neither is meaningfully scoped per-document.
+ * library. `onlyLang` narrows to one Prismic locale instead (ignored if
+ * `onlyLowerIds` is also given — picking specific documents already
+ * implies which locale they're in). Phase 0 (schema) and Phase 1 (the
+ * whole asset library) still run in full either way — neither is
+ * meaningfully scoped per-document or per-locale.
  */
 export async function runPromoteHop(
   config: Config,
@@ -52,6 +55,7 @@ export async function runPromoteHop(
   toName: string,
   dryRun: boolean,
   onlyLowerIds?: string[],
+  onlyLang?: string,
 ): Promise<PromoteHopResult> {
   const { pair, isFinalHop } = resolveNextHop(config, fromName, toName);
   log("info", "cli.promote_hop_start", {
@@ -62,7 +66,7 @@ export async function runPromoteHop(
 
   await runPhase0({ config, pair, dryRun });
   await runPhase1({ config, pair, dryRun });
-  const result = await runPhase2({ config, pair, dryRun, onlyLowerIds });
+  const result = await runPhase2({ config, pair, dryRun, onlyLowerIds, onlyLang });
 
   if (result.failures.length > 0) {
     log("error", "cli.promote_hop_had_failures", { failures: result.failures });
