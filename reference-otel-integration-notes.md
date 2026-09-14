@@ -10,8 +10,8 @@ by another team.
 - `reference-otel-*.{ts,json}` → copy into a new `packages/otel/` workspace
   package (same role as this repo's existing `packages/ui`, `packages/sdk`,
   etc.): `package.json`, `tsconfig.json`, and `src/{index,logger,logging,
-  log-helper,trace-context,external-correlation,journey}.ts` (drop the
-  `reference-otel-` prefix and `src/` them accordingly).
+  log-helper,trace-context,journey}.ts` (drop the `reference-otel-` prefix
+  and `src/` them accordingly).
 - `reference-instrumentation.ts` → copy **verbatim** to both
   `apps/ibe-app/instrumentation.ts` and `apps/top-app/instrumentation.ts`
   (identical file, nothing app-specific inside it — the app is identified
@@ -47,7 +47,6 @@ next-cms/                                  (repo root)
             ├── logging.ts                 ← reference-otel-logging.ts
             ├── log-helper.ts              ← reference-otel-log-helper.ts
             ├── trace-context.ts           ← reference-otel-trace-context.ts
-            ├── external-correlation.ts    ← reference-otel-external-correlation.ts
             └── journey.ts                 ← reference-otel-journey.ts
 ```
 

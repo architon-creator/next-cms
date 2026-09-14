@@ -4,10 +4,9 @@ import { trace } from "@opentelemetry/api";
 // journey_id identifies one multi-page user flow (e.g. this app's
 // personal-details -> contact-info -> documents -> preferences ->
 // review-submit stepper — several separate page loads / separate OTEL
-// traces). Unlike external_correlation_id (regenerated per request, ties
-// one outbound call to one response), journey_id is generated ONCE at the
-// start of the flow and persists — typically via a cookie set in
-// middleware/proxy, since Server Components cannot set cookies themselves —
+// traces). It's generated ONCE at the start of the flow and persists —
+// typically via a cookie set in middleware/proxy, since Server Components
+// cannot set cookies themselves —
 // across every subsequent page load until the flow ends.
 //
 // A trace is bounded to a single request; forcing a multi-page, multi-
