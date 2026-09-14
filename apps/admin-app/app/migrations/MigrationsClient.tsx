@@ -23,7 +23,20 @@ type ConfirmResult = { lowerName: string; upperName: string };
 
 type EnvironmentsResponse = { chain: string[]; configured: string[] };
 
-type LowerDocument = { id: string; uid: string | null; type: string; lang: string; title: string };
+type LowerDocument = {
+  id: string;
+  uid: string | null;
+  type: string;
+  lang: string;
+  title: string;
+  predictedAction: "create" | "update" | "unchanged";
+};
+
+const predictedActionStyle: Record<LowerDocument["predictedAction"], { label: string; color: string; bg: string }> = {
+  create: { label: "NEW", color: "var(--success)", bg: "var(--success-weak)" },
+  update: { label: "CHANGED", color: "var(--accent)", bg: "var(--accent-weak)" },
+  unchanged: { label: "UNCHANGED", color: "var(--text-dim)", bg: "var(--panel-2)" },
+};
 
 const levelColor: Record<LogEntry["level"], string> = {
   info: "var(--accent)",
@@ -360,7 +373,21 @@ export default function MigrationsClient() {
                     <span style={{ color: "var(--text-dim)" }}>
                       {doc.type} · {doc.lang}
                     </span>
-                    <code style={{ marginLeft: "auto", fontSize: 11 }}>{doc.id}</code>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: "0.03em",
+                        padding: "1px 7px",
+                        borderRadius: 8,
+                        color: predictedActionStyle[doc.predictedAction].color,
+                        background: predictedActionStyle[doc.predictedAction].bg,
+                      }}
+                    >
+                      {predictedActionStyle[doc.predictedAction].label}
+                    </span>
+                    <code style={{ fontSize: 11 }}>{doc.id}</code>
                   </label>
                 ))}
                 {filteredDocuments.length === 0 && (

@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import type { Config } from "../config.js";
+import { canonicalHash } from "./canonical-hash.js";
 import { resolveNextHop, resolvePair, requireDirection } from "./environments.js";
 import { log } from "./logger.js";
+import { mappingFilePath } from "./mapping-paths.js";
+import { MappingStore } from "./mapping-store.js";
 import {
   getMasterRef,
   iterateAllDocuments,
@@ -12,6 +15,7 @@ import { runPhase0 } from "../phases/phase0-preflight.js";
 import { runPhase1 } from "../phases/phase1-assets.js";
 import { buildTitle, runPhase2 } from "../phases/phase2-migrate.js";
 import { runConfirm } from "../phases/phase2-confirm.js";
+import type { DocumentMapping } from "../types.js";
 
 // Extracted out of cli.ts's `promote`/`confirm` command handlers so a
 // non-CLI caller (an admin UI's API route, wanting to trigger the same
@@ -218,13 +222,24 @@ export type LowerDocumentSummary = {
   lang: string;
   /** Same label buildTitle would give it a Migration Release entry — human-readable, not necessarily unique. */
   title: string;
+  /**
+   * What a real (non-dry-run) hop would do with this document RIGHT NOW,
+   * derived the same way phase2's own Pass 1 decides — a canonicalHash
+   * comparison against this pair's mapping store, computed here so the
+   * picker can show it before a run, not just find out from the log
+   * during/after one. "create": no mapping entry yet. "unchanged": entry
+   * exists and its content hash still matches. "update": entry exists
+   * but the lower document's content has since changed.
+   */
+  predictedAction: "create" | "update" | "unchanged";
 };
 
 /**
- * Lists the lower environment's documents (id, type, a display title) —
- * for a UI to offer as a picker when narrowing a promote hop to specific
- * documents via runPromoteHop's onlyLowerIds, rather than requiring the
- * caller to already know a raw document id.
+ * Lists the lower environment's documents (id, type, a display title,
+ * and a predicted create/update/unchanged action) — for a UI to offer as
+ * a picker when narrowing a promote hop to specific documents via
+ * runPromoteHop's onlyLowerIds, rather than requiring the caller to
+ * already know a raw document id.
  */
 export async function listLowerDocuments(
   config: Config,
@@ -238,15 +253,27 @@ export async function listLowerDocuments(
   const typeInfo = new Map(
     (await listCustomTypes(pair.lower)).map((t) => [t.id, { label: t.label, repeatable: t.repeatable }]),
   );
+  const mappingStore = new MappingStore<DocumentMapping>(
+    mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
+  );
+  const mapping = await mappingStore.load();
 
   const documents: LowerDocumentSummary[] = [];
   for await (const doc of iterateAllDocuments(pair.lower, ref)) {
+    const existing = mapping[doc.id];
+    const predictedAction: LowerDocumentSummary["predictedAction"] = !existing
+      ? "create"
+      : existing.lower_hash === canonicalHash(doc.data)
+        ? "unchanged"
+        : "update";
+
     documents.push({
       id: doc.id,
       uid: doc.uid,
       type: doc.type,
       lang: doc.lang,
       title: buildTitle(doc, typeInfo),
+      predictedAction,
     });
   }
   return documents;
