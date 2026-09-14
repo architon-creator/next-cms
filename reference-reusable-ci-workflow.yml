@@ -76,19 +76,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
 
-      # Turbo hashes task inputs by file content, so a restored .turbo dir
-      # from an earlier run lets it serve "lint"/"check-types"/
-      # "test:coverage" from cache instead of fully re-executing — most
-      # useful for the push-triggered run right after a clean PR merge,
-      # where the code is often byte-identical to what the PR's own CI
-      # run already validated. Chose the GitHub Actions cache over
-      # Turborepo Remote Caching (Vercel's) to avoid a third-party account
-      # dependency — weaker (scoped per-runner, subject to GitHub's cache
-      # eviction, exact key won't match across a squash-merge's new SHA)
-      # but zero extra accounts/secrets to manage. restore-keys' OS-only
-      # prefix intentionally falls back to the nearest previous cache;
-      # Turbo's own internal file-hash check still catches anything that
-      # actually changed.
+      # GitHub Actions cache over Turborepo Remote Caching to avoid a third-party account — weaker (per-runner, SHA-keyed) but zero extra secrets.
       - name: Cache Turbo build outputs
         uses: actions/cache@v4
         with:
