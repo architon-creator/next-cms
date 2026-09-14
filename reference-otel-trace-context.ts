@@ -1,8 +1,8 @@
 // Deliberately dependency-free — no @opentelemetry/api, no async_hooks.
 // This file must be safely importable from the BROWSER (client services)
 // and the Edge runtime (middleware/proxy), neither of which can load the
-// rest of this package (log-helper.ts, external-correlation.ts etc. depend
-// on Node's async_hooks). Import this file directly via its subpath
+// rest of this package (log-helper.ts, journey.ts etc. depend on Node's
+// async_hooks). Import this file directly via its subpath
 // ("otel/trace-context"), never through the package's main index — that
 // index eagerly imports @vercel/otel, which is Next.js-specific.
 //

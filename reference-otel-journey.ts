@@ -2,12 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { trace } from "@opentelemetry/api";
 
 // journey_id identifies one multi-page user flow (several separate page
-// loads / separate OTEL traces). Unlike external_correlation_id
-// (regenerated per request, ties one outbound call to one response),
-// journey_id is generated ONCE at the start of the flow and persists —
-// typically via a cookie set in middleware/proxy, since Server Components
-// cannot set cookies themselves — across every subsequent page load until
-// the flow ends.
+// loads / separate OTEL traces). It's generated ONCE at the start of the
+// flow and persists — typically via a cookie set in middleware/proxy,
+// since Server Components cannot set cookies themselves — across every
+// subsequent page load until the flow ends.
 //
 // A trace is bounded to a single request; forcing a multi-page, multi-
 // minute flow into one OTEL trace would produce an unusable waterfall.
