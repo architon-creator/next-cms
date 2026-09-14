@@ -1,0 +1,12 @@
+node_modules
+.next
+.env.local
+
+# prismic-migration writes these relative to whatever process's cwd calls
+# it — that's admin-app's own root when routes here call it, separate
+# from packages/prismic-migration's own copies of the same directories.
+run-logs/
+data/
+snapshots/
+reports/
+.cache/

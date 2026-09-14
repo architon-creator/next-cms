@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { config as loadDotenv } from "dotenv";
 import { loadConfig } from "./config.js";
-import { resolveNextHop, resolvePair, requireDirection } from "./lib/environments.js";
+import { runConfirmAction, runPromoteHop } from "./lib/actions.js";
+import { resolvePair, requireDirection } from "./lib/environments.js";
 import { log } from "./lib/logger.js";
 import { getDocumentById, getMasterRef, PrismicApiError } from "./lib/prismic-http.js";
 import { runPhase0 } from "./phases/phase0-preflight.js";
 import { runPhase1 } from "./phases/phase1-assets.js";
 import { runPhase2 } from "./phases/phase2-migrate.js";
-import { runConfirm } from "./phases/phase2-confirm.js";
 import { runLink, runUnlink } from "./phases/phase-link.js";
 import { runReconcile } from "./phases/phase-reconcile.js";
 import { runRetitle } from "./phases/phase-retitle.js";
@@ -134,39 +134,23 @@ async function main(): Promise<void> {
   // pair, resolved below via resolvePair(). Handled before that generic
   // resolution so promote isn't rejected as "not adjacent".
   if ((command as Command) === "promote") {
-    const { pair, isFinalHop } = resolveNextHop(config, fromName, toName);
-    log("info", "cli.promote_hop_start", {
-      from: pair.lowerName,
-      to: pair.upperName,
-      finalDestination: toName,
-    });
-
-    await runPhase0({ config, pair, dryRun });
-    await runPhase1({ config, pair, dryRun });
-    const result = await runPhase2({ config, pair, dryRun });
-    if (result.failures.length > 0) {
-      log("error", "cli.promote_hop_had_failures", { failures: result.failures });
+    const result = await runPromoteHop(config, fromName, toName, dryRun);
+    if (!result.ok) {
       process.exitCode = 1;
       return;
     }
 
-    if (dryRun) {
-      log("info", "cli.promote_dry_run_done", {
-        from: pair.lowerName,
-        to: pair.upperName,
-      });
-      return;
-    }
+    if (dryRun) return;
 
     console.log(
       [
         "",
-        `Hop ${pair.lowerName} -> ${pair.upperName} complete.`,
-        `Next: publish the Migration Release in ${pair.upperName}'s dashboard, then run:`,
-        `  pnpm cli confirm --from=${pair.lowerName} --to=${pair.upperName}`,
-        isFinalHop
-          ? `${pair.upperName} is your requested destination — nothing more to promote.`
-          : `Then continue up the chain with:\n  pnpm cli promote --from=${pair.upperName} --to=${toName}`,
+        `Hop ${result.lowerName} -> ${result.upperName} complete.`,
+        `Next: publish the Migration Release in ${result.upperName}'s dashboard, then run:`,
+        `  pnpm cli confirm --from=${result.lowerName} --to=${result.upperName}`,
+        result.isFinalHop
+          ? `${result.upperName} is your requested destination — nothing more to promote.`
+          : `Then continue up the chain with:\n  pnpm cli promote --from=${result.upperName} --to=${toName}`,
       ].join("\n"),
     );
     return;
@@ -291,8 +275,7 @@ async function main(): Promise<void> {
       await runRetitle({ config, pair, dryRun });
       return;
     case "confirm":
-      requireDirection(pair, "forward", "confirm");
-      await runConfirm({ config, pair });
+      await runConfirmAction(config, fromName, toName);
       return;
     case "verify": {
       const report = await runPhase3({ config, pair });

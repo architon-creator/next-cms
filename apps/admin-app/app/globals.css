@@ -1,0 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --panel-2: #eef0f7;
+  --border: #dde1ec;
+  --text: #1b1f2a;
+  --text-dim: #5c6478;
+  --accent: #5647c9;
+  --accent-weak: rgba(86, 71, 201, 0.12);
+  --success: #1f7a52;
+  --success-weak: rgba(31, 122, 82, 0.13);
+  --warning: #9c6a12;
+  --warning-weak: rgba(156, 106, 18, 0.15);
+  --danger: #b23b3b;
+  --danger-weak: rgba(178, 59, 59, 0.13);
+  --display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --body-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12141c;
+    --panel: #181b25;
+    --panel-2: #1f2330;
+    --border: #2a2f3d;
+    --text: #e8eaf1;
+    --text-dim: #8b93a7;
+    --accent: #9086ff;
+    --accent-weak: rgba(144, 134, 255, 0.16);
+    --success: #3fcf93;
+    --success-weak: rgba(63, 207, 147, 0.15);
+    --warning: #e0ab4c;
+    --warning-weak: rgba(224, 171, 76, 0.16);
+    --danger: #ea6e66;
+    --danger-weak: rgba(234, 110, 102, 0.16);
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 14px/1.55 var(--body-font);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+}
+
+code {
+  font-family: var(--mono);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
+
+a {
+  color: var(--accent);
+}

@@ -20,6 +20,8 @@
     "prismic": "pnpm --filter cms exec prismic",
     "api:dev": "pnpm --filter api run dev",
     "api:build": "pnpm --filter api run build",
+    "admin:dev": "pnpm --filter admin-app run dev",
+    "admin:build": "pnpm --filter admin-app run build",
     "otel:up": "docker-compose up -d",
     "otel:down": "docker-compose down"
   },

@@ -7,6 +7,12 @@
   "bin": {
     "prismic-migration": "./dist/cli.js"
   },
+  "exports": {
+    "./actions": "./dist/lib/actions.js",
+    "./config": "./dist/config.js",
+    "./environments": "./dist/lib/environments.js",
+    "./logger": "./dist/lib/logger.js"
+  },
   "scripts": {
     "cli": "tsx src/cli.ts",
     "migrate-legacy-mapping": "tsx src/tools/migrate-legacy-mapping.ts",
