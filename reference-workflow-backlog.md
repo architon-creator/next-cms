@@ -82,6 +82,26 @@ struck through with the commit that fixed them; open items are next up.
   Secrets and variables -> Actions) pointing at the security team's Slack
   app's incoming webhook before notifications actually deliver — flagging
   under Open below until that's created.
+- ~~Axe Linter ran on an unversioned default ruleset, and wasn't gated on
+  `ACCESSIBILITY_API_KEY` being set~~ — surfaced by `zipair/nexuz-ui#239`
+  (filed against the same `dequelabs/axe-linter-action@v2.0.0` step this
+  `reusable-ci.yml` added in PR #172). Two fixes:
+  - Added `reference-axe-linter.yml` (copy to `.axe-linter.yml` at the
+    real repo's root) pinning `tags: [wcag2a, wcag2aa, wcag21a, wcag21aa,
+    best-practice]` — this makes the ruleset explicit and
+    version-controlled instead of defaulting silently, per the action's
+    documented config schema (docs.deque.com/linter/4.0.0/en/
+    axe-linter-configuration).
+  - Gated the "Run Axe Linter" step on a new `ACCESSIBILITY_KEY_AVAILABLE`
+    env flag, same `!= ''` pattern as `SNYK_TOKEN_AVAILABLE` — `api_key`
+    is a required input for this action, so it was failing outright for
+    any caller without that secret set, instead of skipping.
+  - **Not addressed here** — `zipair/nexuz-ui#239` also asks for real
+    runtime `axe-core`/`@axe-core/playwright` accessibility checks in the
+    E2E suite (tracked separately as issue #106): axe-linter is a static
+    diff linter, not the runtime testing Guideline 3.3.2 has in mind.
+    That needs the actual E2E suite's structure to wire in correctly —
+    out of scope for this reference-workflow branch until that's shared.
 - ~~Dead artifact uploads in `reusable-app-build.yml`~~ — removed the
   "Save/Upload image URI artifact" and "Save/Upload version tag
   artifact" steps (`image_uri.txt`/`version_tag.txt`), which nothing
@@ -123,9 +143,6 @@ struck through with the commit that fixed them; open items are next up.
   - Coverage file lookup in `reusable-ci.yml` is unscoped
     (`find . -name coverage-summary.json | head -n 1` across the whole
     repo) and fails silently (no failure, no summary) if nothing is found.
-  - Accessibility (Axe Linter) step isn't gated on `ACCESSIBILITY_API_KEY`
-    being set, unlike the Snyk step's `SNYK_TOKEN_AVAILABLE` pattern —
-    likely fails outright for any caller that doesn't set that secret.
   - `reusable-git-tag.yml`'s ECR tag lookup swallows AWS failures via
     `2>/dev/null || true` — a transient AWS error is indistinguishable
     from "no images exist yet."

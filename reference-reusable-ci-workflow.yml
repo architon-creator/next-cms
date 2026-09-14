@@ -55,6 +55,7 @@ jobs:
       TURBO_TELEMETRY_DISABLED: "1"
       ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
       SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
+      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
     permissions:
       contents: read
       packages: read
@@ -179,6 +180,7 @@ jobs:
             || echo "::warning::Slack notification failed to send (webhook unreachable or rejected the payload)."
 
       - name: Run Axe Linter
+        if: env.ACCESSIBILITY_KEY_AVAILABLE == 'true'
         uses: dequelabs/axe-linter-action@v2.0.0
         with:
           api_key: ${{ secrets.ACCESSIBILITY_API_KEY }}
