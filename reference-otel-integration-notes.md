@@ -3,23 +3,31 @@
 Ported from `next-cms`'s own OTel work (commits `72e84e0`, `17a37a6` on its
 `master`), adapted for this project's shape: two Next.js apps
 (`ibe-app`, `top-app`) with no backend in this repo — the backend is owned
-by another team.
+by another team. This doc is the full runbook: what to copy where, how to
+wire it up, how to verify it locally, and what's still blocked on other
+people before it's production-ready.
 
 ## What's in this branch
 
 - `reference-otel-*.{ts,json}` → copy into a new `packages/otel/` workspace
   package (same role as this repo's existing `packages/ui`, `packages/sdk`,
-  etc.): `package.json`, `tsconfig.json`, and `src/{index,logger,logging,
-  log-helper,trace-context,journey}.ts` (drop the `reference-otel-` prefix
-  and `src/` them accordingly).
+  etc.): `package.json`, `tsconfig.json`, and `src/{index,logger,log-helper,
+  trace-context,journey}.ts` (drop the `reference-otel-` prefix and `src/`
+  them accordingly).
+  - **Deliberately NOT included:** `otel/logging` (a subpath export for a
+    plain Node/Express consumer, like `next-cms`'s own `apps/api`). Neither
+    `ibe-app` nor `top-app` is a plain-Node service — both are Next.js apps
+    that import the package's main entry directly (`import { createLogger }
+    from "otel"`). Only add a `logging.ts` + the matching `"./logging"`
+    entry in `package.json`'s `exports` if this monorepo ever gains its own
+    non-Next.js Node service.
 - `reference-instrumentation.ts` → copy **verbatim** to both
   `apps/ibe-app/instrumentation.ts` and `apps/top-app/instrumentation.ts`
   (identical file, nothing app-specific inside it — the app is identified
   via the `OTEL_SERVICE_NAME` env var instead, set per app).
 - `reference-otel-docker-compose.yml` / `reference-otel-collector-config.yaml`
   → copy to `docker-compose.yml` / `otel-collector-config.yaml` at the repo
-  root, for a local Jaeger + otel-collector stack (`docker-compose up -d`,
-  then browse `http://localhost:16686`).
+  root, for a local Jaeger + otel-collector stack.
 
 ## Target folder structure (real project)
 
@@ -31,10 +39,12 @@ next-cms/                                  (repo root)
 ├── apps/
 │   ├── ibe-app/
 │   │   ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim)
+│   │   ├── .env.local                     (add OTEL_SERVICE_NAME=ibe-app, see below)
 │   │   └── package.json                   (add "otel": "workspace:*" dependency)
 │   │
 │   └── top-app/
 │       ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim, same file)
+│       ├── .env.local                     (add OTEL_SERVICE_NAME=top-app, see below)
 │       └── package.json                   (add "otel": "workspace:*" dependency)
 │
 └── packages/
@@ -44,7 +54,6 @@ next-cms/                                  (repo root)
         └── src/
             ├── index.ts                   ← reference-otel-index.ts
             ├── logger.ts                  ← reference-otel-logger.ts
-            ├── logging.ts                 ← reference-otel-logging.ts
             ├── log-helper.ts              ← reference-otel-log-helper.ts
             ├── trace-context.ts           ← reference-otel-trace-context.ts
             └── journey.ts                 ← reference-otel-journey.ts
@@ -54,18 +63,84 @@ Check the real repo's actual `pnpm-workspace.yaml` before creating
 `packages/otel/` — this assumes it uses a `packages/*` layout the same way
 this sandbox does.
 
-## Wiring per app
+## Step-by-step checklist
 
-1. Add `packages/otel` as a workspace dependency to both
-   `apps/ibe-app/package.json` and `apps/top-app/package.json` (`"otel":
-   "workspace:*"`), same pattern as their existing `"ui"`/`"cms"` deps.
-2. Env vars (add to each app's `.env.example` / real env, and to the
-   `IBE_DEVELOP_*`/`IBE_RELEASE_*`/`TOP_DEVELOP_*`/`TOP_RELEASE_*` ECS task
-   definitions this backlog already tracks):
-   ```
-   OTEL_SERVICE_NAME=ibe-app        # or top-app
-   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # local dev only — see "Open items" below for production
-   ```
+### 1. Copy the files (above)
+
+### 2. Wire each app
+- Add `"otel": "workspace:*"` to `apps/ibe-app/package.json` and
+  `apps/top-app/package.json`'s `dependencies`, same pattern as their
+  existing `"ui"`/`"cms"` workspace deps.
+- Add to each app's **local** env (`.env.local`, not committed):
+  ```
+  # apps/ibe-app/.env.local
+  OTEL_SERVICE_NAME=ibe-app
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+
+  # apps/top-app/.env.local
+  OTEL_SERVICE_NAME=top-app
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+  ```
+  Port 4318, not 4317: `@vercel/otel`'s exporter only speaks OTLP/HTTP.
+  `OTEL_SERVICE_NAME` is what makes each app show up as a distinct,
+  named service in Jaeger's UI — without it, spans fall back to the
+  literal string `"unknown-service"` and both apps' traces become
+  indistinguishable from each other.
+
+### 3. Verify locally
+1. `docker-compose up -d` at the repo root — starts Jaeger + the
+   otel-collector.
+2. Run `ibe-app` and `top-app` (`pnpm dev` or however this repo normally
+   starts them).
+3. Click around each app for a bit — load a few pages, submit a form,
+   whatever's easy.
+4. Open `http://localhost:16686` (Jaeger UI).
+5. In the **Service** dropdown, confirm you see **both** `ibe-app` and
+   `top-app` listed separately (not merged into one, not showing up as
+   `unknown-service`).
+6. Click into a trace for each — confirm spans exist, timestamps look
+   right, and (for a route that logs something) the log's `trace_id`
+   matches the trace's ID in Jaeger.
+
+If a service doesn't show up at all: check `OTEL_EXPORTER_OTLP_ENDPOINT`
+is actually set and the app was restarted after adding it (env vars are
+read at process startup, not hot-reloaded). If it shows up as
+`unknown-service`: `OTEL_SERVICE_NAME` wasn't picked up — same
+restart-after-env-change check.
+
+### 4. Decide if you need CSR trace continuity (optional, your call)
+Only relevant if some client-side (`"use client"`) action should connect
+into the same trace as the request that rendered the page — e.g. a button
+click's resulting API call showing up as part of the same Jaeger trace as
+the page load, instead of as its own disconnected trace.
+
+- **Why this is even a question:** OTel's auto-instrumentation only patches
+  `fetch`/`http` on the **server** (where `register()` ran). A `"use
+  client"` component's `fetch()` runs in the **browser**, which has no OTel
+  SDK — so it sends no `traceparent` header, and the server treats that
+  incoming request as brand new, inventing a fresh trace_id instead of
+  continuing whatever trace the page load already started.
+- **The fix, if you want it:** `trace-context.ts`'s `generateTraceparent()`
+  is a tiny, dependency-free function safe to run in the browser. Call it
+  before the `fetch()`, attach the result as a `traceparent` header:
+  ```ts
+  import { generateTraceparent } from "otel/trace-context";
+
+  fetch(url, { headers: { traceparent: generateTraceparent() } });
+  ```
+  The receiving server's OTel instrumentation doesn't care that this
+  header was hand-written in plain JS instead of produced by a "real"
+  tracer — the W3C Trace Context format is trusted at face value, so this
+  works.
+- If nothing client-side needs to kick off its own traced call, skip this
+  — everything still works, you just get two separate traces (page load,
+  then click) instead of one connected one.
+
+### 5. Open as its own PR
+Branch: `feature/otel-integration` — kept separate from the axe-linter
+ruleset fix and the Slack scan-notification work (different branches
+already), since these are independent, unrelated changes with different
+risk surfaces.
 
 ## Tracing into the backend
 
@@ -92,8 +167,33 @@ frontend → backend only happens if the backend team's service also:
 calling cross-service tracing "done" — from our side alone, we can confirm
 the header goes out, but not that anything connects it into one trace.
 
+## Service naming — one frontend, two services
+
+Even though `ibe-app` and `top-app` are both "the frontend" from a
+business/architecture standpoint, keep their `OTEL_SERVICE_NAME` values
+**distinct** (`ibe-app`, `top-app`), not shared. Sharing one name merges
+both apps' spans into one Jaeger bucket, making it impossible to tell
+which actual running process handled a given request. If you also want
+"these two are related" visible in the trace backend without losing that
+distinction, that's what OTel's `service.namespace` resource attribute is
+for (e.g. both set `service.namespace: frontend`, while keeping different
+`service.name` values) — `@vercel/otel`'s `registerOTel({ serviceName })`
+shorthand doesn't expose this directly; it needs a full
+`resourceAttributes` object instead. Not done in this reference port —
+flag if you want it added.
+
 ## Open items — need input before this is production-ready
 
+- **`reusable-app-deploy.yml` not yet shared** — this is what actually
+  shows where/how to add `OTEL_SERVICE_NAME` (and other env vars) into the
+  real ECS task definitions for `ibe-app`/`top-app`. It's a static,
+  non-secret, never-changes-per-environment value (`ibe-app` is always
+  `ibe-app`), so it doesn't belong in the `IBE_DEVELOP_*`/`IBE_RELEASE_*`
+  GitHub Actions Variables this backlog already tracks — likely just a
+  plain hardcoded environment entry in the task definition, but can't
+  confirm the exact mechanism (static JSON template? built inline in the
+  workflow? via a `render-task-definition` action?) without seeing that
+  file.
 - **Splunk endpoint/auth is unknown.** `createLogger()`'s production output
   is already JSON Lines on stdout — if this org's existing ECS →
   CloudWatch → Splunk log-forwarding pipeline (Splunk Add-on for AWS /
@@ -115,6 +215,5 @@ the header goes out, but not that anything connects it into one trace.
     losing traces in production with no error, the same silent-failure
     trap this backlog has flagged elsewhere (Snyk fallback, ECR tag
     lookup).
-- **Production `OTEL_SERVICE_NAME`/`OTEL_EXPORTER_OTLP_ENDPOINT` values**
-  aren't set yet in the real ECS task definitions — blocked on the Splunk
-  answer above.
+- **Backend team coordination** (see "Tracing into the backend" above) —
+  not started yet.
