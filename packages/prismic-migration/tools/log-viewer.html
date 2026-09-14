@@ -2,51 +2,302 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>prismic-migration log viewer</title>
+    <title>Migration Run Viewer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
     <style>
       :root {
-        color-scheme: light dark;
-        --bg: #0f1115;
-        --panel: #171a21;
-        --panel-2: #1e222b;
-        --border: #2a2f3a;
-        --text: #e6e8ec;
-        --text-dim: #9aa2b1;
-        --accent: #5b9dff;
-        --info: #5b9dff;
-        --warn: #e0a94a;
-        --error: #e05a5a;
-        --mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+        --bg: #f6f7fb;
+        --panel: #ffffff;
+        --panel-2: #eef0f7;
+        --border: #dde1ec;
+        --text: #1b1f2a;
+        --text-dim: #5c6478;
+        --accent: #5647c9;
+        --accent-weak: rgba(86, 71, 201, 0.12);
+        --success: #1f7a52;
+        --success-weak: rgba(31, 122, 82, 0.13);
+        --warning: #9c6a12;
+        --warning-weak: rgba(156, 106, 18, 0.15);
+        --danger: #b23b3b;
+        --danger-weak: rgba(178, 59, 59, 0.13);
+        --live: #d6336c;
+        --shadow: 0 1px 2px rgba(20, 22, 30, 0.06), 0 8px 24px rgba(20, 22, 30, 0.05);
+        --display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+        --body-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+        color-scheme: light;
       }
-      @media (prefers-color-scheme: light) {
-        :root {
-          --bg: #f5f6f8;
-          --panel: #ffffff;
-          --panel-2: #f0f1f4;
-          --border: #dde1e8;
-          --text: #1a1d24;
-          --text-dim: #5c6474;
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #12141c;
+          --panel: #181b25;
+          --panel-2: #1f2330;
+          --border: #2a2f3d;
+          --text: #e8eaf1;
+          --text-dim: #8b93a7;
+          --accent: #9086ff;
+          --accent-weak: rgba(144, 134, 255, 0.16);
+          --success: #3fcf93;
+          --success-weak: rgba(63, 207, 147, 0.15);
+          --warning: #e0ab4c;
+          --warning-weak: rgba(224, 171, 76, 0.16);
+          --danger: #ea6e66;
+          --danger-weak: rgba(234, 110, 102, 0.16);
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+          color-scheme: dark;
         }
+      }
+      :root[data-theme="dark"] {
+        --bg: #12141c;
+        --panel: #181b25;
+        --panel-2: #1f2330;
+        --border: #2a2f3d;
+        --text: #e8eaf1;
+        --text-dim: #8b93a7;
+        --accent: #9086ff;
+        --accent-weak: rgba(144, 134, 255, 0.16);
+        --success: #3fcf93;
+        --success-weak: rgba(63, 207, 147, 0.15);
+        --warning: #e0ab4c;
+        --warning-weak: rgba(224, 171, 76, 0.16);
+        --danger: #ea6e66;
+        --danger-weak: rgba(234, 110, 102, 0.16);
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+        color-scheme: dark;
       }
       * {
         box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
       }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font:
-          13px/1.5 -apple-system,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
+        font: 400 14px/1.55 var(--body-font);
       }
-      header {
+      h1,
+      h2,
+      h3 {
+        font-family: var(--display);
+        text-wrap: balance;
+      }
+      button,
+      input {
+        font-family: inherit;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 272px 1fr;
+        min-height: 100vh;
+      }
+      @media (max-width: 760px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+      }
+
+      /* ---------- Rail ---------- */
+      .rail {
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .rail-head {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .rail-head h1 {
+        font-size: 17px;
+        font-weight: 800;
+        margin: 0 0 3px;
+        letter-spacing: -0.01em;
+      }
+      .rail-head .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+        margin: 0 0 4px;
+      }
+      .privacy-note {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 11.5px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+      .privacy-note svg {
+        flex: none;
+        width: 13px;
+        height: 13px;
+        color: var(--success);
+      }
+      .rail-actions {
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn.primary:hover:not(:disabled) {
+        filter: brightness(1.08);
+        color: #fff;
+      }
+      .btn.small {
+        padding: 5px 9px;
+        font-size: 11.5px;
+      }
+      label.btn input[type="file"] {
+        display: none;
+      }
+      #liveHint {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin: -2px 0 0;
+        line-height: 1.4;
+      }
+      .run-list {
+        list-style: none;
+        margin: 0;
+        padding: 8px 10px 16px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .run-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 9px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .run-item:hover {
+        background: var(--panel-2);
+      }
+      .run-item.active {
+        background: var(--accent-weak);
+        border-color: var(--accent);
+      }
+      .run-dot {
+        flex: none;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-top: 5px;
+        background: var(--text-dim);
+      }
+      .run-dot.live {
+        background: var(--live);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(214, 51, 108, 0.45);
+        }
+        50% {
+          box-shadow: 0 0 0 5px rgba(214, 51, 108, 0);
+        }
+      }
+      .run-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .run-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .run-meta {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 2px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .run-remove {
+        flex: none;
+        border: none;
+        background: none;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .run-remove:hover {
+        color: var(--danger);
+        background: var(--danger-weak);
+      }
+      .rail-empty {
+        padding: 18px;
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+
+      /* ---------- Main ---------- */
+      .content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
         background: var(--panel);
         border-bottom: 1px solid var(--border);
         flex-wrap: wrap;
@@ -54,40 +305,15 @@
         top: 0;
         z-index: 5;
       }
-      h1 {
-        font-size: 14px;
-        font-weight: 600;
-        margin: 0;
-        white-space: nowrap;
-      }
-      h1 span {
-        color: var(--text-dim);
-        font-weight: 400;
-      }
-      .dropzone {
-        border: 1px dashed var(--border);
-        border-radius: 6px;
-        padding: 6px 12px;
-        color: var(--text-dim);
-        cursor: pointer;
-        font-size: 12px;
-      }
-      .dropzone.drag {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-      .dropzone input {
-        display: none;
-      }
       #search {
         flex: 1;
-        min-width: 180px;
+        min-width: 160px;
         background: var(--panel-2);
         border: 1px solid var(--border);
-        border-radius: 6px;
+        border-radius: 8px;
         color: var(--text);
-        padding: 6px 10px;
-        font: inherit;
+        padding: 7px 11px;
+        font-size: 13px;
       }
       .level-toggle {
         display: flex;
@@ -98,49 +324,101 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        padding: 4px 8px;
-        border-radius: 6px;
+        padding: 5px 9px;
+        border-radius: 7px;
         border: 1px solid var(--border);
         cursor: pointer;
         user-select: none;
+        color: var(--text-dim);
       }
-      .level-toggle label[data-level="info"].active {
-        border-color: var(--info);
-        color: var(--info);
+      .level-toggle label.active[data-level="info"] {
+        border-color: var(--accent);
+        color: var(--accent);
       }
-      .level-toggle label[data-level="warn"].active {
-        border-color: var(--warn);
-        color: var(--warn);
+      .level-toggle label.active[data-level="warn"] {
+        border-color: var(--warning);
+        color: var(--warning);
       }
-      .level-toggle label[data-level="error"].active {
-        border-color: var(--error);
-        color: var(--error);
+      .level-toggle label.active[data-level="error"] {
+        border-color: var(--danger);
+        color: var(--danger);
       }
       .level-toggle input {
         display: none;
       }
       #stats {
-        font-size: 12px;
+        font-size: 11.5px;
         color: var(--text-dim);
         white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      main.body-area {
+        padding: 20px 24px 48px;
+        overflow-x: auto;
       }
       #empty {
-        padding: 60px 20px;
+        max-width: 620px;
+        margin: 48px auto;
         text-align: center;
         color: var(--text-dim);
+        line-height: 1.7;
       }
-      #empty code {
+      #empty h2 {
+        color: var(--text);
+        font-size: 19px;
+        margin-bottom: 8px;
+      }
+      #empty code,
+      code {
         background: var(--panel-2);
+        border: 1px solid var(--border);
         padding: 2px 6px;
         border-radius: 4px;
         font-family: var(--mono);
+        font-size: 12px;
       }
-      main {
-        padding: 8px 16px 40px;
+      #empty pre {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        text-align: left;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        overflow-x: auto;
+        margin: 18px 0;
       }
+
+      /* view switch */
+      .view-switch {
+        display: flex;
+        gap: 4px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 3px;
+      }
+      .view-switch button {
+        border: none;
+        background: none;
+        color: var(--text-dim);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .view-switch button.active {
+        background: var(--panel);
+        color: var(--accent);
+        box-shadow: var(--shadow);
+      }
+
+      /* table (Log view) */
       table {
         width: 100%;
         border-collapse: collapse;
+        min-width: 640px;
       }
       tbody tr {
         border-bottom: 1px solid var(--border);
@@ -150,14 +428,14 @@
         background: var(--panel-2);
       }
       td {
-        padding: 6px 8px;
+        padding: 7px 10px;
         vertical-align: top;
       }
       td.ts {
         font-family: var(--mono);
         color: var(--text-dim);
         white-space: nowrap;
-        font-size: 12px;
+        font-size: 11.5px;
       }
       td.badge {
         white-space: nowrap;
@@ -166,215 +444,440 @@
         display: inline-block;
         padding: 1px 8px;
         border-radius: 10px;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 10.5px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
       }
       .badge-pill.info {
-        background: rgba(91, 157, 255, 0.15);
-        color: var(--info);
+        background: var(--accent-weak);
+        color: var(--accent);
       }
       .badge-pill.warn {
-        background: rgba(224, 169, 74, 0.18);
-        color: var(--warn);
+        background: var(--warning-weak);
+        color: var(--warning);
       }
       .badge-pill.error {
-        background: rgba(224, 90, 90, 0.18);
-        color: var(--error);
+        background: var(--danger-weak);
+        color: var(--danger);
       }
       td.event {
         font-family: var(--mono);
         font-weight: 600;
         white-space: nowrap;
+        font-size: 12.5px;
       }
       td.summary {
         color: var(--text-dim);
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 0;
+        font-size: 12.5px;
       }
       tr.expanded td.summary {
         white-space: normal;
       }
       pre.fields {
         margin: 6px 0 2px;
-        padding: 8px 10px;
+        padding: 10px 12px;
         background: var(--panel-2);
         border: 1px solid var(--border);
-        border-radius: 6px;
+        border-radius: 8px;
         font-family: var(--mono);
         font-size: 12px;
         white-space: pre-wrap;
         word-break: break-word;
       }
       .row-error {
-        border-left: 2px solid var(--error);
+        border-left: 2px solid var(--danger);
       }
       .row-warn {
-        border-left: 2px solid var(--warn);
+        border-left: 2px solid var(--warning);
       }
       .row-info {
         border-left: 2px solid transparent;
       }
       .malformed {
-        color: var(--error);
+        color: var(--danger);
         font-family: var(--mono);
         font-size: 12px;
       }
-      .view-toggle {
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        border-radius: 6px;
-        padding: 6px 12px;
-        font: inherit;
-        font-size: 12px;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .view-toggle:hover:not(:disabled) {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-      .view-toggle:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-      .view-toggle.active {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-      #summary {
+
+      /* Report view */
+      .report {
         max-width: 900px;
-        margin: 0 auto;
       }
-      #summary h2 {
-        font-size: 15px;
-        margin: 24px 0 8px;
+      .report-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
       }
-      #summary h2:first-child {
-        margin-top: 4px;
+      .report h2 {
+        font-size: 20px;
+        margin: 0 0 2px;
       }
-      #summary .meta {
+      .report .pair-meta {
         color: var(--text-dim);
-        font-size: 12px;
-        margin-bottom: 16px;
+        font-size: 12.5px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
       }
-      #summary .actions {
+      .direction-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 10px;
+        background: var(--accent-weak);
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .mode-pill {
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .mode-pill.dry {
+        background: var(--warning-weak);
+        color: var(--warning);
+      }
+      .mode-pill.live-mode {
+        background: var(--success-weak);
+        color: var(--success);
+      }
+      .narrative {
+        font-family: var(--display);
+        font-size: 15.5px;
+        font-weight: 600;
+        line-height: 1.55;
+        padding: 14px 16px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        margin-bottom: 18px;
+      }
+      .actions {
         display: flex;
         gap: 8px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
       }
-      #summary table {
-        margin-bottom: 8px;
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 22px;
       }
-      #summary th,
-      #summary td {
+      .stat-tile {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .stat-tile .n {
+        font-family: var(--display);
+        font-size: 24px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+      .stat-tile .l {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 3px;
+      }
+      .stat-tile.success .n {
+        color: var(--success);
+      }
+      .stat-tile.warning .n {
+        color: var(--warning);
+      }
+      .stat-tile.danger .n {
+        color: var(--danger);
+      }
+      .stat-tile.accent .n {
+        color: var(--accent);
+      }
+      .chart-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-bottom: 24px;
+      }
+      .chart-card h3 {
+        margin: 0 0 12px;
+        font-size: 12.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-dim);
+      }
+      .report h3.section {
+        font-size: 14px;
+        margin: 26px 0 8px;
+      }
+      .report table th,
+      .report table td {
         text-align: left;
-        padding: 5px 8px;
+        padding: 6px 9px;
         border-bottom: 1px solid var(--border);
-        font-size: 12px;
+        font-size: 12.5px;
       }
-      #summary th {
+      .report table th {
         color: var(--text-dim);
         font-weight: 600;
-        font-size: 11px;
+        font-size: 10.5px;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
       }
-      #summary code {
-        font-family: var(--mono);
-        font-size: 11px;
-      }
-      #summary .empty-note {
+      .empty-note {
         color: var(--text-dim);
         font-style: italic;
+        font-size: 12.5px;
       }
-      #summary .next-step {
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 12px 14px;
-        margin-top: 8px;
+      .next-step {
+        background: var(--accent-weak);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-top: 10px;
+        font-size: 13px;
       }
-      #summary .next-step code {
+      .next-step code {
         display: block;
-        margin-top: 6px;
+        margin-top: 8px;
         background: var(--panel);
-        padding: 6px 8px;
-        border-radius: 4px;
+        padding: 7px 9px;
+        border-radius: 6px;
         font-size: 12px;
+      }
+
+      /* compare */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      @media (max-width: 900px) {
+        .compare-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .compare-picker {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+      .compare-picker select {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        color: var(--text);
+        font-size: 12.5px;
+        min-width: 220px;
+      }
+      .compare-col .report {
+        max-width: none;
+      }
+
+      #liveError {
+        display: none;
+        font-size: 11.5px;
+        color: var(--danger);
+        margin-top: -2px;
+        line-height: 1.4;
+      }
+
+      @media print {
+        .rail,
+        .toolbar,
+        .actions {
+          display: none !important;
+        }
+        .shell {
+          display: block;
+        }
+        body {
+          background: #fff;
+          color: #111;
+        }
+        .report,
+        .compare-grid {
+          max-width: none;
+        }
+        .narrative,
+        .stat-tile,
+        .chart-card {
+          box-shadow: none;
+          border: 1px solid #ccc;
+        }
+        table {
+          page-break-inside: auto;
+        }
+        tr {
+          page-break-inside: avoid;
+        }
       }
     </style>
   </head>
   <body>
-    <header>
-      <h1>prismic-migration <span>log viewer</span></h1>
-      <label class="dropzone" id="dropzone">
-        Choose or drop a log file…
-        <input type="file" id="fileInput" accept=".log,.txt,.jsonl,.ndjson" />
-      </label>
-      <input
-        id="search"
-        type="text"
-        placeholder="Filter by event name, id, or any field value…"
-      />
-      <div class="level-toggle" id="levelToggle">
-        <label data-level="info" class="active"
-          ><input type="checkbox" checked />info</label
-        >
-        <label data-level="warn" class="active"
-          ><input type="checkbox" checked />warn</label
-        >
-        <label data-level="error" class="active"
-          ><input type="checkbox" checked />error</label
-        >
-      </div>
-      <button class="view-toggle" id="viewToggle" type="button" disabled>
-        Generate summary
-      </button>
-      <div id="stats"></div>
-    </header>
+    <div class="shell">
+      <aside class="rail">
+        <div class="rail-head">
+          <p class="eyebrow">prismic-migration</p>
+          <h1>Migration Run Viewer</h1>
+          <div class="privacy-note">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path
+                d="M8 1.5 2.5 3.6v3.9c0 3.4 2.3 6.2 5.5 7 3.2-.8 5.5-3.6 5.5-7V3.6L8 1.5Z"
+              />
+              <path d="M5.6 8.1 7.3 9.8l3-3.2" />
+            </svg>
+            <span>Log files never leave this browser — nothing is uploaded.</span>
+          </div>
+        </div>
+        <div class="rail-actions">
+          <label class="btn primary" for="fileInput">
+            + Add log file(s)…
+            <input type="file" id="fileInput" accept=".log,.txt,.jsonl,.ndjson" multiple />
+          </label>
+          <button class="btn" id="watchLiveBtn">▶ Watch a live run…</button>
+          <div id="liveHint">
+            Streams new lines as the CLI writes them. Chrome/Edge only, opened as
+            a normal tab.
+          </div>
+          <div id="liveError"></div>
+        </div>
+        <ul class="run-list" id="runList">
+          <li class="rail-empty" id="railEmpty">
+            No runs loaded yet. Add a captured <code>.log</code> file, or drop
+            one anywhere on this page.
+          </li>
+        </ul>
+      </aside>
 
-    <main>
-      <div id="empty">
-        Nothing loaded yet.<br /><br />
-        Capture a run's output first, then load it here:<br />
-        <code>pnpm cli migrate --from=dev --to=sit &gt; run.log</code><br /><br />
-        Every line the CLI prints is one JSON object (<code
-          >{ ts, level, event, ...fields }</code
-        >) — this page never sends that data anywhere; it's parsed entirely in your
-        browser.
-      </div>
-      <table id="table" style="display: none">
-        <tbody id="tbody"></tbody>
-      </table>
-      <div id="summary" style="display: none"></div>
-    </main>
+      <main class="content">
+        <div class="toolbar" id="toolbar" style="display: none">
+          <input id="search" type="text" placeholder="Filter by event name, id, or any field value…" />
+          <div class="level-toggle" id="levelToggle">
+            <label data-level="info" class="active"><input type="checkbox" checked />info</label>
+            <label data-level="warn" class="active"><input type="checkbox" checked />warn</label>
+            <label data-level="error" class="active"><input type="checkbox" checked />error</label>
+          </div>
+          <div class="view-switch" id="viewSwitch">
+            <button data-view="report" class="active">Report</button>
+            <button data-view="log">Log</button>
+          </div>
+          <button class="btn small" id="compareBtn" disabled>⇄ Compare runs</button>
+          <div id="stats"></div>
+        </div>
+
+        <main class="body-area">
+          <div id="empty">
+            <h2>Nothing loaded yet</h2>
+            <p>
+              Capture a run's output, then add it above (or drop the file
+              anywhere on this page):
+            </p>
+            <pre>pnpm cli migrate --from=dev --to=sit &gt; run.log 2&gt;&amp;1</pre>
+            <p>
+              Every line the CLI prints is one JSON object
+              (<code>{ ts, level, event, ...fields }</code>). Everything is
+              parsed right here in your browser — this page has no server and
+              sends nothing anywhere.
+            </p>
+          </div>
+          <div id="singleView" style="display: none">
+            <table id="table" style="display: none">
+              <tbody id="tbody"></tbody>
+            </table>
+            <div id="reportSingle" class="report" style="display: none"></div>
+          </div>
+          <div id="compareView" style="display: none">
+            <div class="compare-picker">
+              <select id="compareA"></select>
+              <select id="compareB"></select>
+            </div>
+            <div class="compare-grid">
+              <div class="compare-col" id="compareColA"></div>
+              <div class="compare-col" id="compareColB"></div>
+            </div>
+          </div>
+        </main>
+      </main>
+    </div>
 
     <script>
       (function () {
         "use strict";
 
-        /** @type {{ts:string, level:string, event:string, fields:Record<string,unknown>, raw:string, malformed:boolean}[]} */
-        let entries = [];
+        /**
+         * One run = one loaded log file, or one file being watched live.
+         * @typedef {{id:string, label:string, entries:any[], source:'file'|'live', watching:boolean, fileHandle?:any, lastSize:number, partial:string, timer?:any}} Run
+         */
+
+        /** @type {Run[]} */
+        let runs = [];
+        let activeRunId = null;
+
+        // Only present when this page is opened as a published Artifact
+        // with the "downloads" capability granted — null everywhere else
+        // (opened as a plain local file, or an artifact that hasn't
+        // granted it), in which case the classic Blob+<a download> path
+        // below is used instead.
+        let downloadsCap = null;
+        if (window.claude && typeof window.claude.use === "function") {
+          window.claude.use("downloads").then((cap) => {
+            downloadsCap = cap;
+          });
+        }
+
         let activeLevels = new Set(["info", "warn", "error"]);
         let searchTerm = "";
+        let view = "report"; // "report" | "log" — applies to the active run
+        let mode = "single"; // "single" | "compare"
 
-        let view = "table"; // "table" | "summary"
-
-        const dropzone = document.getElementById("dropzone");
         const fileInput = document.getElementById("fileInput");
+        const watchLiveBtn = document.getElementById("watchLiveBtn");
+        const liveHint = document.getElementById("liveHint");
+        const liveError = document.getElementById("liveError");
+        const runListEl = document.getElementById("runList");
+        const railEmpty = document.getElementById("railEmpty");
+        const toolbar = document.getElementById("toolbar");
         const searchInput = document.getElementById("search");
         const levelToggle = document.getElementById("levelToggle");
-        const viewToggle = document.getElementById("viewToggle");
+        const viewSwitch = document.getElementById("viewSwitch");
+        const compareBtn = document.getElementById("compareBtn");
         const statsEl = document.getElementById("stats");
         const emptyEl = document.getElementById("empty");
+        const singleViewEl = document.getElementById("singleView");
         const tableEl = document.getElementById("table");
-        const summaryEl = document.getElementById("summary");
         const tbody = document.getElementById("tbody");
+        const reportSingleEl = document.getElementById("reportSingle");
+        const compareViewEl = document.getElementById("compareView");
+        const compareAEl = document.getElementById("compareA");
+        const compareBEl = document.getElementById("compareB");
+        const compareColA = document.getElementById("compareColA");
+        const compareColB = document.getElementById("compareColB");
 
+        // ---------------------------------------------------------------
+        // Parsing
+        // ---------------------------------------------------------------
         function parseLog(text) {
           const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
           return lines.map((raw) => {
@@ -390,60 +893,223 @@
                 malformed: false,
               };
             } catch {
-              return {
-                ts: "",
-                level: "info",
-                event: "",
-                fields: {},
-                raw,
-                malformed: true,
-              };
+              return { ts: "", level: "info", event: "", fields: {}, raw, malformed: true };
             }
           });
         }
 
-        function loadFile(file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            entries = parseLog(String(reader.result));
-            viewToggle.disabled = entries.length === 0;
-            render();
-          };
-          reader.readAsText(file);
+        function makeRunId() {
+          return "r" + Math.random().toString(36).slice(2, 9);
         }
 
-        viewToggle.addEventListener("click", () => {
-          view = view === "table" ? "summary" : "table";
-          viewToggle.textContent =
-            view === "summary" ? "Back to log" : "Generate summary";
-          viewToggle.classList.toggle("active", view === "summary");
-          render();
-        });
+        function labelFromEntries(entries, fallback) {
+          const start = entries.find(
+            (e) => !e.malformed && e.fields && e.fields.from && e.fields.to,
+          );
+          if (start) return `${start.fields.from} → ${start.fields.to}`;
+          return fallback;
+        }
+
+        function addRunFromText(name, text) {
+          const entries = parseLog(text);
+          const run = {
+            id: makeRunId(),
+            label: labelFromEntries(entries, name),
+            entries,
+            source: "file",
+            watching: false,
+            lastSize: text.length,
+            partial: "",
+          };
+          runs.push(run);
+          setActiveRun(run.id);
+          return run;
+        }
+
+        function loadFiles(fileList) {
+          const files = Array.from(fileList || []);
+          if (files.length === 0) return;
+          let remaining = files.length;
+          files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              addRunFromText(file.name, String(reader.result));
+              remaining -= 1;
+              if (remaining === 0) renderAll();
+            };
+            reader.readAsText(file);
+          });
+        }
 
         fileInput.addEventListener("change", () => {
-          if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+          loadFiles(fileInput.files);
+          fileInput.value = "";
         });
 
         ["dragover", "dragenter"].forEach((evt) =>
-          dropzone.addEventListener(evt, (e) => {
-            e.preventDefault();
-            dropzone.classList.add("drag");
-          }),
+          window.addEventListener(evt, (e) => e.preventDefault()),
         );
-        ["dragleave", "drop"].forEach((evt) =>
-          dropzone.addEventListener(evt, (e) => {
-            e.preventDefault();
-            dropzone.classList.remove("drag");
-          }),
-        );
-        dropzone.addEventListener("drop", (e) => {
-          const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-          if (file) loadFile(file);
+        window.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const files = e.dataTransfer && e.dataTransfer.files;
+          if (files && files.length) loadFiles(files);
         });
 
+        // ---------------------------------------------------------------
+        // Live watching (File System Access API — progressive enhancement)
+        // ---------------------------------------------------------------
+        if (!window.showOpenFilePicker) {
+          watchLiveBtn.disabled = true;
+          liveHint.textContent =
+            "Not available in this browser/context — open this file directly in Chrome or Edge to watch a run live.";
+        }
+
+        watchLiveBtn.addEventListener("click", async () => {
+          liveError.style.display = "none";
+          try {
+            const [handle] = await window.showOpenFilePicker({
+              types: [
+                {
+                  description: "Migration log",
+                  accept: { "text/plain": [".log", ".txt", ".jsonl", ".ndjson"] },
+                },
+              ],
+            });
+            const file = await handle.getFile();
+            const text = await file.text();
+            const entries = parseLog(text);
+            const run = {
+              id: makeRunId(),
+              label: labelFromEntries(entries, file.name),
+              entries,
+              source: "live",
+              watching: true,
+              fileHandle: handle,
+              lastSize: file.size,
+              partial: "",
+            };
+            runs.push(run);
+            setActiveRun(run.id);
+            pollLiveRun(run);
+            renderAll();
+          } catch (err) {
+            if (err && err.name === "AbortError") return;
+            liveError.textContent =
+              "Couldn't start watching that file — " +
+              (err && err.message ? err.message : "permission was denied.");
+            liveError.style.display = "";
+          }
+        });
+
+        function pollLiveRun(run) {
+          run.timer = setInterval(async () => {
+            try {
+              const file = await run.fileHandle.getFile();
+              if (file.size > run.lastSize) {
+                const blob = file.slice(run.lastSize, file.size);
+                const text = await blob.text();
+                run.lastSize = file.size;
+                const combined = run.partial + text;
+                const lines = combined.split(/\r?\n/);
+                run.partial = lines.pop() || "";
+                if (lines.length) {
+                  const newEntries = parseLog(lines.join("\n"));
+                  run.entries.push(...newEntries);
+                  if (run.label.startsWith("live-") || !run.label.includes("→")) {
+                    run.label = labelFromEntries(run.entries, run.label);
+                  }
+                  renderAll();
+                }
+              } else if (file.size < run.lastSize) {
+                // File was truncated/restarted — resync from scratch.
+                run.lastSize = 0;
+                run.partial = "";
+              }
+            } catch {
+              stopWatching(run);
+              renderAll();
+            }
+          }, 1000);
+        }
+
+        function stopWatching(run) {
+          if (run.timer) clearInterval(run.timer);
+          run.timer = null;
+          run.watching = false;
+        }
+
+        // ---------------------------------------------------------------
+        // Run rail
+        // ---------------------------------------------------------------
+        function setActiveRun(id) {
+          activeRunId = id;
+          mode = "single";
+          renderAll();
+        }
+
+        function removeRun(id) {
+          const run = runs.find((r) => r.id === id);
+          if (run) stopWatching(run);
+          runs = runs.filter((r) => r.id !== id);
+          if (activeRunId === id) activeRunId = runs.length ? runs[0].id : null;
+          renderAll();
+        }
+
+        function countsOf(entries) {
+          const c = { created: 0, updated: 0, failed: 0 };
+          for (const e of entries) {
+            if (e.malformed) continue;
+            if (e.event === "phase2.created") c.created += 1;
+            else if (e.event === "phase2.updated") c.updated += 1;
+            else if (e.event === "cli.migrate_had_failures")
+              c.failed += (e.fields.failures || []).length;
+          }
+          return c;
+        }
+
+        function renderRunList() {
+          runListEl.innerHTML = "";
+          if (runs.length === 0) {
+            railEmpty.style.display = "";
+            runListEl.appendChild(railEmpty);
+            return;
+          }
+          for (const run of runs) {
+            const li = document.createElement("li");
+            li.className = "run-item" + (run.id === activeRunId && mode === "single" ? " active" : "");
+            const c = countsOf(run.entries);
+            li.innerHTML = `
+              <span class="run-dot${run.watching ? " live" : ""}"></span>
+              <span class="run-body">
+                <span class="run-label">${esc(run.label)}</span>
+                <span class="run-meta">
+                  <span>${run.entries.length} events</span>
+                  <span>${c.created} created</span>
+                  <span>${c.updated} updated</span>
+                  ${c.failed ? `<span style="color:var(--danger)">${c.failed} failed</span>` : ""}
+                  ${run.watching ? `<span style="color:var(--live)">● live</span>` : ""}
+                </span>
+              </span>
+              <button class="run-remove" title="Remove run" aria-label="Remove run">×</button>
+            `;
+            li.addEventListener("click", (e) => {
+              if (e.target.classList.contains("run-remove")) return;
+              setActiveRun(run.id);
+            });
+            li.querySelector(".run-remove").addEventListener("click", (e) => {
+              e.stopPropagation();
+              removeRun(run.id);
+            });
+            runListEl.appendChild(li);
+          }
+        }
+
+        // ---------------------------------------------------------------
+        // Toolbar
+        // ---------------------------------------------------------------
         searchInput.addEventListener("input", () => {
           searchTerm = searchInput.value.trim().toLowerCase();
-          render();
+          renderMain();
         });
 
         levelToggle.querySelectorAll("label").forEach((label) => {
@@ -459,9 +1125,25 @@
               label.classList.add("active");
               label.querySelector("input").checked = true;
             }
-            render();
+            renderMain();
           });
         });
+
+        viewSwitch.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            view = btn.dataset.view;
+            viewSwitch.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
+            renderMain();
+          });
+        });
+
+        compareBtn.addEventListener("click", () => {
+          mode = mode === "compare" ? "single" : "compare";
+          renderAll();
+        });
+
+        compareAEl.addEventListener("change", renderCompare);
+        compareBEl.addEventListener("change", renderCompare);
 
         function matchesSearch(entry) {
           if (!searchTerm) return true;
@@ -469,9 +1151,13 @@
           return JSON.stringify(entry.fields).toLowerCase().includes(searchTerm);
         }
 
-        function summarize(fields) {
-          const parts = Object.entries(fields).map(([k, v]) => `${k}=${formatValue(v)}`);
-          return parts.join("  ");
+        // ---------------------------------------------------------------
+        // Shared formatting helpers
+        // ---------------------------------------------------------------
+        function esc(s) {
+          const div = document.createElement("div");
+          div.textContent = s === null || s === undefined ? "" : String(s);
+          return div.innerHTML;
         }
 
         function formatValue(v) {
@@ -482,6 +1168,12 @@
             return s.length > 80 ? s.slice(0, 80) + "…" : s;
           }
           return String(v);
+        }
+
+        function summarize(fields) {
+          return Object.entries(fields)
+            .map(([k, v]) => `${k}=${formatValue(v)}`)
+            .join("  ");
         }
 
         function formatTs(ts) {
@@ -497,40 +1189,21 @@
           });
         }
 
-        function render() {
+        // ---------------------------------------------------------------
+        // Log (table) view
+        // ---------------------------------------------------------------
+        function renderTable(entries) {
           const visible = entries.filter(
             (e) => e.malformed || (activeLevels.has(e.level) && matchesSearch(e)),
           );
-
           const counts = { info: 0, warn: 0, error: 0 };
-          for (const e of entries)
-            if (counts[e.level] !== undefined) counts[e.level] += 1;
-          statsEl.textContent = entries.length
-            ? `${visible.length} shown / ${entries.length} total — ${counts.info} info, ${counts.warn} warn, ${counts.error} error`
-            : "";
-
-          if (entries.length === 0) {
-            emptyEl.style.display = "";
-            tableEl.style.display = "none";
-            summaryEl.style.display = "none";
-            return;
-          }
-          emptyEl.style.display = "none";
-
-          if (view === "summary") {
-            tableEl.style.display = "none";
-            summaryEl.style.display = "";
-            renderSummary();
-            return;
-          }
-          summaryEl.style.display = "none";
-          tableEl.style.display = "";
+          for (const e of entries) if (counts[e.level] !== undefined) counts[e.level] += 1;
+          statsEl.textContent = `${visible.length} shown / ${entries.length} total — ${counts.info} info, ${counts.warn} warn, ${counts.error} error`;
 
           tbody.innerHTML = "";
           for (const entry of visible) {
             const tr = document.createElement("tr");
             tr.className = entry.malformed ? "" : `row-${entry.level}`;
-
             if (entry.malformed) {
               const td = document.createElement("td");
               td.colSpan = 4;
@@ -540,7 +1213,6 @@
               tbody.appendChild(tr);
               continue;
             }
-
             const tsTd = document.createElement("td");
             tsTd.className = "ts";
             tsTd.textContent = formatTs(entry.ts);
@@ -590,13 +1262,9 @@
           tr.after(detailRow);
         }
 
-        // ---- Summary view: aggregates the raw log lines into "what went
-        // into this run" — created/updated/failed documents, migrated
-        // assets, and the from/to pair — rather than a written artifact,
-        // since everything needed is already emitted as log events by the
-        // CLI (phase2.created/updated, phase1.asset_migrated,
-        // cli.migrate_had_failures). See the README's "Viewing a run's
-        // logs" section for the rationale.
+        // ---------------------------------------------------------------
+        // Report view — summary, narrative, chart, tables, export
+        // ---------------------------------------------------------------
         const START_EVENTS = [
           "phase0.start",
           "phase1.start",
@@ -614,21 +1282,13 @@
           const isBacksync = parsed.some((e) => e.event.startsWith("phase4."));
           const dryRunEvent = parsed.find((e) => typeof e.fields.dryRun === "boolean");
 
-          const created = parsed
-            .filter((e) => e.event === "phase2.created")
-            .map((e) => e.fields);
-          const updated = parsed
-            .filter((e) => e.event === "phase2.updated")
-            .map((e) => e.fields);
+          const created = parsed.filter((e) => e.event === "phase2.created").map((e) => e.fields);
+          const updated = parsed.filter((e) => e.event === "phase2.updated").map((e) => e.fields);
 
-          const failuresEvent = parsed.find(
-            (e) => e.event === "cli.migrate_had_failures",
-          );
+          const failuresEvent = parsed.find((e) => e.event === "cli.migrate_had_failures");
           const failed = failuresEvent ? failuresEvent.fields.failures || [] : [];
 
-          const assetsMigrated = parsed
-            .filter((e) => e.event === "phase1.asset_migrated")
-            .map((e) => e.fields);
+          const assetsMigrated = parsed.filter((e) => e.event === "phase1.asset_migrated").map((e) => e.fields);
           const phase1Done = parsed.find((e) => e.event === "phase1.done");
           const pass1Done = parsed.find((e) => e.event === "phase2.pass1_done");
 
@@ -652,10 +1312,50 @@
           };
         }
 
-        function esc(s) {
-          const div = document.createElement("div");
-          div.textContent = s === null || s === undefined ? "" : String(s);
-          return div.innerHTML;
+        function narrativeSummary(s) {
+          const pair = s.from && s.to ? `from ${s.from} to ${s.to}` : "";
+          const parts = [];
+          if (s.created.length)
+            parts.push(`created ${s.created.length} document${s.created.length === 1 ? "" : "s"}`);
+          if (s.updated.length)
+            parts.push(`updated ${s.updated.length} document${s.updated.length === 1 ? "" : "s"}`);
+          if (s.assetsMigrated.length)
+            parts.push(`migrated ${s.assetsMigrated.length} asset${s.assetsMigrated.length === 1 ? "" : "s"}`);
+          if (s.failed.length)
+            parts.push(`${s.failed.length} operation${s.failed.length === 1 ? "" : "s"} failed`);
+          const body = parts.length ? parts.join(", ") : "made no content changes";
+          const dryNote = s.dryRun === true ? " This was a dry run — nothing was actually written." : "";
+          return `This migration ${pair} ${body}.${dryNote}`;
+        }
+
+        function chartSvg(s) {
+          const rows = [
+            { label: "Created", value: s.created.length, color: "var(--success)" },
+            { label: "Updated", value: s.updated.length, color: "var(--accent)" },
+            { label: "Unchanged", value: s.documentsUnchanged || 0, color: "var(--text-dim)" },
+            { label: "Failed", value: s.failed.length, color: "var(--danger)" },
+          ];
+          const max = Math.max(1, ...rows.map((r) => r.value));
+          const barH = 22,
+            gap = 12,
+            labelW = 90,
+            chartW = 280,
+            countW = 36;
+          const totalW = labelW + chartW + countW;
+          const totalH = rows.length * (barH + gap) - gap;
+          const bars = rows
+            .map((r, i) => {
+              const y = i * (barH + gap);
+              const w = Math.max(2, Math.round((r.value / max) * chartW));
+              return `
+                <text x="0" y="${y + barH / 2}" dy="0.35em" font-size="12" style="fill:var(--text-dim)">${esc(r.label)}</text>
+                <rect x="${labelW}" y="${y}" width="${chartW}" height="${barH}" rx="5" style="fill:var(--panel-2)" />
+                <rect x="${labelW}" y="${y}" width="${w}" height="${barH}" rx="5" style="fill:${r.color}" />
+                <text x="${labelW + chartW + 8}" y="${y + barH / 2}" dy="0.35em" font-size="12" font-weight="700" style="fill:var(--text)">${r.value}</text>
+              `;
+            })
+            .join("");
+          return `<svg viewBox="0 0 ${totalW} ${totalH}" width="100%" height="${totalH}" role="img" aria-label="Documents by outcome">${bars}</svg>`;
         }
 
         function docTable(rows) {
@@ -711,17 +1411,11 @@
             </tr></thead><tbody>${body}</tbody></table>`;
         }
 
-        function renderSummaryHTML(s) {
-          const direction = s.isBacksync
-            ? "backward (upper → lower)"
-            : "forward (lower → upper)";
-          const pairLabel =
-            s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
-
+        function reportHTML(s, idPrefix) {
+          const direction = s.isBacksync ? "backward · upper → lower" : "forward · lower → upper";
+          const pairLabel = s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
           const nextStep =
-            !s.isBacksync &&
-            (s.created.length > 0 || s.updated.length > 0) &&
-            s.dryRun !== true
+            !s.isBacksync && (s.created.length > 0 || s.updated.length > 0) && s.dryRun !== true
               ? `<div class="next-step">
                   Next: publish the Migration Release in <strong>${esc(s.to)}</strong>'s dashboard, then run:
                   <code>pnpm cli confirm --from=${esc(s.from)} --to=${esc(s.to)}</code>
@@ -731,37 +1425,54 @@
                 : "";
 
           return `
-            <h2>Run summary: ${esc(pairLabel)}</h2>
-            <div class="meta">
-              Started: ${esc(formatTs(s.startedAt) || "—")} &nbsp;·&nbsp;
-              Finished: ${esc(formatTs(s.finishedAt) || "—")} &nbsp;·&nbsp;
-              Direction: ${esc(direction)} &nbsp;·&nbsp;
-              Mode: ${s.dryRun === true ? "dry run (nothing written)" : s.dryRun === false ? "live" : "unknown"}
+            <div class="report-head">
+              <div>
+                <h2>${esc(pairLabel)}</h2>
+                <div class="pair-meta">
+                  <span>${esc(formatTs(s.startedAt) || "—")} – ${esc(formatTs(s.finishedAt) || "—")}</span>
+                  <span class="direction-pill">${esc(direction)}</span>
+                  ${
+                    s.dryRun === true
+                      ? '<span class="mode-pill dry">Dry run</span>'
+                      : s.dryRun === false
+                        ? '<span class="mode-pill live-mode">Live run</span>'
+                        : ""
+                  }
+                </div>
+              </div>
+              <div class="actions" id="${idPrefix}-actions">
+                <button class="btn small" data-action="copy">Copy as Markdown</button>
+                <button class="btn small" data-action="download">Download .md</button>
+                <button class="btn small" data-action="print">Print / Save as PDF</button>
+              </div>
             </div>
-            <div class="actions">
-              <button class="view-toggle" id="copyMd" type="button">Copy as Markdown</button>
-              <button class="view-toggle" id="downloadMd" type="button">Download .md</button>
-            </div>
-            <table><thead><tr><th>Metric</th><th>Count</th></tr></thead><tbody>
-              <tr><td>Documents seen</td><td>${esc(s.documentsSeen ?? "—")}</td></tr>
-              <tr><td>Created</td><td>${esc(s.created.length)}</td></tr>
-              <tr><td>Updated</td><td>${esc(s.updated.length)}</td></tr>
-              <tr><td>Unchanged (skipped)</td><td>${esc(s.documentsUnchanged ?? "—")}</td></tr>
-              <tr><td>Failed</td><td>${esc(s.failed.length)}</td></tr>
-              <tr><td>Assets migrated</td><td>${esc(s.assetsMigrated.length)}</td></tr>
-              <tr><td>Assets skipped (already up to date)</td><td>${esc(s.assetsSkipped ?? "—")}</td></tr>
-            </tbody></table>
 
-            <h2>Documents created</h2>
+            <div class="narrative">${esc(narrativeSummary(s))}</div>
+
+            <div class="stat-grid">
+              <div class="stat-tile"><div class="n">${esc(s.documentsSeen ?? "—")}</div><div class="l">Documents seen</div></div>
+              <div class="stat-tile success"><div class="n">${s.created.length}</div><div class="l">Created</div></div>
+              <div class="stat-tile accent"><div class="n">${s.updated.length}</div><div class="l">Updated</div></div>
+              <div class="stat-tile"><div class="n">${esc(s.documentsUnchanged ?? "—")}</div><div class="l">Unchanged</div></div>
+              <div class="stat-tile danger"><div class="n">${s.failed.length}</div><div class="l">Failed</div></div>
+              <div class="stat-tile"><div class="n">${s.assetsMigrated.length}</div><div class="l">Assets migrated</div></div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Documents by outcome</h3>
+              ${chartSvg(s)}
+            </div>
+
+            <h3 class="section">Documents created</h3>
             ${docTable(s.created)}
 
-            <h2>Documents updated</h2>
+            <h3 class="section">Documents updated</h3>
             ${docTable(s.updated)}
 
-            <h2>Documents failed</h2>
+            <h3 class="section">Documents failed</h3>
             ${failedTable(s.failed)}
 
-            <h2>Assets migrated</h2>
+            <h3 class="section">Assets migrated</h3>
             ${assetTable(s.assetsMigrated)}
 
             ${nextStep}
@@ -773,13 +1484,12 @@
         }
 
         function renderSummaryMarkdown(s) {
-          const direction = s.isBacksync
-            ? "backward (upper → lower)"
-            : "forward (lower → upper)";
-          const pairLabel =
-            s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
+          const direction = s.isBacksync ? "backward (upper → lower)" : "forward (lower → upper)";
+          const pairLabel = s.from && s.to ? `${s.from} → ${s.to}` : "(pair not detected)";
           const lines = [];
           lines.push(`# Migration run: ${pairLabel}`);
+          lines.push(narrativeSummary(s));
+          lines.push("");
           lines.push(`**Started:** ${formatTs(s.startedAt) || "—"}`);
           lines.push(`**Finished:** ${formatTs(s.finishedAt) || "—"}`);
           lines.push(`**Direction:** ${direction}`);
@@ -796,9 +1506,7 @@
           lines.push(mdRow(["Unchanged (skipped)", s.documentsUnchanged ?? "—"]));
           lines.push(mdRow(["Failed", s.failed.length]));
           lines.push(mdRow(["Assets migrated", s.assetsMigrated.length]));
-          lines.push(
-            mdRow(["Assets skipped (already up to date)", s.assetsSkipped ?? "—"]),
-          );
+          lines.push(mdRow(["Assets skipped (already up to date)", s.assetsSkipped ?? "—"]));
           lines.push("");
 
           function section(title, rows, header, mapRow) {
@@ -838,15 +1546,9 @@
             (r) => [r.filename, r.lowerAssetId, r.upperAssetId],
           );
 
-          if (
-            !s.isBacksync &&
-            (s.created.length > 0 || s.updated.length > 0) &&
-            s.dryRun !== true
-          ) {
+          if (!s.isBacksync && (s.created.length > 0 || s.updated.length > 0) && s.dryRun !== true) {
             lines.push("## Next step");
-            lines.push(
-              `Publish the Migration Release in **${s.to}**'s dashboard, then run:`,
-            );
+            lines.push(`Publish the Migration Release in **${s.to}**'s dashboard, then run:`);
             lines.push("```");
             lines.push(`pnpm cli confirm --from=${s.from} --to=${s.to}`);
             lines.push("```");
@@ -883,33 +1585,129 @@
           document.body.removeChild(ta);
         }
 
-        function renderSummary() {
-          const s = buildSummary(entries);
-          summaryEl.innerHTML = renderSummaryHTML(s);
+        function wireReportActions(container, s) {
+          const copyBtn = container.querySelector('[data-action="copy"]');
+          const downloadBtn = container.querySelector('[data-action="download"]');
+          const printBtn = container.querySelector('[data-action="print"]');
+          if (copyBtn)
+            copyBtn.addEventListener("click", () => {
+              copyText(renderSummaryMarkdown(s));
+              const original = copyBtn.textContent;
+              copyBtn.textContent = "Copied!";
+              setTimeout(() => (copyBtn.textContent = original), 1200);
+            });
+          if (downloadBtn)
+            downloadBtn.addEventListener("click", async () => {
+              const label = s.from && s.to ? `${s.from}-${s.to}` : "run";
+              const filename = `migration-summary-${label}.md`;
+              const markdown = renderSummaryMarkdown(s);
 
-          document.getElementById("copyMd").addEventListener("click", (e) => {
-            copyText(renderSummaryMarkdown(s));
-            const btn = e.currentTarget;
-            const original = btn.textContent;
-            btn.textContent = "Copied!";
-            setTimeout(() => (btn.textContent = original), 1200);
-          });
+              // Published as an Artifact with the downloads capability:
+              // the sandboxed viewer blocks a plain <a download> link
+              // outright, so this is the only path that actually saves
+              // a file there. Falls through to the classic path below on
+              // any error other than the viewer explicitly declining.
+              if (downloadsCap) {
+                try {
+                  await downloadsCap.save({ filename, data: markdown });
+                  return;
+                } catch (err) {
+                  if (err && err.code === "declined") return;
+                }
+              }
 
-          document.getElementById("downloadMd").addEventListener("click", () => {
-            const blob = new Blob([renderSummaryMarkdown(s)], { type: "text/markdown" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            const label = s.from && s.to ? `${s.from}-${s.to}` : "run";
-            a.href = url;
-            a.download = `migration-summary-${label}.md`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-          });
+              // Opened as a plain local file (or any ordinary browser
+              // tab): a normal Blob download works fine here.
+              const blob = new Blob([markdown], { type: "text/markdown" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            });
+          if (printBtn) printBtn.addEventListener("click", () => window.print());
         }
 
-        render();
+        // ---------------------------------------------------------------
+        // Top-level render
+        // ---------------------------------------------------------------
+        function renderAll() {
+          renderRunList();
+          compareBtn.disabled = runs.length < 2;
+          compareBtn.classList.toggle("active", mode === "compare");
+          populateCompareSelects();
+          renderMain();
+        }
+
+        function populateCompareSelects() {
+          const opts = runs.map((r) => `<option value="${r.id}">${esc(r.label)}</option>`).join("");
+          const prevA = compareAEl.value,
+            prevB = compareBEl.value;
+          compareAEl.innerHTML = opts;
+          compareBEl.innerHTML = opts;
+          if (runs.some((r) => r.id === prevA)) compareAEl.value = prevA;
+          else if (runs[0]) compareAEl.value = runs[0].id;
+          if (runs.some((r) => r.id === prevB)) compareBEl.value = prevB;
+          else if (runs[1]) compareBEl.value = runs[1].id;
+        }
+
+        function renderMain() {
+          const hasRuns = runs.length > 0;
+          emptyEl.style.display = hasRuns ? "none" : "";
+          toolbar.style.display = hasRuns ? "" : "none";
+          singleViewEl.style.display = hasRuns && mode === "single" ? "" : "none";
+          compareViewEl.style.display = hasRuns && mode === "compare" ? "" : "none";
+          if (!hasRuns) return;
+
+          if (mode === "compare") {
+            renderCompare();
+            return;
+          }
+
+          const run = runs.find((r) => r.id === activeRunId) || runs[0];
+          if (!run) return;
+          activeRunId = run.id;
+
+          const showLog = view === "log";
+          tableEl.style.display = showLog ? "" : "none";
+          reportSingleEl.style.display = showLog ? "none" : "";
+          statsEl.style.display = showLog ? "" : "none";
+          searchInput.style.display = showLog ? "" : "none";
+          levelToggle.style.display = showLog ? "" : "none";
+
+          if (showLog) {
+            renderTable(run.entries);
+          } else {
+            statsEl.textContent = "";
+            const s = buildSummary(run.entries);
+            reportSingleEl.innerHTML = reportHTML(s, "single");
+            wireReportActions(reportSingleEl, s);
+          }
+        }
+
+        function renderCompare() {
+          const runA = runs.find((r) => r.id === compareAEl.value);
+          const runB = runs.find((r) => r.id === compareBEl.value);
+          if (runA) {
+            const s = buildSummary(runA.entries);
+            compareColA.innerHTML = `<div class="report">${reportHTML(s, "cmpA")}</div>`;
+            wireReportActions(compareColA, s);
+          } else {
+            compareColA.innerHTML = "";
+          }
+          if (runB) {
+            const s = buildSummary(runB.entries);
+            compareColB.innerHTML = `<div class="report">${reportHTML(s, "cmpB")}</div>`;
+            wireReportActions(compareColB, s);
+          } else {
+            compareColB.innerHTML = "";
+          }
+        }
+
+        renderAll();
       })();
     </script>
   </body>

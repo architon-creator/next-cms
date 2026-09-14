@@ -477,30 +477,45 @@ pnpm cli migrate --from=dev --to=sit > run.log 2>&1
 # then open tools/log-viewer.html and choose run.log
 ```
 
-It's a single self-contained HTML file — filters by level (info/warn/
-error) and free-text search across event names and field values, click a
-row to expand its full JSON. Everything happens in your browser; the log
-never leaves your machine. A non-JSON line (e.g. `pnpm`'s own `$ tsx ...`
+It's a single self-contained HTML file — no server, no build step, and it
+never sends anything anywhere; every log file you load is parsed entirely
+in your own browser. A non-JSON line (e.g. `pnpm`'s own `$ tsx ...`
 banner, or an `[ELIFECYCLE]` failure line if a command exited non-zero) is
 shown as-is rather than dropped or crashing the page.
 
-### "Generate summary" — what went into this release, from where to where
+You can load more than one log file at once (drag several onto the page,
+or use **+ Add log file(s)…**) — each becomes its own entry in the left
+rail, so you can keep a handful of runs open side by side rather than
+re-opening the file picker every time. **▶ Watch a live run…** (Chrome/
+Edge only) streams a log as the CLI is still writing it, instead of
+waiting for the command to finish — pick the file the CLI is writing to
+and new lines appear as they're flushed.
 
-Click **Generate summary** (top right, enabled once a log is loaded) to
-turn a captured `migrate` (or `promote`) run's raw log lines into a
-release-style report: which documents were created/updated/failed (with
-title, type, uid, locale, and both ids), which assets were migrated, the
-`--from`/`--to` pair, and counts — everything needed to answer "what went
-from dev to sit in this release" without re-deriving it from scattered log
-lines by eye. It's built entirely by aggregating events already in the log
-(`phase2.created`/`phase2.updated`/`cli.migrate_had_failures`/
-`phase1.asset_migrated`) — no new files are written by the CLI itself, so
-there's nothing extra to clean up in `reports/`. **Copy as Markdown** and
-**Download .md** turn the same summary into a paste-able report (e.g. for
-a PR description or a change-log entry). A captured `backsync` run is
-detected too (direction shown as backward), though its synced documents
-aren't currently itemized the same way `migrate`'s are, since `backsync`
-doesn't log a per-document title the way `phase2.created`/`.updated` do.
+Each run has two views, toggled top right:
+
+- **Log** — the original table: filter by level (info/warn/error) and
+  free-text search across event names and field values, click a row to
+  expand its full JSON.
+- **Report** — a release-style summary: a one-line plain-English recap,
+  which documents were created/updated/failed (with title, type, uid,
+  locale, and both ids), which assets were migrated, a created/updated/
+  unchanged/failed breakdown chart, and the `--from`/`--to` pair —
+  everything needed to answer "what went from dev to sit in this release"
+  without re-deriving it from scattered log lines by eye. Built entirely
+  by aggregating events already in the log (`phase2.created`/
+  `phase2.updated`/`cli.migrate_had_failures`/`phase1.asset_migrated`) —
+  no new files are written by the CLI itself, so there's nothing extra to
+  clean up in `reports/`. **Copy as Markdown** and **Download .md** turn
+  it into a paste-able report (e.g. for a PR description or a change-log
+  entry); **Print / Save as PDF** uses the browser's own print dialog for
+  a client-ready document. A captured `backsync` run is detected too
+  (direction shown as backward), though its synced documents aren't
+  currently itemized the same way `migrate`'s are, since `backsync`
+  doesn't log a per-document title the way `phase2.created`/`.updated` do.
+
+With two or more runs loaded, **⇄ Compare runs** shows two Report views
+side by side (e.g. a dry run against the live run that followed it, or
+this week's release against last week's).
 
 ## CI: GitHub Actions
 
