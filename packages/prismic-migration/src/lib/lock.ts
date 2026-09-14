@@ -1,6 +1,25 @@
 import { open, unlink } from "node:fs/promises";
 
 /**
+ * Thrown when a lock is already held. A distinct class (not a plain
+ * Error) specifically so a caller can `instanceof`-check this exact
+ * condition instead of matching on message text — the CLI and a non-CLI
+ * caller (e.g. admin-app, where this fires just as often because a
+ * second person legitimately clicked "Run" while the first is still
+ * going, not because anything crashed) reasonably want to word this
+ * differently for their own audience.
+ */
+export class LockConflictError extends Error {
+  constructor(public readonly lockPath: string) {
+    super(
+      `Lock file already exists at ${lockPath}. If no other run is active, ` +
+        `it was left behind by a crashed run — remove it manually before retrying.`,
+    );
+    this.name = "LockConflictError";
+  }
+}
+
+/**
  * A simple exclusive lockfile, for local/manual runs only.
  *
  * This is NOT the primary concurrency guard for CI — a GitHub Actions
@@ -19,10 +38,7 @@ export async function withLock<T>(lockPath: string, fn: () => Promise<T>): Promi
     handle = await open(lockPath, "wx");
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "EEXIST") {
-      throw new Error(
-        `Lock file already exists at ${lockPath}. If no other run is active, ` +
-          `it was left behind by a crashed run — remove it manually before retrying.`,
-      );
+      throw new LockConflictError(lockPath);
     }
     throw err;
   }

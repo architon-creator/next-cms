@@ -6,7 +6,23 @@ export const metadata = { title: "Run history · admin-app" };
 export const dynamic = "force-dynamic"; // always show the latest runs, never cache this list
 
 export default async function HistoryPage() {
-  const runs = await listRunLogs();
+  const runs = await listRunLogs(); // newest first
+
+  // The first "promote" run seen per from/to pair, in newest-first
+  // order, is the latest one for that pair — precomputed here instead
+  // of calling latestPromoteRun() per row, and rollback still enforces
+  // this itself server-side, so a stale disabled state here is never
+  // the only thing stopping a superseded rollback.
+  const seenPromotePairs = new Set<string>();
+  const latestPromoteFilenames = new Set<string>();
+  for (const run of runs) {
+    if (run.action !== "promote") continue;
+    const pairKey = `${run.from}|${run.to}`;
+    if (!seenPromotePairs.has(pairKey)) {
+      seenPromotePairs.add(pairKey);
+      latestPromoteFilenames.add(run.filename);
+    }
+  }
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto", padding: "32px 20px 64px" }}>
@@ -75,7 +91,12 @@ export default async function HistoryPage() {
                 </div>
               </a>
               {run.action === "promote" && (
-                <RollbackButton filename={run.filename} from={run.from} to={run.to} />
+                <RollbackButton
+                  filename={run.filename}
+                  from={run.from}
+                  to={run.to}
+                  isLatest={latestPromoteFilenames.has(run.filename)}
+                />
               )}
             </div>
           ))}

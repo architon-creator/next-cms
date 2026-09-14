@@ -1,4 +1,36 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+/* Registers the tokens below as real Tailwind utilities (bg-panel,
+   text-text-dim, border-border, font-display, ...) via Tailwind v4's
+   CSS-first @theme config — each --color-x/--font-x/--radius-x here
+   generates the matching class. Values are `var(--x)` indirections
+   into the plain custom properties below (not literals) so a utility
+   class still re-resolves correctly when :root's own tokens flip for
+   dark mode — Tailwind bakes in the *reference*, not the value. */
+@theme {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
+  --color-success: var(--success);
+  --color-success-weak: var(--success-weak);
+  --color-warning: var(--warning);
+  --color-warning-weak: var(--warning-weak);
+  --color-danger: var(--danger);
+  --color-danger-weak: var(--danger-weak);
+  --font-display: var(--display);
+  --font-body: var(--body-font);
+  --font-mono: var(--mono);
+  --shadow-elevated: var(--shadow);
+  --shadow-subtle: var(--shadow-sm);
+  --radius-card: var(--radius);
+  --radius-control: var(--radius-sm);
+}
 
 :root {
   --bg: #f6f7fb;
@@ -18,6 +50,10 @@
   --display: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --body-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --shadow: 0 1px 2px rgba(20, 22, 30, 0.06), 0 8px 24px rgba(20, 22, 30, 0.05);
+  --shadow-sm: 0 1px 2px rgba(20, 22, 30, 0.06);
+  --radius: 10px;
+  --radius-sm: 7px;
   color-scheme: light;
 }
 
@@ -37,6 +73,8 @@
     --warning-weak: rgba(224, 171, 76, 0.16);
     --danger: #ea6e66;
     --danger-weak: rgba(234, 110, 102, 0.16);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
   }
 }
@@ -74,4 +112,16 @@ code {
 
 a {
   color: var(--accent);
+}
+
+button,
+select,
+input {
+  font-family: inherit;
+  color-scheme: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }

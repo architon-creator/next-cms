@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { config as loadDotenv } from "dotenv";
 import { loadConfig } from "./config.js";
-import { runConfirmAction, runPromoteHop } from "./lib/actions.js";
+import { runBacksyncAction, runConfirmAction, runPromoteHop } from "./lib/actions.js";
 import { resolvePair, requireDirection } from "./lib/environments.js";
 import { log } from "./lib/logger.js";
 import { getDocumentById, getMasterRef, PrismicApiError } from "./lib/prismic-http.js";
@@ -12,7 +12,6 @@ import { runLink, runUnlink } from "./phases/phase-link.js";
 import { runReconcile } from "./phases/phase-reconcile.js";
 import { runRetitle } from "./phases/phase-retitle.js";
 import { runPhase3 } from "./phases/phase3-verify.js";
-import { runPhase4 } from "./phases/phase4-backsync.js";
 
 // Loads .env from the current working directory — the whole reason a
 // `DEV_REPOSITORY=...` in .env is enough, with no need to export it into
@@ -294,9 +293,8 @@ async function main(): Promise<void> {
       return;
     }
     case "backsync": {
-      requireDirection(pair, "backward", "backsync");
-      const result = await runPhase4({ config, pair, dryRun });
-      if (result.conflicts.length > 0 || result.deletedOnOneSide.length > 0) {
+      const result = await runBacksyncAction(config, fromName, toName, dryRun);
+      if (result.hadIssues) {
         process.exitCode = 1; // halt, don't force-push (Phase 5 rule)
       }
       return;
@@ -320,9 +318,6 @@ main().catch((err) => {
   // and crash the runtime itself (reproduced as a libuv assertion on
   // Windows). Setting exitCode lets Node exit with the right code once the
   // event loop actually drains, instead of yanking it out from under
-  // in-flight I/O. The trade-off: a request that hangs forever (no
-  // fetch/AbortController timeout exists anywhere in this codebase yet)
-  // would hang the process instead of crashing it — add a timeout to
-  // lib/prismic-http.ts's `request()` if that becomes a real problem.
+  // in-flight I/O.
   process.exitCode = 1;
 });

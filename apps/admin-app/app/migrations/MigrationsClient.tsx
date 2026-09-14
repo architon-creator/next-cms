@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { formatServerError } from "@/lib/format-server-error";
 
 type LogEntry = {
   ts: string;
@@ -21,6 +22,17 @@ type PromoteResult = {
 
 type ConfirmResult = { lowerName: string; upperName: string };
 
+type BacksyncResult = {
+  lowerName: string;
+  upperName: string;
+  dryRun: boolean;
+  synced: number;
+  pending: number;
+  conflicts: { lowerId: string; upperId: string; docType: string; lastSyncedAt: string }[];
+  deletedOnOneSide: { lowerId: string; upperId: string; docType: string; deletedSide: "lower" | "upper" }[];
+  hadIssues: boolean;
+};
+
 type EnvironmentsResponse = { chain: string[]; configured: string[] };
 
 type LowerDocument = {
@@ -32,17 +44,27 @@ type LowerDocument = {
   predictedAction: "create" | "update" | "unchanged";
 };
 
-const predictedActionStyle: Record<LowerDocument["predictedAction"], { label: string; color: string; bg: string }> = {
-  create: { label: "NEW", color: "var(--success)", bg: "var(--success-weak)" },
-  update: { label: "CHANGED", color: "var(--accent)", bg: "var(--accent-weak)" },
-  unchanged: { label: "UNCHANGED", color: "var(--text-dim)", bg: "var(--panel-2)" },
+const predictedActionBadge: Record<LowerDocument["predictedAction"], { label: string; className: string }> = {
+  create: { label: "NEW", className: "text-success bg-success-weak" },
+  update: { label: "CHANGED", className: "text-accent bg-accent-weak" },
+  unchanged: { label: "UNCHANGED", className: "text-text-dim bg-panel-2" },
 };
 
-const levelColor: Record<LogEntry["level"], string> = {
-  info: "var(--accent)",
-  warn: "var(--warning)",
-  error: "var(--danger)",
+const levelClass: Record<LogEntry["level"], string> = {
+  info: "text-accent",
+  warn: "text-warning",
+  error: "text-danger",
 };
+
+const selectClass =
+  "bg-panel-2 border border-border rounded-control py-1.5 px-2.5 text-[12.5px] text-text " +
+  "cursor-pointer transition-colors enabled:hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed";
+
+const btnBase =
+  "inline-flex items-center justify-center gap-1.5 rounded-control px-3.5 py-2 text-[12.5px] font-semibold whitespace-nowrap " +
+  "transition-colors enabled:active:translate-y-px disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer";
+const btnSecondary = `${btnBase} border border-border bg-panel-2 text-text enabled:hover:border-accent enabled:hover:text-accent`;
+const btnPrimary = `${btnBase} border border-accent bg-accent text-white enabled:hover:brightness-110`;
 
 export default function MigrationsClient() {
   const [chain, setChain] = useState<string[]>([]);
@@ -54,6 +76,7 @@ export default function MigrationsClient() {
   const [lines, setLines] = useState<LogEntry[]>([]);
   const [promoteResult, setPromoteResult] = useState<PromoteResult | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
+  const [backsyncResult, setBacksyncResult] = useState<BacksyncResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
@@ -149,6 +172,7 @@ export default function MigrationsClient() {
     setLines([]);
     setPromoteResult(null);
     setConfirmResult(null);
+    setBacksyncResult(null);
     setErrorMsg(null);
     setRunning(true);
 
@@ -165,7 +189,7 @@ export default function MigrationsClient() {
     });
     es.addEventListener("error", (e) => {
       const data = (e as MessageEvent).data;
-      setErrorMsg(data ? JSON.parse(data).message : "Connection to the server was lost.");
+      setErrorMsg(data ? formatServerError(JSON.parse(data)) : "Connection to the server was lost.");
       setRunning(false);
       es.close();
     });
@@ -209,42 +233,41 @@ export default function MigrationsClient() {
     startStream(url, (data) => setConfirmResult(data as ConfirmResult));
   }
 
+  function runBacksync() {
+    if (!from || !to) return;
+    // Backsync is the opposite direction from promote: --from must be
+    // the UPPER environment. The same From/To dropdowns serve both
+    // directions — no separate fields — the backend rejects a
+    // wrong-direction pair with a clear error rather than this needing
+    // to duplicate that direction logic here.
+    if (!dryRun) {
+      const ok = window.confirm(
+        `This will write real content into "${to}" from "${from}" (ongoing back-sync). This is NOT a dry run.\n\nContinue?`,
+      );
+      if (!ok) return;
+    }
+    const url = `/api/migrations/backsync?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&dryRun=${dryRun}`;
+    startStream(url, (data) => setBacksyncResult(data as BacksyncResult));
+  }
+
   return (
-    <div style={{ maxWidth: 880, margin: "0 auto", padding: "32px 20px 64px" }}>
-      <p
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--accent)",
-          margin: "0 0 4px",
-        }}
-      >
-        admin-app
-      </p>
-      <h1 style={{ fontSize: 22, margin: "0 0 6px" }}>Prismic migrations</h1>
-      <p style={{ color: "var(--text-dim)", margin: "0 0 24px", fontSize: 13 }}>
+    <div className="max-w-[900px] mx-auto px-5 pt-8 pb-16">
+      <p className="text-[11px] font-bold tracking-wider uppercase text-accent mb-1">admin-app</p>
+      <h1 className="font-display text-[22px] font-extrabold tracking-tight mb-1.5 text-balance">
+        Prismic migrations
+      </h1>
+      <p className="text-text-dim mb-6 text-[13px] leading-relaxed">
         Runs the same preflight + assets + migrate hop as{" "}
-        <code>pnpm cli promote --from=... --to=...</code>, live, without a
-        terminal. <Link href="/history">Past runs →</Link>
+        <code>pnpm cli promote --from=... --to=...</code>, live, without a terminal.{" "}
+        <Link href="/history" className="text-accent underline">
+          Past runs →
+        </Link>
       </p>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          padding: 16,
-          background: "var(--panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 10,
-          marginBottom: 20,
-        }}
-      >
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-3.5 p-4.5 bg-panel border border-border rounded-card shadow-subtle mb-5 max-sm:flex-col max-sm:items-stretch">
         <Field label="From">
-          <select value={from} onChange={(e) => setFrom(e.target.value)} disabled={running}>
+          <select value={from} onChange={(e) => setFrom(e.target.value)} disabled={running} className={selectClass}>
             {chain.map((env) => (
               <option key={env} value={env} disabled={!configured.includes(env)}>
                 {env}
@@ -254,7 +277,7 @@ export default function MigrationsClient() {
           </select>
         </Field>
         <Field label="To">
-          <select value={to} onChange={(e) => setTo(e.target.value)} disabled={running}>
+          <select value={to} onChange={(e) => setTo(e.target.value)} disabled={running} className={selectClass}>
             {chain.map((env) => (
               <option key={env} value={env} disabled={!configured.includes(env)}>
                 {env}
@@ -263,20 +286,13 @@ export default function MigrationsClient() {
             ))}
           </select>
         </Field>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12.5,
-            marginBottom: 2,
-          }}
-        >
+        <label className="flex items-center gap-1.5 text-[12.5px] pb-2 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={dryRun}
             onChange={(e) => setDryRun(e.target.checked)}
             disabled={running}
+            className="size-3.5 accent-accent cursor-pointer"
           />
           Dry run (log the plan, write nothing)
         </label>
@@ -290,6 +306,7 @@ export default function MigrationsClient() {
                 ? "Ignored while specific documents are selected below"
                 : undefined
             }
+            className={selectClass}
           >
             <option value="">All</option>
             {availableLangs.map((lang) => (
@@ -299,24 +316,19 @@ export default function MigrationsClient() {
             ))}
           </select>
         </Field>
-        <button
-          onClick={togglePicker}
-          disabled={running || !from || !to}
-          style={btnStyle("secondary")}
-        >
+        <button onClick={togglePicker} disabled={running || !from || !to} className={btnSecondary}>
           {selectedIds.size > 0
             ? `${selectedIds.size} document(s) selected`
             : "Specific documents (optional)"}
         </button>
-        <div style={{ flex: 1 }} />
-        <button
-          onClick={runConfirm}
-          disabled={running || !from || !to}
-          style={btnStyle("secondary")}
-        >
+        <div className="flex-1 min-w-2 max-sm:hidden" />
+        <button onClick={runConfirm} disabled={running || !from || !to} className={btnSecondary}>
           Confirm (after publish)
         </button>
-        <button onClick={runPromote} disabled={running || !from || !to} style={btnStyle("primary")}>
+        <button onClick={runBacksync} disabled={running || !from || !to} className={btnSecondary}>
+          {dryRun ? "Backsync dry run" : "Run backsync"}
+        </button>
+        <button onClick={runPromote} disabled={running || !from || !to} className={btnPrimary}>
           {running
             ? "Running…"
             : `${dryRun ? "Run dry run" : "Run promote hop"}${
@@ -329,37 +341,27 @@ export default function MigrationsClient() {
         </button>
       </div>
 
+      {/* Document picker */}
       {showPicker && (
-        <div
-          style={{
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: 16,
-            marginBottom: 20,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <p style={{ margin: 0, fontSize: 12.5, color: "var(--text-dim)" }}>
+        <div className="bg-panel border border-border rounded-card shadow-subtle p-4.5 mb-5">
+          <div className="flex justify-between items-center gap-3 mb-2.5">
+            <p className="m-0 text-[12.5px] text-text-dim leading-relaxed">
               Migrate only the checked document(s) from <strong>{from}</strong> — leave nothing
-              checked to migrate the whole content library (or everything in the Language
-              filter above, if one's set), same as before.
+              checked to migrate the whole content library (or everything in the Language filter
+              above, if one&apos;s set), same as before.
             </p>
             {selectedIds.size > 0 && (
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                style={{ ...btnStyle("secondary"), padding: "4px 9px", fontSize: 11 }}
-              >
+              <button onClick={() => setSelectedIds(new Set())} className={`${btnSecondary} !px-2.5 !py-1 !text-[11px]`}>
                 Clear selection
               </button>
             )}
           </div>
 
-          {docsLoading && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Loading documents…</p>}
+          {docsLoading && <p className="text-text-dim text-[13px]">Loading documents…</p>}
           {docsError && (
-            <p style={{ color: "var(--danger)", fontSize: 13 }}>
+            <p className="text-danger text-[13px]">
               Couldn&apos;t load documents: {docsError}{" "}
-              <button onClick={loadDocuments} style={{ ...btnStyle("secondary"), padding: "3px 8px" }}>
+              <button onClick={loadDocuments} className={`${btnSecondary} !px-2 !py-0.5`}>
                 Retry
               </button>
             </p>
@@ -372,66 +374,38 @@ export default function MigrationsClient() {
                 placeholder="Filter by title, type, or id…"
                 value={docFilter}
                 onChange={(e) => setDocFilter(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 10px",
-                  marginBottom: 8,
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  fontSize: 12.5,
-                  background: "var(--panel-2)",
-                  color: "var(--text)",
-                }}
+                className="w-full px-3 py-2 mb-2 border border-border rounded-control text-[12.5px] bg-panel-2 text-text transition-colors hover:border-accent focus:border-accent"
               />
-              <div
-                style={{
-                  maxHeight: 260,
-                  overflowY: "auto",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                }}
-              >
+              <div className="max-h-[280px] overflow-y-auto border border-border rounded-control">
                 {filteredDocuments.map((doc) => (
                   <label
                     key={doc.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "7px 10px",
-                      fontSize: 12.5,
-                      borderBottom: "1px solid var(--border)",
-                      cursor: "pointer",
-                    }}
+                    className="grid grid-cols-[20px_minmax(0,1.4fr)_minmax(0,1fr)_auto] max-sm:grid-cols-[18px_1fr] items-center gap-2.5 px-3 py-2 text-[12.5px] border-b border-border last:border-b-0 cursor-pointer hover:bg-panel-2 transition-colors"
                   >
                     <input
                       type="checkbox"
                       checked={selectedIds.has(doc.id)}
                       onChange={() => toggleDoc(doc.id)}
+                      className="size-3.5 accent-accent cursor-pointer max-sm:row-start-1 max-sm:col-start-1"
                     />
-                    <span style={{ fontWeight: 600 }}>{doc.title}</span>
-                    <span style={{ color: "var(--text-dim)" }}>
+                    <span className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap max-sm:row-start-1 max-sm:col-start-2">
+                      {doc.title}
+                    </span>
+                    <span className="text-text-dim overflow-hidden text-ellipsis whitespace-nowrap max-sm:row-start-2 max-sm:col-start-2">
                       {doc.type} · {doc.lang}
                     </span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: "0.03em",
-                        padding: "1px 7px",
-                        borderRadius: 8,
-                        color: predictedActionStyle[doc.predictedAction].color,
-                        background: predictedActionStyle[doc.predictedAction].bg,
-                      }}
-                    >
-                      {predictedActionStyle[doc.predictedAction].label}
+                    <span className="flex items-center gap-2 justify-self-end max-sm:row-start-3 max-sm:col-start-2 max-sm:justify-self-start">
+                      <span
+                        className={`text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full whitespace-nowrap ${predictedActionBadge[doc.predictedAction].className}`}
+                      >
+                        {predictedActionBadge[doc.predictedAction].label}
+                      </span>
+                      <code className="text-[11px]">{doc.id}</code>
                     </span>
-                    <code style={{ fontSize: 11 }}>{doc.id}</code>
                   </label>
                 ))}
                 {filteredDocuments.length === 0 && (
-                  <p style={{ padding: 10, color: "var(--text-dim)", fontSize: 12.5 }}>
+                  <p className="p-2.5 text-text-dim text-[12.5px] m-0">
                     No documents match &quot;{docFilter}&quot;.
                   </p>
                 )}
@@ -442,45 +416,23 @@ export default function MigrationsClient() {
       )}
 
       {errorMsg && (
-        <div
-          style={{
-            background: "var(--danger-weak)",
-            color: "var(--danger)",
-            border: "1px solid var(--danger)",
-            borderRadius: 8,
-            padding: "10px 14px",
-            marginBottom: 16,
-            fontSize: 13,
-          }}
-        >
+        <div className="bg-danger-weak text-danger border border-danger rounded-card px-4 py-2.5 mb-4 text-[13px]">
           {errorMsg}
         </div>
       )}
 
+      {/* Live log */}
       {(lines.length > 0 || running) && (
-        <div
-          style={{
-            background: "var(--panel-2)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: 12,
-            marginBottom: 20,
-            maxHeight: 320,
-            overflowY: "auto",
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-          }}
-        >
+        <div className="bg-panel-2 border border-border rounded-card p-3 mb-5 max-h-[340px] overflow-auto font-mono text-xs">
           {lines.map((line, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, padding: "3px 0" }}>
-              <span style={{ color: "var(--text-dim)", flex: "none" }}>
-                {new Date(line.ts).toLocaleTimeString()}
-              </span>
-              <span style={{ color: levelColor[line.level], fontWeight: 700, flex: "none" }}>
-                {line.level.toUpperCase()}
-              </span>
-              <span style={{ fontWeight: 600, flex: "none" }}>{line.event}</span>
-              <span style={{ color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div
+              key={i}
+              className="grid grid-cols-[82px_48px_minmax(0,auto)_minmax(0,1fr)] gap-2.5 items-baseline py-0.5"
+            >
+              <span className="text-text-dim">{new Date(line.ts).toLocaleTimeString()}</span>
+              <span className={`font-bold ${levelClass[line.level]}`}>{line.level.toUpperCase()}</span>
+              <span className="font-semibold">{line.event}</span>
+              <span className="text-text-dim overflow-hidden text-ellipsis whitespace-nowrap">
                 {Object.entries(line)
                   .filter(([k]) => !["ts", "level", "event"].includes(k))
                   .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`)
@@ -488,14 +440,14 @@ export default function MigrationsClient() {
               </span>
             </div>
           ))}
-          {running && <div style={{ color: "var(--text-dim)" }}>Running…</div>}
+          {running && <div className="text-text-dim py-0.5">Running…</div>}
           <div ref={logEndRef} />
         </div>
       )}
 
       {promoteResult && (
         <ResultCard>
-          <strong>
+          <strong className="font-display">
             {promoteResult.lowerName} → {promoteResult.upperName}{" "}
             {promoteResult.ok
               ? promoteResult.dryRun
@@ -504,12 +456,12 @@ export default function MigrationsClient() {
               : "— had failures"}
           </strong>
           {promoteResult.failures.length > 0 && (
-            <p style={{ color: "var(--danger)" }}>
+            <p className="text-danger mt-1.5">
               {promoteResult.failures.length} failure(s) — see the log above for detail.
             </p>
           )}
           {promoteResult.ok && !promoteResult.dryRun && (
-            <p style={{ marginTop: 8 }}>
+            <p className="mt-2">
               Next: publish the Migration Release in <strong>{promoteResult.upperName}</strong>
               &apos;s Prismic dashboard, then use <strong>Confirm</strong> above.
               {!promoteResult.isFinalHop && (
@@ -525,9 +477,33 @@ export default function MigrationsClient() {
 
       {confirmResult && (
         <ResultCard>
-          <strong>
+          <strong className="font-display">
             {confirmResult.lowerName} → {confirmResult.upperName} confirmed synced.
           </strong>
+        </ResultCard>
+      )}
+
+      {backsyncResult && (
+        <ResultCard tone={backsyncResult.hadIssues ? "warning" : "success"}>
+          <strong className="font-display">
+            {backsyncResult.upperName} → {backsyncResult.lowerName}{" "}
+            {backsyncResult.dryRun ? "— dry run complete" : "— back-sync complete"}
+          </strong>
+          <p className="mt-1.5">
+            {backsyncResult.synced} synced, {backsyncResult.pending} still pending.
+          </p>
+          {backsyncResult.conflicts.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {backsyncResult.conflicts.length} conflict(s) need a human decision — not
+              auto-resolved. See the log above for each document.
+            </p>
+          )}
+          {backsyncResult.deletedOnOneSide.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {backsyncResult.deletedOnOneSide.length} document(s) deleted on only one side —
+              decide by hand whether to `unlink` or recreate them.
+            </p>
+          )}
         </ResultCard>
       )}
     </div>
@@ -536,40 +512,30 @@ export default function MigrationsClient() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5 }}>
-      <span style={{ color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-        {label}
-      </span>
+    <label className="flex flex-col gap-1 text-[11.5px]">
+      <span className="text-text-dim uppercase tracking-wide font-semibold">{label}</span>
       {children}
     </label>
   );
 }
 
-function ResultCard({ children }: { children: React.ReactNode }) {
+const resultCardTone = {
+  success: "bg-success-weak border-success",
+  warning: "bg-warning-weak border-warning",
+};
+
+function ResultCard({
+  children,
+  tone = "success",
+}: {
+  children: React.ReactNode;
+  tone?: "success" | "warning";
+}) {
   return (
     <div
-      style={{
-        background: "var(--success-weak)",
-        border: "1px solid var(--success)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        fontSize: 13,
-      }}
+      className={`border rounded-card shadow-subtle px-4.5 py-4 text-[13px] leading-relaxed ${resultCardTone[tone]}`}
     >
       {children}
     </div>
   );
-}
-
-function btnStyle(kind: "primary" | "secondary"): React.CSSProperties {
-  return {
-    border: kind === "primary" ? "1px solid var(--accent)" : "1px solid var(--border)",
-    background: kind === "primary" ? "var(--accent)" : "var(--panel-2)",
-    color: kind === "primary" ? "#fff" : "var(--text)",
-    borderRadius: 8,
-    padding: "9px 14px",
-    fontSize: 12.5,
-    fontWeight: 600,
-    cursor: "pointer",
-  };
 }

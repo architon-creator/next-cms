@@ -21,7 +21,7 @@ export type RunLogWriter = {
 
 /** Call once at the start of a run; pass every log() line to appendLine as it arrives. */
 export async function createRunLog(
-  action: "promote" | "confirm" | "rollback",
+  action: "promote" | "confirm" | "backsync" | "rollback",
   from: string,
   to: string,
 ): Promise<RunLogWriter> {
@@ -73,6 +73,21 @@ export async function listRunLogs(): Promise<RunLogSummary[]> {
   return summaries
     .filter((s): s is RunLogSummary => s !== null)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+}
+
+/**
+ * The filename of the most recent "promote" run logged for this exact
+ * from/to pair, or null if there's none. Used to refuse rolling back
+ * anything but the latest run for a pair — rolling back an older one
+ * after a newer run has since touched the same documents would silently
+ * undo that newer run's real changes, since rollback has no way to tell
+ * "this document changed again for a good reason" from "nobody's
+ * touched it since."
+ */
+export async function latestPromoteRun(from: string, to: string): Promise<string | null> {
+  const all = await listRunLogs(); // newest first
+  const match = all.find((r) => r.action === "promote" && r.from === from && r.to === to);
+  return match?.filename ?? null;
 }
 
 export type RollbackTarget = { upperId: string; docType: string; lowerId?: string };

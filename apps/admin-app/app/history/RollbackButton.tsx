@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatServerError } from "@/lib/format-server-error";
 
 type LogEntry = { ts: string; level: string; event: string; [key: string]: unknown };
 type RollbackResult = {
@@ -17,10 +18,13 @@ export default function RollbackButton({
   filename,
   from,
   to,
+  isLatest,
 }: {
   filename: string;
   from: string;
   to: string;
+  /** False when a newer promote run exists for this exact pair — the server enforces this too (see /api/migrations/rollback), so this is a UX nicety, not the only guard. */
+  isLatest: boolean;
 }) {
   const [running, setRunning] = useState(false);
   const [lines, setLines] = useState<LogEntry[]>([]);
@@ -56,7 +60,7 @@ export default function RollbackButton({
     });
     es.addEventListener("error", (e) => {
       const data = (e as MessageEvent).data;
-      setErrorMsg(data ? JSON.parse(data).message : "Connection to the server was lost.");
+      setErrorMsg(data ? formatServerError(JSON.parse(data)) : "Connection to the server was lost.");
       setRunning(false);
       es.close();
     });
@@ -66,7 +70,12 @@ export default function RollbackButton({
     <div>
       <button
         onClick={run}
-        disabled={running}
+        disabled={running || !isLatest}
+        title={
+          !isLatest
+            ? `A newer run exists for ${from} → ${to} — only the most recent run can be rolled back.`
+            : undefined
+        }
         style={{
           border: "1px solid var(--danger)",
           background: "var(--danger-weak)",
@@ -75,7 +84,8 @@ export default function RollbackButton({
           padding: "5px 10px",
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: running ? "default" : "pointer",
+          cursor: running || !isLatest ? "default" : "pointer",
+          opacity: !isLatest ? 0.5 : 1,
         }}
       >
         {running ? "Rolling back…" : "Rollback"}

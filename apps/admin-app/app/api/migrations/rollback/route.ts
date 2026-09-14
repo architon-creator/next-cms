@@ -15,7 +15,8 @@ import type { NextRequest } from "next/server";
 import { loadConfig } from "prismic-migration/config";
 import { runRollback } from "prismic-migration/actions";
 import { runWithLogSink } from "prismic-migration/logger";
-import { buildRollbackPlanFromLog, createRunLog } from "@/lib/run-log-store";
+import { formatMigrationError } from "@/lib/migration-errors";
+import { buildRollbackPlanFromLog, createRunLog, latestPromoteRun } from "@/lib/run-log-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,6 +49,19 @@ export async function GET(req: NextRequest) {
       };
 
       try {
+        // Enforced here, not just as a disabled button in the UI — a
+        // second tab, a stale page, or a direct request could otherwise
+        // roll back a superseded run and silently undo a later run's
+        // real changes to the same documents.
+        const latest = await latestPromoteRun(from, to);
+        if (latest !== runLogFilename) {
+          throw new Error(
+            latest
+              ? `A newer promote run exists for ${from} → ${to} — only the most recent run can be rolled back. Check /history for it.`
+              : `Couldn't find any promote run for ${from} → ${to} to roll back.`,
+          );
+        }
+
         const plan = await buildRollbackPlanFromLog(runLogFilename);
         if (!plan.upperSnapshotPath) {
           throw new Error(
@@ -78,7 +92,7 @@ export async function GET(req: NextRequest) {
         );
         send("done", result);
       } catch (err) {
-        send("error", { message: err instanceof Error ? err.message : String(err) });
+        send("error", formatMigrationError(err));
       } finally {
         closed = true;
         controller.close();

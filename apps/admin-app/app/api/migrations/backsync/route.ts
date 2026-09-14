@@ -1,14 +1,15 @@
-// Same streaming shape as ../promote/route.ts (see that file's header
-// for why GET+SSE). Kept as a separate route rather than a `type` query
-// param on one handler: `confirm` and `promote` have different
-// preconditions — confirm assumes a human already published the
-// Migration Release in Prismic's own dashboard; nothing here can do that
-// publish step for them, Prismic requires a human there by design.
+// Same streaming shape as ../promote/route.ts. Direction is the
+// opposite of promote: --from must be the UPPER environment (backward),
+// enforced by runBacksyncAction itself via requireDirection — this
+// route doesn't need to know which direction is which, the same
+// from/to fields on /migrations work for both, and a wrong-direction
+// pair fails with a clear error rather than silently doing nothing.
 //
-// Same TODO as promote/route.ts: no auth check here yet.
+// Same TODO as the other routes: no auth check here yet. This one
+// writes to Prismic too (ongoing upper -> lower sync).
 import type { NextRequest } from "next/server";
 import { loadConfig } from "prismic-migration/config";
-import { runConfirmAction } from "prismic-migration/actions";
+import { runBacksyncAction } from "prismic-migration/actions";
 import { runWithLogSink } from "prismic-migration/logger";
 import { formatMigrationError } from "@/lib/migration-errors";
 import { createRunLog } from "@/lib/run-log-store";
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const dryRun = searchParams.get("dryRun") === "true";
 
   if (!from || !to) {
     return new Response("from and to query params are required", { status: 400 });
@@ -34,9 +36,9 @@ export async function GET(req: NextRequest) {
         if (closed) return;
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
-      const runLog = await createRunLog("confirm", from, to);
-      send("meta", { runLogFilename: runLog.filename });
 
+      const runLog = await createRunLog("backsync", from, to);
+      send("meta", { runLogFilename: runLog.filename });
       const sink = (line: string) => {
         send("log", JSON.parse(line));
         void runLog.appendLine(line);
@@ -44,7 +46,9 @@ export async function GET(req: NextRequest) {
 
       try {
         const config = loadConfig();
-        const result = await runWithLogSink(sink, () => runConfirmAction(config, from, to));
+        const result = await runWithLogSink(sink, () =>
+          runBacksyncAction(config, from, to, dryRun),
+        );
         send("done", result);
       } catch (err) {
         send("error", formatMigrationError(err));

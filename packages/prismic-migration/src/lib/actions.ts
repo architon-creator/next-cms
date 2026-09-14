@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import type { Config } from "../config.js";
 import { canonicalHash } from "./canonical-hash.js";
 import { resolveNextHop, resolvePair, requireDirection } from "./environments.js";
+import { LockConflictError } from "./lock.js";
 import { log } from "./logger.js";
 import { mappingFilePath } from "./mapping-paths.js";
 import { MappingStore } from "./mapping-store.js";
@@ -9,20 +10,27 @@ import {
   getMasterRef,
   iterateAllDocuments,
   listCustomTypes,
+  PrismicApiError,
   updateMigrationDocument,
 } from "./prismic-http.js";
 import { runPhase0 } from "../phases/phase0-preflight.js";
 import { runPhase1 } from "../phases/phase1-assets.js";
 import { buildTitle, runPhase2 } from "../phases/phase2-migrate.js";
 import { runConfirm } from "../phases/phase2-confirm.js";
+import { runPhase4 } from "../phases/phase4-backsync.js";
 import type { DocumentMapping } from "../types.js";
 
-// Extracted out of cli.ts's `promote`/`confirm` command handlers so a
-// non-CLI caller (an admin UI's API route, wanting to trigger the same
-// action a person would otherwise run via the terminal) can call exactly
-// the same implementation instead of a second copy that risks drifting
-// from the CLI's. cli.ts now calls these too — see its `promote`/`confirm`
-// cases.
+// Re-exported so a non-CLI caller (admin-app's API routes) can
+// `instanceof`-check the same error types the CLI's own top-level
+// handler special-cases, instead of matching on message text.
+export { LockConflictError, PrismicApiError };
+
+// Extracted out of cli.ts's `promote`/`confirm`/`backsync` command
+// handlers so a non-CLI caller (an admin UI's API route, wanting to
+// trigger the same action a person would otherwise run via the
+// terminal) can call exactly the same implementation instead of a
+// second copy that risks drifting from the CLI's. cli.ts now calls
+// these too — see its `promote`/`confirm`/`backsync` cases.
 
 export type PromoteHopResult = {
   ok: boolean;
@@ -111,6 +119,56 @@ export async function runConfirmAction(
   requireDirection(pair, "forward", "confirm");
   await runConfirm({ config, pair });
   return { lowerName: pair.lowerName, upperName: pair.upperName };
+}
+
+export type BacksyncActionResult = {
+  lowerName: string;
+  upperName: string;
+  dryRun: boolean;
+  synced: number;
+  pending: number;
+  conflicts: {
+    lowerId: string;
+    upperId: string;
+    docType: string;
+    lastSyncedAt: string;
+  }[];
+  deletedOnOneSide: {
+    lowerId: string;
+    upperId: string;
+    docType: string;
+    deletedSide: "lower" | "upper";
+  }[];
+  /** True when this run needs a human — matches the CLI's own "halt, don't force-push" rule (see cli.ts's backsync case): a conflict or a document deleted on only one side is never resolved automatically. */
+  hadIssues: boolean;
+};
+
+/**
+ * Ongoing back-sync, upper -> lower (--from must be the upper
+ * environment — the opposite direction from promote/migrate). Only
+ * `status: "synced"` mapping entries are candidates; a `pending` or
+ * `conflict` entry is left for a human (or the next promote run) to
+ * resolve, never silently reprocessed here.
+ */
+export async function runBacksyncAction(
+  config: Config,
+  fromName: string,
+  toName: string,
+  dryRun: boolean,
+): Promise<BacksyncActionResult> {
+  const pair = resolvePair(config, fromName, toName);
+  requireDirection(pair, "backward", "backsync");
+  const result = await runPhase4({ config, pair, dryRun });
+  return {
+    lowerName: pair.lowerName,
+    upperName: pair.upperName,
+    dryRun,
+    synced: result.synced,
+    pending: result.pending,
+    conflicts: result.conflicts,
+    deletedOnOneSide: result.deletedOnOneSide,
+    hadIssues: result.conflicts.length > 0 || result.deletedOnOneSide.length > 0,
+  };
 }
 
 export type RollbackTarget = { upperId: string; docType: string; lowerId?: string };

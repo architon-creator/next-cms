@@ -15,6 +15,7 @@ import type { NextRequest } from "next/server";
 import { loadConfig } from "prismic-migration/config";
 import { runPromoteHop } from "prismic-migration/actions";
 import { runWithLogSink } from "prismic-migration/logger";
+import { formatMigrationError } from "@/lib/migration-errors";
 import { createRunLog } from "@/lib/run-log-store";
 
 // Long-running + streamed — opts this route out of any static/edge
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
         );
         send("done", result);
       } catch (err) {
-        send("error", { message: err instanceof Error ? err.message : String(err) });
+        send("error", formatMigrationError(err));
       } finally {
         closed = true;
         controller.close();
