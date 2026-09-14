@@ -21,6 +21,40 @@ by another team.
   root, for a local Jaeger + otel-collector stack (`docker-compose up -d`,
   then browse `http://localhost:16686`).
 
+## Target folder structure (real project)
+
+```
+next-cms/                                  (repo root)
+├── docker-compose.yml                     ← reference-otel-docker-compose.yml
+├── otel-collector-config.yaml             ← reference-otel-collector-config.yaml
+│
+├── apps/
+│   ├── ibe-app/
+│   │   ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim)
+│   │   └── package.json                   (add "otel": "workspace:*" dependency)
+│   │
+│   └── top-app/
+│       ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim, same file)
+│       └── package.json                   (add "otel": "workspace:*" dependency)
+│
+└── packages/
+    └── otel/                              (new workspace package)
+        ├── package.json                   ← reference-otel-package.json
+        ├── tsconfig.json                  ← reference-otel-tsconfig.json
+        └── src/
+            ├── index.ts                   ← reference-otel-index.ts
+            ├── logger.ts                  ← reference-otel-logger.ts
+            ├── logging.ts                 ← reference-otel-logging.ts
+            ├── log-helper.ts              ← reference-otel-log-helper.ts
+            ├── trace-context.ts           ← reference-otel-trace-context.ts
+            ├── external-correlation.ts    ← reference-otel-external-correlation.ts
+            └── journey.ts                 ← reference-otel-journey.ts
+```
+
+Check the real repo's actual `pnpm-workspace.yaml` before creating
+`packages/otel/` — this assumes it uses a `packages/*` layout the same way
+this sandbox does.
+
 ## Wiring per app
 
 1. Add `packages/otel` as a workspace dependency to both
