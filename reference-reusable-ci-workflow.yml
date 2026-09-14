@@ -141,15 +141,7 @@ jobs:
         if: env.SNYK_TOKEN_AVAILABLE != 'true'
         run: pnpm audit --audit-level=high
 
-      # SOP requirement (security team's reference workflow): report the
-      # dependency scan's outcome to Slack regardless of which of the two
-      # scan steps above actually ran. `if: always()` is what makes this
-      # step run even after the scan step above failed — a normal step
-      # would just be skipped, and the high-severity failure needs to stay
-      # visible in Slack, not just in the (blocked) CI run. Because this
-      # step doesn't set `continue-on-error`, and a step failing here
-      # doesn't unfail the earlier scan step, the job as a whole still
-      # ends in failure when the scan found something — CI stays blocked.
+      # SOP: reports the scan outcome to Slack even on failure (if: always(), no continue-on-error), without unblocking a high-severity CI failure.
       - name: Notify Slack of dependency scan result
         if: always()
         shell: bash
