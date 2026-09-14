@@ -23,6 +23,8 @@ type ConfirmResult = { lowerName: string; upperName: string };
 
 type EnvironmentsResponse = { chain: string[]; configured: string[] };
 
+type LowerDocument = { id: string; uid: string | null; type: string; lang: string; title: string };
+
 const levelColor: Record<LogEntry["level"], string> = {
   info: "var(--accent)",
   warn: "var(--warning)",
@@ -43,6 +45,13 @@ export default function MigrationsClient() {
   const esRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
+  const [showPicker, setShowPicker] = useState(false);
+  const [documents, setDocuments] = useState<LowerDocument[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsError, setDocsError] = useState<string | null>(null);
+  const [docFilter, setDocFilter] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetch("/api/migrations/environments")
       .then((r) => r.json())
@@ -56,6 +65,54 @@ export default function MigrationsClient() {
       })
       .catch((err) => setErrorMsg(`Couldn't load environment chain: ${String(err)}`));
   }, []);
+
+  // Document ids belong to whichever repo `from` currently points at —
+  // a stale selection from a different `from` would silently apply to
+  // the wrong environment, so clear it whenever from/to change.
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setDocuments([]);
+    setDocsError(null);
+  }, [from, to]);
+
+  function loadDocuments() {
+    if (!from || !to) return;
+    setDocsLoading(true);
+    setDocsError(null);
+    fetch(`/api/migrations/documents?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data: { documents: LowerDocument[] }) => setDocuments(data.documents))
+      .catch((err) => setDocsError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setDocsLoading(false));
+  }
+
+  function togglePicker() {
+    const next = !showPicker;
+    setShowPicker(next);
+    if (next && documents.length === 0 && !docsLoading) loadDocuments();
+  }
+
+  function toggleDoc(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const filteredDocuments = documents.filter((doc) => {
+    if (!docFilter.trim()) return true;
+    const q = docFilter.toLowerCase();
+    return (
+      doc.title.toLowerCase().includes(q) ||
+      doc.type.toLowerCase().includes(q) ||
+      doc.id.toLowerCase().includes(q)
+    );
+  });
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ block: "end" });
@@ -95,13 +152,19 @@ export default function MigrationsClient() {
 
   function runPromote() {
     if (!from || !to) return;
+    const onlyCount = selectedIds.size;
     if (!dryRun) {
+      const scope =
+        onlyCount > 0 ? `${onlyCount} selected document(s)` : "the entire content library";
       const ok = window.confirm(
-        `This will write real content into "${to}". This is NOT a dry run.\n\nContinue?`,
+        `This will write real content into "${to}" (${scope}). This is NOT a dry run.\n\nContinue?`,
       );
       if (!ok) return;
     }
-    const url = `/api/migrations/promote?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&dryRun=${dryRun}`;
+    let url = `/api/migrations/promote?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&dryRun=${dryRun}`;
+    if (onlyCount > 0) {
+      url += `&only=${encodeURIComponent(Array.from(selectedIds).join(","))}`;
+    }
     startStream(url, (data) => setPromoteResult(data as PromoteResult));
   }
 
@@ -186,6 +249,15 @@ export default function MigrationsClient() {
           />
           Dry run (log the plan, write nothing)
         </label>
+        <button
+          onClick={togglePicker}
+          disabled={running || !from || !to}
+          style={btnStyle("secondary")}
+        >
+          {selectedIds.size > 0
+            ? `${selectedIds.size} document(s) selected`
+            : "Specific documents (optional)"}
+        </button>
         <div style={{ flex: 1 }} />
         <button
           onClick={runConfirm}
@@ -195,9 +267,112 @@ export default function MigrationsClient() {
           Confirm (after publish)
         </button>
         <button onClick={runPromote} disabled={running || !from || !to} style={btnStyle("primary")}>
-          {running ? "Running…" : dryRun ? "Run dry run" : "Run promote hop"}
+          {running
+            ? "Running…"
+            : selectedIds.size > 0
+              ? `${dryRun ? "Run dry run" : "Run promote hop"} (${selectedIds.size} doc${selectedIds.size === 1 ? "" : "s"})`
+              : dryRun
+                ? "Run dry run"
+                : "Run promote hop"}
         </button>
       </div>
+
+      {showPicker && (
+        <div
+          style={{
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            padding: 16,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <p style={{ margin: 0, fontSize: 12.5, color: "var(--text-dim)" }}>
+              Migrate only the checked document(s) from <strong>{from}</strong> — leave nothing
+              checked to migrate the whole content library, same as before.
+            </p>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                style={{ ...btnStyle("secondary"), padding: "4px 9px", fontSize: 11 }}
+              >
+                Clear selection
+              </button>
+            )}
+          </div>
+
+          {docsLoading && <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Loading documents…</p>}
+          {docsError && (
+            <p style={{ color: "var(--danger)", fontSize: 13 }}>
+              Couldn&apos;t load documents: {docsError}{" "}
+              <button onClick={loadDocuments} style={{ ...btnStyle("secondary"), padding: "3px 8px" }}>
+                Retry
+              </button>
+            </p>
+          )}
+
+          {!docsLoading && !docsError && documents.length > 0 && (
+            <>
+              <input
+                type="text"
+                placeholder="Filter by title, type, or id…"
+                value={docFilter}
+                onChange={(e) => setDocFilter(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "7px 10px",
+                  marginBottom: 8,
+                  border: "1px solid var(--border)",
+                  borderRadius: 6,
+                  fontSize: 12.5,
+                  background: "var(--panel-2)",
+                  color: "var(--text)",
+                }}
+              />
+              <div
+                style={{
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                }}
+              >
+                {filteredDocuments.map((doc) => (
+                  <label
+                    key={doc.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "7px 10px",
+                      fontSize: 12.5,
+                      borderBottom: "1px solid var(--border)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(doc.id)}
+                      onChange={() => toggleDoc(doc.id)}
+                    />
+                    <span style={{ fontWeight: 600 }}>{doc.title}</span>
+                    <span style={{ color: "var(--text-dim)" }}>
+                      {doc.type} · {doc.lang}
+                    </span>
+                    <code style={{ marginLeft: "auto", fontSize: 11 }}>{doc.id}</code>
+                  </label>
+                ))}
+                {filteredDocuments.length === 0 && (
+                  <p style={{ padding: 10, color: "var(--text-dim)", fontSize: 12.5 }}>
+                    No documents match &quot;{docFilter}&quot;.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {errorMsg && (
         <div

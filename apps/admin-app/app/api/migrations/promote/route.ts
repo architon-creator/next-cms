@@ -27,6 +27,10 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const dryRun = searchParams.get("dryRun") === "true";
+  const onlyParam = searchParams.get("only");
+  const onlyLowerIds = onlyParam
+    ? onlyParam.split(",").map((id) => id.trim()).filter(Boolean)
+    : undefined;
 
   if (!from || !to) {
     return new Response("from and to query params are required", { status: 400 });
@@ -59,7 +63,9 @@ export async function GET(req: NextRequest) {
 
       try {
         const config = loadConfig();
-        const result = await runWithLogSink(sink, () => runPromoteHop(config, from, to, dryRun));
+        const result = await runWithLogSink(sink, () =>
+          runPromoteHop(config, from, to, dryRun, onlyLowerIds),
+        );
         send("done", result);
       } catch (err) {
         send("error", { message: err instanceof Error ? err.message : String(err) });

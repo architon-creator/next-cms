@@ -20,7 +20,11 @@ export type RunLogWriter = {
 };
 
 /** Call once at the start of a run; pass every log() line to appendLine as it arrives. */
-export async function createRunLog(action: "promote" | "confirm", from: string, to: string): Promise<RunLogWriter> {
+export async function createRunLog(
+  action: "promote" | "confirm" | "rollback",
+  from: string,
+  to: string,
+): Promise<RunLogWriter> {
   await mkdir(RUN_LOG_DIR, { recursive: true });
   const timestamp = new Date().toISOString();
   // "__" between fields, not "-" — the timestamp itself is full of
@@ -69,6 +73,58 @@ export async function listRunLogs(): Promise<RunLogSummary[]> {
   return summaries
     .filter((s): s is RunLogSummary => s !== null)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+}
+
+export type RollbackTarget = { upperId: string; docType: string; lowerId?: string };
+
+export type RollbackPlanFromLog = {
+  /** null if this run's log never recorded a phase0.snapshots_taken event — a dry run's phase0 still takes real snapshots, so this being null means the log is from something else entirely, or is truncated/corrupt. */
+  upperSnapshotPath: string | null;
+  updated: RollbackTarget[];
+  created: RollbackTarget[];
+};
+
+/**
+ * Reads a saved run's log and pulls out exactly what prismic-migration's
+ * own runRollback() needs: the pre-hop snapshot path, and which
+ * documents that hop actually created vs updated for real. A dry run
+ * never emits phase2.created/phase2.updated (only phase2.would_create),
+ * so this naturally comes back empty for one — safe, not an error.
+ */
+export async function buildRollbackPlanFromLog(filename: string): Promise<RollbackPlanFromLog> {
+  const text = await readRunLog(filename);
+  let upperSnapshotPath: string | null = null;
+  const updated: RollbackTarget[] = [];
+  const created: RollbackTarget[] = [];
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    let entry: Record<string, unknown>;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue; // a non-JSON line (shouldn't happen in a file we wrote ourselves, but don't crash on it)
+    }
+
+    if (entry.event === "phase0.snapshots_taken" && typeof entry.upperSnapshot === "string") {
+      upperSnapshotPath = entry.upperSnapshot;
+    } else if (entry.event === "phase2.updated") {
+      updated.push({
+        upperId: String(entry.upperId),
+        docType: String(entry.docType),
+        lowerId: typeof entry.lowerId === "string" ? entry.lowerId : undefined,
+      });
+    } else if (entry.event === "phase2.created") {
+      created.push({
+        upperId: String(entry.upperId),
+        docType: String(entry.docType),
+        lowerId: typeof entry.lowerId === "string" ? entry.lowerId : undefined,
+      });
+    }
+  }
+
+  return { upperSnapshotPath, updated, created };
 }
 
 export async function readRunLog(filename: string): Promise<string> {

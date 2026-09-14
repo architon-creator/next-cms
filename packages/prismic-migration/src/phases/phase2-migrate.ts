@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Config } from "../config.js";
+import type { Config, RepoConfig } from "../config.js";
 import { canonicalHash } from "../lib/canonical-hash.js";
 import type { ResolvedPair } from "../lib/environments.js";
 import { log } from "../lib/logger.js";
@@ -8,6 +8,7 @@ import { MappingStore } from "../lib/mapping-store.js";
 import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
 import {
   createMigrationDocument,
+  getDocumentById,
   getMasterRef,
   iterateAllDocuments,
   listCustomTypes,
@@ -21,8 +22,32 @@ export type Phase2Options = {
   config: Config;
   pair: ResolvedPair;
   dryRun: boolean;
+  /** When set, migrate only these lower-environment document ids instead of the whole content library — e.g. testing one document's migration before committing to all of them. Any id not found in the lower environment is logged and skipped, not an error. */
+  onlyLowerIds?: string[];
   fetchImpl?: typeof fetch;
 };
+
+/**
+ * Same yielded shape as iterateAllDocuments, but fetches each requested
+ * id individually via getDocumentById instead of paging through the
+ * whole repository — the point of `onlyLowerIds` is to avoid scanning
+ * everything to find a handful of documents.
+ */
+async function* iterateOnlyDocuments(
+  repo: RepoConfig,
+  ref: string,
+  ids: string[],
+  fetchImpl: typeof fetch,
+): AsyncGenerator<PrismicDocument> {
+  for (const id of ids) {
+    const doc = await getDocumentById(repo, ref, id, fetchImpl);
+    if (!doc) {
+      log("warn", "phase2.only_id_not_found", { lowerId: id });
+      continue;
+    }
+    yield doc;
+  }
+}
 
 export type Phase2Failure = {
   lowerId: string;
@@ -137,9 +162,13 @@ export async function runPhase2({
   config,
   pair,
   dryRun,
+  onlyLowerIds,
   fetchImpl = fetch,
 }: Phase2Options): Promise<Phase2Result> {
   log("info", "phase2.start", { dryRun, from: pair.lowerName, to: pair.upperName });
+  if (onlyLowerIds && onlyLowerIds.length > 0) {
+    log("warn", "phase2.only_filter_active", { lowerIds: onlyLowerIds });
+  }
 
   const mappingStore = new MappingStore<DocumentMapping>(
     mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
@@ -186,8 +215,13 @@ export async function runPhase2({
   const failures: Phase2Failure[] = [];
 
   // ---- Pass 1 ----
+  const pass1Source =
+    onlyLowerIds && onlyLowerIds.length > 0
+      ? iterateOnlyDocuments(pair.lower, lowerRef, onlyLowerIds, fetchImpl)
+      : iterateAllDocuments(pair.lower, lowerRef, fetchImpl);
+
   await mappingStore.mutate(async (mapping) => {
-    for await (const doc of iterateAllDocuments(pair.lower, lowerRef, fetchImpl)) {
+    for await (const doc of pass1Source) {
       seen += 1;
       const lowerHash = canonicalHash(doc.data);
       const existing = mapping[doc.id];
