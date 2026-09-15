@@ -1,0 +1,35 @@
+{
+  "format": "custom",
+  "id": "step_navigation",
+  "json": {
+    "Main": {
+      "next": {
+        "config": {
+          "label": "Next"
+        },
+        "type": "Text"
+      },
+      "back": {
+        "config": {
+          "label": "Back"
+        },
+        "type": "Text"
+      },
+      "submit": {
+        "config": {
+          "label": "Submit"
+        },
+        "type": "Text"
+      },
+      "saveAndReturn": {
+        "config": {
+          "label": "Save And Return"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Step Navigation",
+  "repeatable": false,
+  "status": true
+}

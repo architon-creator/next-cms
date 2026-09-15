@@ -1,0 +1,29 @@
+{
+  "format": "custom",
+  "id": "validation",
+  "json": {
+    "Main": {
+      "required": {
+        "config": {
+          "label": "Required"
+        },
+        "type": "Text"
+      },
+      "invalidEmail": {
+        "config": {
+          "label": "Invalid Email"
+        },
+        "type": "Text"
+      },
+      "invalidPhone": {
+        "config": {
+          "label": "Invalid Phone"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Validation",
+  "repeatable": false,
+  "status": true
+}

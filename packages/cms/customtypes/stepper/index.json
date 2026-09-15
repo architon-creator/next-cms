@@ -1,0 +1,41 @@
+{
+  "format": "custom",
+  "id": "stepper",
+  "json": {
+    "Main": {
+      "personalDetails": {
+        "config": {
+          "label": "Personal Details"
+        },
+        "type": "Text"
+      },
+      "contactInfo": {
+        "config": {
+          "label": "Contact Info"
+        },
+        "type": "Text"
+      },
+      "preferences": {
+        "config": {
+          "label": "Preferences"
+        },
+        "type": "Text"
+      },
+      "documents": {
+        "config": {
+          "label": "Documents"
+        },
+        "type": "Text"
+      },
+      "reviewSubmit": {
+        "config": {
+          "label": "Review Submit"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Stepper",
+  "repeatable": false,
+  "status": true
+}

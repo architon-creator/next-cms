@@ -1,0 +1,29 @@
+{
+  "format": "custom",
+  "id": "search_page",
+  "json": {
+    "Main": {
+      "heading": {
+        "config": {
+          "label": "Heading"
+        },
+        "type": "Text"
+      },
+      "searchButton": {
+        "config": {
+          "label": "Search Button"
+        },
+        "type": "Text"
+      },
+      "emptyState": {
+        "config": {
+          "label": "Empty State"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Search Page",
+  "repeatable": false,
+  "status": true
+}

@@ -1,0 +1,17 @@
+{
+  "format": "custom",
+  "id": "documents_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Documents Page",
+  "repeatable": false,
+  "status": true
+}

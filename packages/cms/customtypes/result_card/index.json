@@ -1,0 +1,23 @@
+{
+  "format": "custom",
+  "id": "result_card",
+  "json": {
+    "Main": {
+      "selectAction": {
+        "config": {
+          "label": "Select Action"
+        },
+        "type": "Text"
+      },
+      "continueAction": {
+        "config": {
+          "label": "Continue Action"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Result Card",
+  "repeatable": false,
+  "status": true
+}

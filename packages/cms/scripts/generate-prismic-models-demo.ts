@@ -75,11 +75,34 @@ const messagesPath = path.resolve(
 );
 const outputRoot = path.resolve(scriptDirectory, "../customtypes");
 
+/**
+ * Optional `--namespaces=Header,Footer` filter — narrows which
+ * namespaces get their OWN custom type file (re)written, e.g. for
+ * previewing/regenerating just a few at a time from a UI multi-select.
+ * Deliberately does NOT narrow the hub model below: the hub's Link
+ * fields are built from every namespace found in en.json regardless of
+ * this filter, so running with a partial selection can never shrink the
+ * hub schema and orphan a namespace type that isn't selected this time.
+ * No flag (the common case, and every existing caller) means "all
+ * namespaces" — unchanged from before this option existed.
+ */
+function parseNamespaceFilter(): Set<string> | null {
+  const arg = process.argv.find((value) => value.startsWith("--namespaces="));
+  if (!arg) return null;
+  const list = arg
+    .slice("--namespaces=".length)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return list.length > 0 ? new Set(list) : null;
+}
+
 function main() {
   const messages = JSON.parse(readFileSync(messagesPath, "utf8")) as Record<
     string,
     unknown
   >;
+  const namespaceFilter = parseNamespaceFilter();
   const namespaces: string[] = [];
   let generated = 0;
 
@@ -88,8 +111,14 @@ function main() {
       continue;
     }
 
-    writeModel(namespace, createModel(namespace, fields));
+    // Tracked for the hub regardless of the filter — see parseNamespaceFilter's comment.
     namespaces.push(namespace);
+
+    if (namespaceFilter && !namespaceFilter.has(namespace)) {
+      continue;
+    }
+
+    writeModel(namespace, createModel(namespace, fields));
     generated += 1;
   }
 
@@ -97,7 +126,8 @@ function main() {
   generated += 1;
 
   console.log(
-    `Generated ${generated} custom type model(s) (including the "${HUB_TYPE_ID}" hub) from ${messagesPath} into ${outputRoot}`,
+    `Generated ${generated} custom type model(s) (including the "${HUB_TYPE_ID}" hub) from ${messagesPath} into ${outputRoot}` +
+      (namespaceFilter ? ` (filtered to: ${Array.from(namespaceFilter).join(", ")})` : ""),
   );
 }
 

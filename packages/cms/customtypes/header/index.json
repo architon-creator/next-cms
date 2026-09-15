@@ -14,6 +14,42 @@
           "label": "Home"
         },
         "type": "Text"
+      },
+      "newPage": {
+        "config": {
+          "label": "New Page"
+        },
+        "type": "Text"
+      },
+      "search": {
+        "config": {
+          "label": "Search"
+        },
+        "type": "Text"
+      },
+      "contact": {
+        "config": {
+          "label": "Contact"
+        },
+        "type": "Text"
+      },
+      "feedback": {
+        "config": {
+          "label": "Feedback"
+        },
+        "type": "Text"
+      },
+      "signIn": {
+        "config": {
+          "label": "Sign In"
+        },
+        "type": "Text"
+      },
+      "signOut": {
+        "config": {
+          "label": "Sign Out"
+        },
+        "type": "Text"
       }
     }
   },

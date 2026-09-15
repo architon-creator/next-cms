@@ -1,0 +1,17 @@
+{
+  "format": "custom",
+  "id": "contact_info_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Contact Info Page",
+  "repeatable": false,
+  "status": true
+}

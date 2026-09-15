@@ -1,0 +1,41 @@
+{
+  "format": "custom",
+  "id": "review_submit_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      },
+      "confirmSection": {
+        "config": {
+          "label": "Confirm Section"
+        },
+        "type": "Text"
+      },
+      "changeSection": {
+        "config": {
+          "label": "Change Section"
+        },
+        "type": "Text"
+      },
+      "confirmedBadge": {
+        "config": {
+          "label": "Confirmed Badge"
+        },
+        "type": "Text"
+      },
+      "submit": {
+        "config": {
+          "label": "Submit"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Review Submit Page",
+  "repeatable": false,
+  "status": true
+}

@@ -60,11 +60,32 @@ main().catch((error) => {
   process.exitCode = 1;
 });
 
+/**
+ * Optional `--namespaces=Header,Footer` filter, same flag/shape as
+ * generate-prismic-models-demo.ts's. Unlike that script, filtering here
+ * is safe to apply to the WHOLE loop (not just the leaf write): the hub
+ * step below already does fetch-merge-write against the hub's existing
+ * data (see its own comment), so a namespace skipped this run simply
+ * keeps whatever Link value the hub already had for it — it's never
+ * dropped just because this run's --namespaces didn't include it.
+ */
+function parseNamespaceFilter(): Set<string> | null {
+  const arg = process.argv.find((value) => value.startsWith("--namespaces="));
+  if (!arg) return null;
+  const list = arg
+    .slice("--namespaces=".length)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return list.length > 0 ? new Set(list) : null;
+}
+
 async function main() {
   const messages = JSON.parse(readFileSync(messagesPath, "utf8")) as Record<
     string,
     unknown
   >;
+  const namespaceFilter = parseNamespaceFilter();
   const [{ createPrismicClient }, { createPrismicMigration, createPrismicWriteClient }] =
     await Promise.all([
       import("../src/prismic/create-client.js"),
@@ -77,6 +98,9 @@ async function main() {
 
   for (const [namespace, fields] of Object.entries(messages)) {
     if (!isPlainObject(fields)) {
+      continue;
+    }
+    if (namespaceFilter && !namespaceFilter.has(namespace)) {
       continue;
     }
 

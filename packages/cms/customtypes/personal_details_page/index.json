@@ -1,0 +1,17 @@
+{
+  "format": "custom",
+  "id": "personal_details_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Personal Details Page",
+  "repeatable": false,
+  "status": true
+}

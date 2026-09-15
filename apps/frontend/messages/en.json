@@ -1,7 +1,13 @@
 {
   "Header": {
     "brand": "next-cms",
-    "home": "Home"
+    "home": "Home",
+    "newPage": "New Page",
+    "search": "Search",
+    "contact": "Contact",
+    "feedback": "Feedback",
+    "signIn": "Sign in",
+    "signOut": "Sign out"
   },
   "Footer": {
     "copyright": "© {year} next-cms. Built with Next.js and Prismic.",
@@ -16,7 +22,9 @@
     "title": "Sign in",
     "description": "Enter your credentials to access your account.",
     "cardTitle": "Welcome back",
-    "cardDescription": "We'll keep you signed in on this device."
+    "cardDescription": "We'll keep you signed in on this device.",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "Don't have an account?"
   },
   "LoginForm": {
     "email": "Email",

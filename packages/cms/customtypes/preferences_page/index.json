@@ -1,0 +1,17 @@
+{
+  "format": "custom",
+  "id": "preferences_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Preferences Page",
+  "repeatable": false,
+  "status": true
+}
