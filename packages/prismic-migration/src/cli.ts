@@ -153,11 +153,16 @@ async function main(): Promise<void> {
       [
         "",
         `Hop ${result.lowerName} -> ${result.upperName} complete.`,
-        `Next: publish the Migration Release in ${result.upperName}'s dashboard, then run:`,
-        `  pnpm cli confirm --from=${result.lowerName} --to=${result.upperName}`,
-        result.isFinalHop
-          ? `${result.upperName} is your requested destination — nothing more to promote.`
-          : `Then continue up the chain with:\n  pnpm cli promote --from=${result.upperName} --to=${toName}`,
+        `${result.created} created, ${result.updated} updated, ${result.unchanged} already up to date.`,
+        result.hasPendingRelease
+          ? [
+              `Next: publish the Migration Release in ${result.upperName}'s dashboard, then run:`,
+              `  pnpm cli confirm --from=${result.lowerName} --to=${result.upperName}`,
+              result.isFinalHop
+                ? `${result.upperName} is your requested destination — nothing more to promote.`
+                : `Then continue up the chain with:\n  pnpm cli promote --from=${result.upperName} --to=${toName}`,
+            ].join("\n")
+          : "Nothing changed on this run — there's no new Release to publish.",
       ].join("\n"),
     );
     return;

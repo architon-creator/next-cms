@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listRunLogs } from "@/lib/run-log-store";
+import { buildRollbackPlanFromLog, listRunLogs } from "@/lib/run-log-store";
 import RollbackButton from "./RollbackButton";
 
 export const metadata = { title: "Run history · admin-app" };
@@ -23,6 +23,20 @@ export default async function HistoryPage() {
       latestPromoteFilenames.add(run.filename);
     }
   }
+
+  // A promote run that created/updated nothing (dry run, or every
+  // document was already in sync) has nothing for rollback to revert —
+  // offering the button there is pure noise, and confusing since
+  // clicking it would "succeed" while doing literally nothing.
+  const rollbackPlans = new Map<string, boolean>(); // filename -> has anything to revert
+  await Promise.all(
+    runs
+      .filter((run) => run.action === "promote")
+      .map(async (run) => {
+        const plan = await buildRollbackPlanFromLog(run.filename);
+        rollbackPlans.set(run.filename, plan.updated.length + plan.created.length > 0);
+      }),
+  );
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto", padding: "32px 20px 64px" }}>
@@ -90,14 +104,22 @@ export default async function HistoryPage() {
                   {new Date(run.timestamp).toLocaleString()}
                 </div>
               </a>
-              {run.action === "promote" && (
-                <RollbackButton
-                  filename={run.filename}
-                  from={run.from}
-                  to={run.to}
-                  isLatest={latestPromoteFilenames.has(run.filename)}
-                />
-              )}
+              {run.action === "promote" &&
+                (rollbackPlans.get(run.filename) ? (
+                  <RollbackButton
+                    filename={run.filename}
+                    from={run.from}
+                    to={run.to}
+                    isLatest={latestPromoteFilenames.has(run.filename)}
+                  />
+                ) : (
+                  <span
+                    style={{ fontSize: 11.5, color: "var(--text-dim)", alignSelf: "center" }}
+                    title="This run created and updated nothing — there's nothing to roll back."
+                  >
+                    Nothing to roll back
+                  </span>
+                ))}
             </div>
           ))}
         </div>

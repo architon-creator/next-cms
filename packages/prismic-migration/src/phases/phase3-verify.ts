@@ -150,6 +150,18 @@ export async function runPhase3({
     // would otherwise flag every document with a link or image field as
     // a false-positive mismatch (confirmed on a real run via
     // `inspect <lowerId> <upperId>`).
+    //
+    // A second, unrelated source of false-positive mismatches confirmed
+    // the same way: an optional Select field sent as `null` on document
+    // creation (e.g. a slice's `font_size`/`font_color`/`style`) comes
+    // back from Prismic with its custom-type-schema default value
+    // substituted in (e.g. null -> "Medium"/"Default"/"Outline") — this
+    // happens on Prismic's own side at create time, for any Select field
+    // with a configured default, and isn't something this toolkit's
+    // create/update calls can prevent or detect in advance. It only ever
+    // shows up right after a document is first created upper-side (a
+    // `confirm` re-fetch would still show it); it's not something that
+    // then keeps drifting on every subsequent verify.
     const expected = canonicalHash(
       normalizeForComparison(rewriteRefs(lowerDoc.data, { assetIds, documentIds })),
     );

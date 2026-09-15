@@ -18,6 +18,10 @@ type PromoteResult = {
   isFinalHop: boolean;
   failures: unknown[];
   dryRun: boolean;
+  created: number;
+  updated: number;
+  unchanged: number;
+  hasPendingRelease: boolean;
 };
 
 type ConfirmResult = { lowerName: string; upperName: string };
@@ -45,6 +49,17 @@ type VerifyResult = {
     deletedDocuments: { lowerId: string; upperId: string; deletedSide: "lower" | "upper" }[];
     deletedAssets: { lowerAssetId: string; upperAssetId: string }[];
   };
+};
+
+type InspectResult = {
+  lowerName: string;
+  upperName: string;
+  lowerId: string;
+  upperId: string;
+  lowerDoc: { data: Record<string, unknown> };
+  upperDoc: { data: Record<string, unknown> } | null;
+  matches?: boolean;
+  differingKeys: string[];
 };
 
 type ReconcileResult = {
@@ -114,6 +129,32 @@ export default function MigrationsClient() {
   const [docFilter, setDocFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedLang, setSelectedLang] = useState(""); // "" = every locale
+
+  const [inspectOpenId, setInspectOpenId] = useState<string | null>(null);
+  const [inspectLoading, setInspectLoading] = useState(false);
+  const [inspectError, setInspectError] = useState<string | null>(null);
+  const [inspectResult, setInspectResult] = useState<InspectResult | null>(null);
+
+  function toggleInspect(lowerId: string) {
+    if (inspectOpenId === lowerId) {
+      setInspectOpenId(null);
+      return;
+    }
+    setInspectOpenId(lowerId);
+    setInspectResult(null);
+    setInspectError(null);
+    setInspectLoading(true);
+    fetch(
+      `/api/migrations/inspect?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&lowerId=${encodeURIComponent(lowerId)}`,
+    )
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data: InspectResult) => setInspectResult(data))
+      .catch((err) => setInspectError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setInspectLoading(false));
+  }
 
   useEffect(() => {
     fetch("/api/migrations/environments")
@@ -367,30 +408,58 @@ export default function MigrationsClient() {
             ? `${selectedIds.size} document(s) selected`
             : "Specific documents (optional)"}
         </button>
-        <div className="flex-1 min-w-2 max-sm:hidden" />
-        <button onClick={runVerify} disabled={running || !from || !to} className={btnSecondary}>
-          Verify
-        </button>
-        <button onClick={runReconcile} disabled={running || !from || !to} className={btnSecondary}>
-          {dryRun ? "Reconcile dry run" : "Run reconcile"}
-        </button>
-        <button onClick={runConfirm} disabled={running || !from || !to} className={btnSecondary}>
-          Confirm (after publish)
-        </button>
-        <button onClick={runBacksync} disabled={running || !from || !to} className={btnSecondary}>
-          {dryRun ? "Backsync dry run" : "Run backsync"}
-        </button>
-        <button onClick={runPromote} disabled={running || !from || !to} className={btnPrimary}>
-          {running
-            ? "Running…"
-            : `${dryRun ? "Run dry run" : "Run promote hop"}${
-                selectedIds.size > 0
-                  ? ` (${selectedIds.size} doc${selectedIds.size === 1 ? "" : "s"})`
-                  : selectedLang
-                    ? ` (${selectedLang} only)`
-                    : ""
-              }`}
-        </button>
+      </div>
+
+      {/* Workflow — left to right is the order you'd normally run these in;
+          Backsync sits after a divider because it runs the opposite direction. */}
+      <div className="flex flex-wrap items-stretch gap-3 p-4.5 bg-panel border border-border rounded-card shadow-subtle mb-5">
+        <ActionButton
+          eyebrow="Optional · before migrating"
+          label={dryRun ? "Reconcile dry run" : "Run reconcile"}
+          caption={`If some "${to || "target"}" documents already exist and just haven't been linked yet, run this first — it matches and links them instead of Promote creating duplicates.`}
+          onClick={runReconcile}
+          disabled={running || !from || !to}
+        />
+        <ActionButton
+          eyebrow="Step 1 · migrate"
+          label={
+            running
+              ? "Running…"
+              : `${dryRun ? "Run dry run" : "Run promote hop"}${
+                  selectedIds.size > 0
+                    ? ` (${selectedIds.size} doc${selectedIds.size === 1 ? "" : "s"})`
+                    : selectedLang
+                      ? ` (${selectedLang} only)`
+                      : ""
+                }`
+          }
+          caption={`Copies content ${from || "from"} → ${to || "to"} into a draft Migration Release. Nothing goes live yet — you still publish that Release yourself in Prismic.`}
+          onClick={runPromote}
+          disabled={running || !from || !to}
+          variant="primary"
+        />
+        <ActionButton
+          eyebrow="Step 2 · after you publish"
+          label="Confirm (after publish)"
+          caption={`Run this only once you've manually published the Release in "${to || "target"}"'s Prismic dashboard — it marks those documents as synced here.`}
+          onClick={runConfirm}
+          disabled={running || !from || !to}
+        />
+        <ActionButton
+          eyebrow="Anytime · check-only"
+          label="Verify"
+          caption="Compares both sides for count mismatches, broken links, and missing assets. Read-only — safe to run whenever you want a health check."
+          onClick={runVerify}
+          disabled={running || !from || !to}
+        />
+        <div className="w-px bg-border self-stretch mx-1 max-sm:hidden" />
+        <ActionButton
+          eyebrow="Ongoing · reverse direction"
+          label={dryRun ? "Backsync dry run" : "Run backsync"}
+          caption={`For edits made directly on "${from || "the upper env"}" — pulls them back down into "${to || "the lower env"}". Opposite direction from Promote, same From/To dropdowns.`}
+          onClick={runBacksync}
+          disabled={running || !from || !to}
+        />
       </div>
 
       {/* Document picker */}
@@ -514,13 +583,21 @@ export default function MigrationsClient() {
           )}
           {promoteResult.ok && !promoteResult.dryRun && (
             <p className="mt-2">
-              Next: publish the Migration Release in <strong>{promoteResult.upperName}</strong>
-              &apos;s Prismic dashboard, then use <strong>Confirm</strong> above.
-              {!promoteResult.isFinalHop && (
+              {promoteResult.created} created, {promoteResult.updated} updated,{" "}
+              {promoteResult.unchanged} already up to date.{" "}
+              {promoteResult.hasPendingRelease ? (
                 <>
-                  {" "}
-                  Then continue promoting from <code>{promoteResult.upperName}</code>.
+                  Next: publish the Migration Release in <strong>{promoteResult.upperName}</strong>
+                  &apos;s Prismic dashboard, then use <strong>Confirm</strong> above.
+                  {!promoteResult.isFinalHop && (
+                    <>
+                      {" "}
+                      Then continue promoting from <code>{promoteResult.upperName}</code>.
+                    </>
+                  )}
                 </>
+              ) : (
+                <>Nothing changed on this run — there&apos;s no new Release to publish.</>
               )}
             </p>
           )}
@@ -571,17 +648,73 @@ export default function MigrationsClient() {
             {verifyResult.report.spotCheck.mismatches.length}/{verifyResult.report.spotCheck.sampleSize}{" "}
             spot-check mismatches
           </p>
+          {verifyResult.report.spotCheck.mismatches.length > 0 && (
+            <div className="text-warning mt-1.5">
+              <p className="m-0">
+                {verifyResult.report.spotCheck.mismatches.length} document(s) have content that
+                doesn&apos;t match between the two sides:
+              </p>
+              <ul className="m-0 mt-1 pl-4 list-none">
+                {verifyResult.report.spotCheck.mismatches.map((id) => (
+                  <li key={id} className="mt-1">
+                    <div className="flex items-center gap-2">
+                      <code className="text-[11px]">{id}</code>
+                      <button
+                        onClick={() => toggleInspect(id)}
+                        className={`${btnSecondary} !px-2 !py-0.5 !text-[11px]`}
+                      >
+                        {inspectOpenId === id ? "Hide" : "Inspect"}
+                      </button>
+                    </div>
+                    {inspectOpenId === id && (
+                      <InspectPanel loading={inspectLoading} error={inspectError} result={inspectResult} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {Object.keys(verifyResult.report.brokenLinkScan.affectedDocuments).length > 0 && (
-            <p className="text-warning mt-1.5">
-              {Object.keys(verifyResult.report.brokenLinkScan.affectedDocuments).length} document(s)
-              have broken document links.
-            </p>
+            <div className="text-warning mt-1.5">
+              <p className="m-0">
+                {Object.keys(verifyResult.report.brokenLinkScan.affectedDocuments).length} document(s)
+                have broken document links (upper id → unresolved lower id(s) it still points at):
+              </p>
+              <ul className="m-0 mt-1 pl-4">
+                {Object.entries(verifyResult.report.brokenLinkScan.affectedDocuments).map(
+                  ([upperId, targets]) => (
+                    <li key={upperId}>
+                      <code className="text-[11px]">{upperId}</code> → {targets.map((t) => (
+                        <code key={t} className="text-[11px]">
+                          {t}
+                        </code>
+                      ))}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
           )}
           {Object.keys(verifyResult.report.assetCheck.affectedDocuments).length > 0 && (
-            <p className="text-warning mt-1.5">
-              {Object.keys(verifyResult.report.assetCheck.affectedDocuments).length} document(s) have
-              broken asset references.
-            </p>
+            <div className="text-warning mt-1.5">
+              <p className="m-0">
+                {Object.keys(verifyResult.report.assetCheck.affectedDocuments).length} document(s) have
+                broken asset references:
+              </p>
+              <ul className="m-0 mt-1 pl-4">
+                {Object.entries(verifyResult.report.assetCheck.affectedDocuments).map(
+                  ([upperId, targets]) => (
+                    <li key={upperId}>
+                      <code className="text-[11px]">{upperId}</code> → {targets.map((t) => (
+                        <code key={t} className="text-[11px]">
+                          {t}
+                        </code>
+                      ))}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
           )}
           {verifyResult.report.deletedDocuments.length > 0 && (
             <p className="text-warning mt-1.5">
@@ -625,6 +758,128 @@ export default function MigrationsClient() {
           )}
         </ResultCard>
       )}
+    </div>
+  );
+}
+
+function InspectPanel({
+  loading,
+  error,
+  result,
+}: {
+  loading: boolean;
+  error: string | null;
+  result: InspectResult | null;
+}) {
+  if (loading) {
+    return <p className="text-text-dim text-[12px] mt-1.5 mb-0">Fetching both sides…</p>;
+  }
+  if (error) {
+    return <p className="text-danger text-[12px] mt-1.5 mb-0">Couldn&apos;t load: {error}</p>;
+  }
+  if (!result) return null;
+
+  if (!result.upperDoc) {
+    return (
+      <p className="text-danger text-[12px] mt-1.5 mb-0">
+        <code className="text-[11px]">{result.upperId}</code> doesn&apos;t exist in{" "}
+        {result.upperName} — still unpublished, or deleted outside this tool.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2 bg-panel-2 border border-border rounded-control p-3 text-[12px]">
+      {result.differingKeys.length > 0 ? (
+        <p className="m-0 mb-2 text-warning">
+          Differing field(s): {result.differingKeys.map((k) => (
+            <code key={k} className="text-[11px] mr-1">
+              {k}
+            </code>
+          ))}
+        </p>
+      ) : (
+        <p className="m-0 mb-2 text-text-dim">
+          No top-level field differs after rewrite+normalize — likely a Prismic-side denormalization
+          (a Content Relationship or Image field's live snapshot, e.g. slug or dimensions) rather than
+          an actual migration bug.
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="m-0 font-semibold text-text-dim uppercase text-[10px] tracking-wide">
+              {result.lowerName} — {result.lowerId}
+            </p>
+            <CopyButton text={JSON.stringify(result.lowerDoc.data, null, 2)} />
+          </div>
+          <pre className="m-0 max-h-[260px] overflow-auto bg-panel border border-border rounded-control p-2 text-[11px] whitespace-pre-wrap break-words">
+            {JSON.stringify(result.lowerDoc.data, null, 2)}
+          </pre>
+        </div>
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="m-0 font-semibold text-text-dim uppercase text-[10px] tracking-wide">
+              {result.upperName} — {result.upperId}
+            </p>
+            <CopyButton text={JSON.stringify(result.upperDoc.data, null, 2)} />
+          </div>
+          <pre className="m-0 max-h-[260px] overflow-auto bg-panel border border-border rounded-control p-2 text-[11px] whitespace-pre-wrap break-words">
+            {JSON.stringify(result.upperDoc.data, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API can be unavailable (e.g. no permission, non-HTTPS
+      // context) — nothing useful to recover into, so just leave the
+      // button unchanged rather than pretending it worked.
+    }
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`${btnSecondary} !px-2 !py-0.5 !text-[10.5px] shrink-0`}
+    >
+      {copied ? "Copied!" : "Copy"}
+    </button>
+  );
+}
+
+function ActionButton({
+  eyebrow,
+  label,
+  caption,
+  onClick,
+  disabled,
+  variant = "secondary",
+}: {
+  eyebrow: string;
+  label: string;
+  caption: string;
+  onClick: () => void;
+  disabled: boolean;
+  variant?: "secondary" | "primary";
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 items-start basis-[170px] flex-1 min-w-[150px] max-w-[230px]">
+      <span className="text-[10px] uppercase tracking-wide font-semibold text-text-dim">{eyebrow}</span>
+      <button onClick={onClick} disabled={disabled} className={`${variant === "primary" ? btnPrimary : btnSecondary} w-full`}>
+        {label}
+      </button>
+      <span className="text-[10.5px] text-text-dim leading-snug">{caption}</span>
     </div>
   );
 }

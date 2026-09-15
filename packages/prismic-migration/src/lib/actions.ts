@@ -4,15 +4,17 @@ import { canonicalHash } from "./canonical-hash.js";
 import { resolveNextHop, resolvePair, requireDirection } from "./environments.js";
 import { LockConflictError } from "./lock.js";
 import { log } from "./logger.js";
-import { mappingFilePath } from "./mapping-paths.js";
+import { assetMappingFilePath, mappingFilePath } from "./mapping-paths.js";
 import { MappingStore } from "./mapping-store.js";
 import {
+  getDocumentById,
   getMasterRef,
   iterateAllDocuments,
   listCustomTypes,
   PrismicApiError,
   updateMigrationDocument,
 } from "./prismic-http.js";
+import { normalizeForComparison, rewriteRefs } from "./rewrite-refs.js";
 import { runPhase0 } from "../phases/phase0-preflight.js";
 import { runPhase1 } from "../phases/phase1-assets.js";
 import { buildTitle, runPhase2 } from "../phases/phase2-migrate.js";
@@ -20,7 +22,7 @@ import { runConfirm } from "../phases/phase2-confirm.js";
 import { runPhase4 } from "../phases/phase4-backsync.js";
 import { runPhase3, type Phase3Report } from "../phases/phase3-verify.js";
 import { runReconcile, type ReconcileResult } from "../phases/phase-reconcile.js";
-import type { DocumentMapping } from "../types.js";
+import type { AssetMapping, DocumentMapping, PrismicDocument } from "../types.js";
 
 // Re-exported so a non-CLI caller (admin-app's API routes) can
 // `instanceof`-check the same error types the CLI's own top-level
@@ -42,6 +44,18 @@ export type PromoteHopResult = {
   isFinalHop: boolean;
   failures: unknown[];
   dryRun: boolean;
+  created: number;
+  updated: number;
+  unchanged: number;
+  /**
+   * True when this hop actually created/updated/link-fixed up at least one
+   * document via the Migration API — which is the only thing that lands
+   * in an upper-environment Migration Release needing a human publish.
+   * False on a hop where every document was already unchanged (nothing
+   * written, so there's nothing new to publish) — distinct from `dryRun`,
+   * which never writes at all.
+   */
+  hasPendingRelease: boolean;
 };
 
 /**
@@ -78,6 +92,8 @@ export async function runPromoteHop(
   await runPhase1({ config, pair, dryRun });
   const result = await runPhase2({ config, pair, dryRun, onlyLowerIds, onlyLang });
 
+  const hasPendingRelease = !dryRun && (result.created > 0 || result.updated > 0 || result.linkFixups > 0);
+
   if (result.failures.length > 0) {
     log("error", "cli.promote_hop_had_failures", { failures: result.failures });
     return {
@@ -87,6 +103,10 @@ export async function runPromoteHop(
       isFinalHop,
       failures: result.failures,
       dryRun,
+      created: result.created,
+      updated: result.updated,
+      unchanged: result.unchanged,
+      hasPendingRelease,
     };
   }
 
@@ -101,6 +121,10 @@ export async function runPromoteHop(
     isFinalHop,
     failures: [],
     dryRun,
+    created: result.created,
+    updated: result.updated,
+    unchanged: result.unchanged,
+    hasPendingRelease,
   };
 }
 
@@ -388,6 +412,98 @@ export async function runReconcileAction(
   requireDirection(pair, "forward", "reconcile");
   const result = await runReconcile({ config, pair, dryRun });
   return { ...result, lowerName: pair.lowerName, upperName: pair.upperName, dryRun };
+}
+
+export type InspectActionResult = {
+  lowerName: string;
+  upperName: string;
+  lowerId: string;
+  upperId: string;
+  lowerDoc: PrismicDocument;
+  upperDoc: PrismicDocument | null;
+  /** Same comparison phase3's spot-check runs — canonical hash of rewrite(lower) vs. upper's actual data. Undefined if the upper document doesn't exist (deleted, or not yet published). */
+  matches?: boolean;
+  /** Top-level `data` keys where the two sides differ, for a UI to highlight instead of dumping two full JSON blobs at a person. */
+  differingKeys: string[];
+};
+
+/**
+ * Fetches both sides of one mapped document, live, for a person to
+ * compare by eye — the same comparison logic phase3's spot-check uses
+ * (rewrite(lower) vs. upper's actual data, both normalized), but for a
+ * single document a human already suspects is wrong, with the full
+ * documents returned instead of just a pass/fail. Mirrors the CLI's own
+ * `inspect` command; unlike that command this always resolves `upperId`
+ * from the mapping file rather than requiring it as an argument, since a
+ * UI investigating a phase3 mismatch only ever has the lower id in hand.
+ */
+export async function runInspectAction(
+  config: Config,
+  fromName: string,
+  toName: string,
+  lowerId: string,
+): Promise<InspectActionResult> {
+  const pair = resolvePair(config, fromName, toName);
+
+  const mappingStore = new MappingStore<DocumentMapping>(
+    mappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
+  );
+  const assetMappingStore = new MappingStore<AssetMapping>(
+    assetMappingFilePath(config.mappingDir, pair.lowerName, pair.upperName),
+  );
+  const mapping = await mappingStore.load();
+  const assetMapping = await assetMappingStore.load();
+  const entry = mapping[lowerId];
+  if (!entry) {
+    throw new Error(
+      `"${lowerId}" has no mapping entry for ${pair.lowerName} -> ${pair.upperName} — it hasn't been migrated yet.`,
+    );
+  }
+
+  const documentIds = Object.fromEntries(
+    Object.entries(mapping).map(([id, e]) => [id, e.upper_id]),
+  );
+  const assetIds = Object.fromEntries(
+    Object.entries(assetMapping).map(([id, e]) => [
+      id,
+      { id: e.upper_asset_id, url: e.upper_asset_url },
+    ]),
+  );
+
+  const lowerRef = await getMasterRef(pair.lower);
+  const lowerDoc = await getDocumentById(pair.lower, lowerRef, lowerId);
+  if (!lowerDoc) {
+    throw new Error(`"${lowerId}" no longer exists in ${pair.lowerName}.`);
+  }
+  const upperRef = await getMasterRef(pair.upper);
+  const upperDoc = await getDocumentById(pair.upper, upperRef, entry.upper_id);
+
+  let matches: boolean | undefined;
+  let differingKeys: string[] = [];
+  if (upperDoc) {
+    const rewrittenLower = normalizeForComparison(
+      rewriteRefs(lowerDoc.data, { assetIds, documentIds }),
+    ) as Record<string, unknown>;
+    const normalizedUpper = normalizeForComparison(upperDoc.data) as Record<string, unknown>;
+    matches = canonicalHash(rewrittenLower) === canonicalHash(normalizedUpper);
+    if (!matches) {
+      const allKeys = new Set([...Object.keys(rewrittenLower), ...Object.keys(normalizedUpper)]);
+      differingKeys = Array.from(allKeys).filter(
+        (key) => JSON.stringify(rewrittenLower[key]) !== JSON.stringify(normalizedUpper[key]),
+      );
+    }
+  }
+
+  return {
+    lowerName: pair.lowerName,
+    upperName: pair.upperName,
+    lowerId,
+    upperId: entry.upper_id,
+    lowerDoc,
+    upperDoc,
+    matches,
+    differingKeys,
+  };
 }
 
 export type PairStatus = {
