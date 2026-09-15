@@ -72,7 +72,14 @@ type ReconcileResult = {
   failed: { lowerId: string; docType: string; message: string; status?: number; body?: string }[];
 };
 
-type EnvironmentsResponse = { chain: string[]; configured: string[] };
+type PairStatus = {
+  lowerName: string;
+  upperName: string;
+  configured: boolean;
+  counts: { synced: number; pending: number; conflict: number; total: number };
+};
+
+type EnvironmentsResponse = { chain: string[]; configured: string[]; pairStatuses: PairStatus[] };
 
 type LowerDocument = {
   id: string;
@@ -108,6 +115,7 @@ const btnPrimary = `${btnBase} border border-accent bg-accent text-white enabled
 export default function MigrationsClient() {
   const [chain, setChain] = useState<string[]>([]);
   const [configured, setConfigured] = useState<string[]>([]);
+  const [pairStatuses, setPairStatuses] = useState<PairStatus[]>([]);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [dryRun, setDryRun] = useState(true);
@@ -162,6 +170,7 @@ export default function MigrationsClient() {
       .then((data: EnvironmentsResponse) => {
         setChain(data.chain);
         setConfigured(data.configured);
+        setPairStatuses(data.pairStatuses);
         if (data.chain.length >= 2) {
           setFrom(data.chain[0]);
           setTo(data.chain[1]);
@@ -181,9 +190,46 @@ export default function MigrationsClient() {
     setSelectedLang("");
     setDocuments([]);
     setDocsError(null);
-    loadDocuments();
+    // The document picker/language filter only ever support the forward
+    // (lower -> upper) direction — used by Promote/Reconcile, not
+    // Backsync. Attempting the fetch anyway when From/To is the reverse
+    // pair (legitimate for Backsync) always fails with a "backward"
+    // error from the API — that's correct, but showing it unprompted the
+    // moment someone sets up a Backsync pair reads as a real problem
+    // rather than the expected, quiet non-applicability it actually is.
+    if (isForwardPair()) loadDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);
+
+  // From and To must never end up the same environment — a hop against
+  // itself is meaningless and every action (promote/verify/backsync/...)
+  // would reject or no-op on it anyway. Rather than just blocking the
+  // pick, auto-adjusts the OTHER dropdown to the nearest chain neighbor
+  // so picking "sit" as From while To is already "sit" resolves to a
+  // sensible pair (e.g. From=sit, To=dev) instead of silently allowing
+  // From === To (confirmed possible via the raw <select>s, unlike the
+  // chain-strip pills above which already only ever produce valid pairs).
+  function handleFromChange(newFrom: string) {
+    setFrom(newFrom);
+    if (newFrom === to) {
+      const idx = chain.indexOf(newFrom);
+      setTo(chain[idx + 1] ?? chain[idx - 1] ?? to);
+    }
+  }
+
+  function handleToChange(newTo: string) {
+    setTo(newTo);
+    if (newTo === from) {
+      const idx = chain.indexOf(newTo);
+      setFrom(chain[idx - 1] ?? chain[idx + 1] ?? from);
+    }
+  }
+
+  function isForwardPair(): boolean {
+    const fromIdx = chain.indexOf(from);
+    const toIdx = chain.indexOf(to);
+    return fromIdx !== -1 && toIdx !== -1 && fromIdx < toIdx;
+  }
 
   function loadDocuments() {
     if (!from || !to) return;
@@ -365,29 +411,92 @@ export default function MigrationsClient() {
       </p>
 
       {chain.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 mb-6" aria-label="Environment chain">
+        <div
+          className="flex flex-wrap items-center gap-1.5 mb-6"
+          aria-label="Environment chain — click a stage or hop to select it"
+        >
           {chain.map((env, i) => {
-            const isActiveHop = env === from || env === to;
+            const isActiveEndpoint = env === from || env === to;
             const isConfigured = configured.includes(env);
+            const nextEnv = chain[i + 1];
+            const pair = nextEnv
+              ? pairStatuses.find((p) => p.lowerName === env && p.upperName === nextEnv)
+              : undefined;
+            const isActiveHop = env === from && nextEnv === to;
+            const hopDotClass =
+              !pair || !pair.configured || pair.counts.total === 0
+                ? "bg-text-dim/40"
+                : pair.counts.conflict > 0
+                  ? "bg-danger"
+                  : pair.counts.pending > 0
+                    ? "bg-warning"
+                    : "bg-success";
             return (
               <div key={env} className="flex items-center gap-1.5">
-                <span
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (running || !isConfigured) return;
+                    // Always keep From/To in lower->upper chain order — the
+                    // clicked env becomes From if it has a next (upper)
+                    // neighbor, otherwise (it's the last/highest stage) it
+                    // becomes To with the previous (lower) stage as From.
+                    // Picking "clicked env = From" unconditionally would
+                    // produce a backward pair when clicking the chain's
+                    // last stage (confirmed on a real run: clicking "sit"
+                    // as the last configured stage gave From=sit, To=dev —
+                    // backward, and broke document listing).
+                    if (chain[i + 1]) {
+                      setFrom(env);
+                      setTo(chain[i + 1]);
+                    } else if (chain[i - 1]) {
+                      setFrom(chain[i - 1]);
+                      setTo(env);
+                    }
+                  }}
+                  disabled={running || !isConfigured}
+                  title={
+                    !isConfigured
+                      ? `${env} isn't configured yet`
+                      : chain[i + 1]
+                        ? `Select "${env}" → "${chain[i + 1]}"`
+                        : `Select "${chain[i - 1]}" → "${env}"`
+                  }
                   className={
-                    "px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap " +
-                    (isActiveHop
+                    "px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap transition-colors " +
+                    (isActiveEndpoint
                       ? "bg-accent text-white border-accent"
                       : isConfigured
-                        ? "bg-panel-2 text-text border-border"
-                        : "bg-panel-2 text-text-dim border-border border-dashed")
+                        ? "bg-panel-2 text-text border-border cursor-pointer hover:border-accent hover:text-accent"
+                        : "bg-panel-2 text-text-dim border-border border-dashed cursor-default")
                   }
-                  title={!isConfigured ? `${env} isn't configured yet` : undefined}
                 >
                   {env}
-                </span>
-                {i < chain.length - 1 && (
-                  <span aria-hidden="true" className="text-text-dim text-[12px]">
-                    →
-                  </span>
+                </button>
+                {nextEnv && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (running) return;
+                      setFrom(env);
+                      setTo(nextEnv);
+                    }}
+                    disabled={running}
+                    title={
+                      pair && pair.configured
+                        ? `${pair.counts.synced} synced · ${pair.counts.pending} pending · ${pair.counts.conflict} conflict — click to select ${env} → ${nextEnv}`
+                        : `Select ${env} → ${nextEnv}`
+                    }
+                    className={
+                      "flex items-center gap-1 text-[12px] rounded-full px-1.5 py-0.5 transition-colors " +
+                      (isActiveHop
+                        ? "bg-accent-weak text-accent font-semibold"
+                        : "text-text-dim hover:text-accent")
+                    }
+                  >
+                    <span aria-hidden="true" className={`size-1.5 rounded-full shrink-0 ${hopDotClass}`} />
+                    <span aria-hidden="true">→</span>
+                  </button>
                 )}
               </div>
             );
@@ -398,7 +507,7 @@ export default function MigrationsClient() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-end gap-x-3 gap-y-3.5 p-4.5 bg-panel border border-border rounded-card shadow-subtle mb-5 max-sm:flex-col max-sm:items-stretch">
         <Field label="From">
-          <select value={from} onChange={(e) => setFrom(e.target.value)} disabled={running} className={selectClass}>
+          <select value={from} onChange={(e) => handleFromChange(e.target.value)} disabled={running} className={selectClass}>
             {chain.map((env) => (
               <option key={env} value={env} disabled={!configured.includes(env)}>
                 {env}
@@ -408,7 +517,7 @@ export default function MigrationsClient() {
           </select>
         </Field>
         <Field label="To">
-          <select value={to} onChange={(e) => setTo(e.target.value)} disabled={running} className={selectClass}>
+          <select value={to} onChange={(e) => handleToChange(e.target.value)} disabled={running} className={selectClass}>
             {chain.map((env) => (
               <option key={env} value={env} disabled={!configured.includes(env)}>
                 {env}
@@ -514,30 +623,42 @@ export default function MigrationsClient() {
       {/* Document picker */}
       {showPicker && (
         <div className="bg-panel border border-border rounded-card shadow-subtle p-4.5 mb-5">
-          <div className="flex justify-between items-center gap-3 mb-2.5">
+          {!isForwardPair() ? (
             <p className="m-0 text-[12.5px] text-text-dim leading-relaxed">
-              Migrate only the checked document(s) from <strong>{from}</strong> — leave nothing
-              checked to migrate the whole content library (or everything in the Language filter
-              above, if one&apos;s set), same as before.
+              Document/language filtering only applies to <strong>Promote</strong> and{" "}
+              <strong>Reconcile</strong> (from <strong>{from || "the lower"}</strong> up to{" "}
+              <strong>{to || "the upper"}</strong> environment). Your current From/To is set up for{" "}
+              <strong>Backsync</strong> instead, which always processes every synced document —
+              there&apos;s nothing to pick here for that direction.
             </p>
-            {selectedIds.size > 0 && (
-              <button onClick={() => setSelectedIds(new Set())} className={`${btnSecondary} !px-2.5 !py-1 !text-[11px]`}>
-                Clear selection
-              </button>
-            )}
-          </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center gap-3 mb-2.5">
+                <p className="m-0 text-[12.5px] text-text-dim leading-relaxed">
+                  Migrate only the checked document(s) from <strong>{from}</strong> — leave nothing
+                  checked to migrate the whole content library (or everything in the Language filter
+                  above, if one&apos;s set), same as before.
+                </p>
+                {selectedIds.size > 0 && (
+                  <button onClick={() => setSelectedIds(new Set())} className={`${btnSecondary} !px-2.5 !py-1 !text-[11px]`}>
+                    Clear selection
+                  </button>
+                )}
+              </div>
 
-          {docsLoading && <p className="text-text-dim text-[13px]">Loading documents…</p>}
-          {docsError && (
-            <p className="text-danger text-[13px]">
-              Couldn&apos;t load documents: {docsError}{" "}
-              <button onClick={loadDocuments} className={`${btnSecondary} !px-2 !py-0.5`}>
-                Retry
-              </button>
-            </p>
+              {docsLoading && <p className="text-text-dim text-[13px]">Loading documents…</p>}
+              {docsError && (
+                <p className="text-danger text-[13px]">
+                  Couldn&apos;t load documents: {docsError}{" "}
+                  <button onClick={loadDocuments} className={`${btnSecondary} !px-2 !py-0.5`}>
+                    Retry
+                  </button>
+                </p>
+              )}
+            </>
           )}
 
-          {!docsLoading && !docsError && documents.length > 0 && (
+          {isForwardPair() && !docsLoading && !docsError && documents.length > 0 && (
             <>
               <input
                 type="text"
@@ -850,8 +971,8 @@ function InspectPanel({
       ) : (
         <p className="m-0 mb-2 text-text-dim">
           No top-level field differs after rewrite+normalize — likely a Prismic-side denormalization
-          (a Content Relationship or Image field's live snapshot, e.g. slug or dimensions) rather than
-          an actual migration bug.
+          (a Content Relationship or Image field&apos;s live snapshot, e.g. slug or dimensions) rather
+          than an actual migration bug.
         </p>
       )}
       <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
