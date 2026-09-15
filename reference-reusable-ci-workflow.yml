@@ -1,0 +1,227 @@
+name: Reusable CI
+
+on:
+  workflow_call:
+    secrets:
+      # Optional: falls back to pnpm audit if not provided (Guideline 6.2.2)
+      NEXUZ_SNYK_TOKEN:
+        required: false
+      ACCESSIBILITY_API_KEY:
+        required: false
+      # SOP requirement (security team's reference workflow): the
+      # dependency-scan stage posts its success/fail result to Slack.
+      # Optional and non-blocking (see the notify step below) — a missing
+      # webhook or a Slack-side outage shouldn't fail CI over a scan that
+      # itself passed.
+      SLACK_WEBHOOK_URL:
+        required: false
+    inputs:
+      app_name:
+        required: true
+        type: string
+      app_path:
+        required: true
+        type: string
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+      aws_region:
+        required: false
+        type: string
+        default: ""
+      aws_oidc_role_arn:
+        required: false
+        type: string
+        default: ""
+      aws_account_id:
+        required: false
+        type: string
+        default: ""
+      aws_codeartifact_domain:
+        required: false
+        type: string
+        default: ""
+      aws_codeartifact_repository:
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  ci:
+    name: "Quality Gate (Install / Lint / Format / Type Check / Test / Accessibility)"
+    runs-on: ubuntu-latest
+    env:
+      TURBO_TELEMETRY_DISABLED: "1"
+      ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
+      SNYK_TOKEN_AVAILABLE: ${{ secrets.NEXUZ_SNYK_TOKEN != '' }}
+      ACCESSIBILITY_KEY_AVAILABLE: ${{ secrets.ACCESSIBILITY_API_KEY != '' }}
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      # GitHub Actions cache over Turborepo Remote Caching to avoid a third-party account — weaker (per-runner, SHA-keyed) but zero extra secrets.
+      - name: Cache Turbo build outputs
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws_oidc_role_arn != '' && inputs.aws_region != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Configure npm for AWS CodeArtifact
+        if: ${{ inputs.aws_codeartifact_domain != '' && inputs.aws_codeartifact_repository != '' && inputs.aws_account_id != '' && inputs.aws_region != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REGISTRY_HOST="${{ inputs.aws_codeartifact_domain }}-${{ inputs.aws_account_id }}.d.codeartifact.${{ inputs.aws_region }}.amazonaws.com"
+          REGISTRY_PATH="npm/${{ inputs.aws_codeartifact_repository }}/"
+
+          CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain "${{ inputs.aws_codeartifact_domain }}" \
+            --domain-owner "${{ inputs.aws_account_id }}" \
+            --region "${{ inputs.aws_region }}" \
+            --query authorizationToken \
+            --output text)
+
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:_authToken=${CODEARTIFACT_AUTH_TOKEN}" >> ~/.npmrc
+          echo "@nexuz:registry=https://${REGISTRY_HOST}/${REGISTRY_PATH}" >> ~/.npmrc
+          echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:always-auth=true" >> ~/.npmrc
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # Guideline 6.2.2 / 7.2.1: Blocking scan, pinned version (no continue-on-error, no @master).
+      - name: Run Snyk Open Source Scan
+        id: snyk_scan
+        if: env.SNYK_TOKEN_AVAILABLE == 'true'
+        uses: snyk/actions/node@v1.0.0
+        env:
+          SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+
+      # Guideline 6.2.2: Fallback scan when Snyk token is unavailable.
+      - name: Run pnpm Audit (Fallback)
+        id: pnpm_audit
+        if: env.SNYK_TOKEN_AVAILABLE != 'true'
+        run: pnpm audit --audit-level=high
+
+      # SOP: reports the scan outcome to Slack even on failure (if: always()); continue-on-error plus the trailing `|| true` on curl keep the notify itself from ever blocking CI.
+      - name: Notify Slack of dependency scan result
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "SLACK_WEBHOOK_URL not configured — skipping Slack notification."
+            exit 0
+          fi
+
+          SNYK_OUTCOME="${{ steps.snyk_scan.outcome }}"
+          AUDIT_OUTCOME="${{ steps.pnpm_audit.outcome }}"
+
+          if [ "${SNYK_OUTCOME}" != "skipped" ]; then
+            SCANNER="Snyk"
+            OUTCOME="${SNYK_OUTCOME}"
+          else
+            SCANNER="pnpm audit (Snyk token unavailable)"
+            OUTCOME="${AUDIT_OUTCOME}"
+          fi
+
+          if [ "${OUTCOME}" = "success" ]; then
+            COLOR="#2eb67d"
+            EMOJI=":white_check_mark:"
+            HEADLINE="Dependency scan passed"
+          else
+            COLOR="#e01e5a"
+            EMOJI=":x:"
+            HEADLINE="Dependency scan found high-severity issues — build blocked"
+          fi
+
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          TEXT="${EMOJI} *${HEADLINE}*"$'\n'"*App:* \`${{ inputs.app_name }}\`   *Branch:* \`${{ github.ref_name }}\`"$'\n'"*Scanner:* ${SCANNER}   *Triggered by:* ${{ github.actor }}"$'\n'"*Run:* ${RUN_URL}"
+
+          PAYLOAD="$(jq -n --arg color "${COLOR}" --arg text "${TEXT}" \
+            '{attachments: [{color: $color, text: $text}]}')"
+
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "${PAYLOAD}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            || echo "::warning::Slack notification failed to send (webhook unreachable or rejected the payload)."
+
+      - name: Run Axe Linter
+        if: env.ACCESSIBILITY_KEY_AVAILABLE == 'true'
+        uses: dequelabs/axe-linter-action@v2.0.0
+        with:
+          api_key: ${{ secrets.ACCESSIBILITY_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format check
+        run: pnpm check
+
+      - name: Lint and type check
+        run: pnpm turbo run lint check-types --filter=${{ inputs.app_name }}...
+
+      - name: Run tests with coverage
+        if: ${{ inputs.run_tests }}
+        run: pnpm turbo run test:coverage --filter=${{ inputs.app_name }}...
+
+      - name: Publish coverage summary
+        if: ${{ inputs.run_tests }}
+        shell: bash
+        run: |
+          COVERAGE_THRESHOLD=80
+          COVERAGE_FILE=$(find . -name coverage-summary.json | head -n 1)
+
+          if [ -f "$COVERAGE_FILE" ]; then
+            LINES=$(jq '.total.lines.pct' "$COVERAGE_FILE")
+            FUNCTIONS=$(jq '.total.functions.pct' "$COVERAGE_FILE")
+            BRANCHES=$(jq '.total.branches.pct' "$COVERAGE_FILE")
+            STATEMENTS=$(jq '.total.statements.pct' "$COVERAGE_FILE")
+
+            {
+              echo "# Vitest Coverage Report"
+              echo ""
+              echo "## Summary"
+              echo ""
+              echo "- Lines: **${LINES}%**"
+              echo "- Functions: **${FUNCTIONS}%**"
+              echo "- Branches: **${BRANCHES}%**"
+              echo "- Statements: **${STATEMENTS}%**"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$(printf '%.0f' "$LINES")" -lt "$COVERAGE_THRESHOLD" ]; then
+              echo "Coverage threshold of ${COVERAGE_THRESHOLD}% was not met." >&2
+              exit 1
+            fi
+          fi

@@ -1,0 +1,167 @@
+name: Build ibe-app
+
+on:
+  push:
+    branches:
+      - main
+      - develop/**
+      - release/**
+    paths:
+      - 'apps/ibe-app/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+      - 'packages/cms/**'
+      - 'packages/global-styles/**'
+      - 'packages/typescript-config/**'
+      - '.github/workflows/ibe-app-build.yml'
+      - '.github/workflows/reusable-ci.yml'
+      - '.github/workflows/reusable-app-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop/**
+      - release/**
+    paths:
+      - 'apps/ibe-app/**'
+      - 'packages/ui/**'
+      - 'packages/sdk/**'
+      - 'packages/cms/**'
+      - 'packages/global-styles/**'
+      - 'packages/typescript-config/**'
+      - '.github/workflows/ibe-app-build.yml'
+      - '.github/workflows/reusable-ci.yml'
+      - '.github/workflows/reusable-app-build.yml'
+  workflow_dispatch:
+
+# Cancel any in-progress run for the same branch/PR when a new run is triggered.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI Quality Gate
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+      id-token: write
+    uses: ./.github/workflows/reusable-ci.yml
+    secrets:
+      NEXUZ_SNYK_TOKEN: ${{ secrets.NEXUZ_SNYK_TOKEN }}
+      ACCESSIBILITY_API_KEY: ${{ secrets.ACCESSIBILITY_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    with:
+      app_name: ibe-app
+      app_path: apps/ibe-app
+      run_tests: true
+      aws_region: ${{ vars.NEXUZ_AWS_REGION }}
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      aws_account_id: ${{ vars.AWS_ACCOUNT_ID }}
+      aws_codeartifact_domain: ${{ vars.AWS_CODEARTIFACT_DOMAIN }}
+      aws_codeartifact_repository: ${{ vars.AWS_CODEARTIFACT_REPOSITORY }}
+
+  create_git_tag:
+    name: Create Branch Git Tag
+    needs: ci
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/reusable-git-tag.yml
+    with:
+      app_name: ibe-app
+      include_ecr_tags: true
+      aws_region: ap-northeast-1
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      ecr_repository: ${{ vars.IBE_ECR_REPO }}
+      # major_minor deliberately omitted — reusable-git-tag.yml now derives
+      # the bump (major/minor/patch) from Conventional Commit messages
+      # since this series' last tag instead of staying pinned at 0.0.
+      force_update: false
+
+  build:
+    name: Build and Push Docker Image for ibe-app
+    needs: create_git_tag
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    uses: ./.github/workflows/reusable-app-build.yml
+    with:
+      app_name: ibe-app
+      app_path: apps/ibe-app
+      build_image: true
+      push_to_ecr: true
+      aws_region: ap-northeast-1
+      aws_account_id: ${{ vars.AWS_ACCOUNT_ID }}
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      aws_codeartifact_domain: ${{ vars.AWS_CODEARTIFACT_DOMAIN }}
+      aws_codeartifact_repository: ${{ vars.AWS_CODEARTIFACT_REPOSITORY }}
+      ecr_repository: ${{ vars.IBE_ECR_REPO }}
+      version_tag: ${{ needs.create_git_tag.outputs.version_tag }}
+
+  # Resolves the whole deploy target (GitHub Environment for the approval
+  # gate, ECS cluster, service, task family, container name) from ONE
+  # branch-type check, instead of repeating startsWith(github.ref_name, ...)
+  # separately for each of those five values — they'd otherwise risk
+  # drifting out of sync if a future edit touches one but not the others.
+  # develop-* deploys straight through (no reviewers on the "staging"
+  # Environment); release-* pauses for manual approval, since "production"
+  # has Required reviewers configured under Settings -> Environments.
+  resolve_deploy_env:
+    name: Resolve Deploy Target
+    needs: create_git_tag
+    if: ${{ startsWith(github.ref_name, 'develop-') || startsWith(github.ref_name, 'release-') }}
+    runs-on: ubuntu-latest
+    outputs:
+      gh_environment: ${{ steps.resolve.outputs.gh_environment }}
+      ecs_cluster: ${{ steps.resolve.outputs.ecs_cluster }}
+      ecs_service: ${{ steps.resolve.outputs.ecs_service }}
+      task_definition_family: ${{ steps.resolve.outputs.task_definition_family }}
+      container_name: ${{ steps.resolve.outputs.container_name }}
+    permissions:
+      contents: read
+    steps:
+      - name: Resolve environment-specific deploy target
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF_NAME}" == release-* ]]; then
+            echo "gh_environment=production" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ vars.IBE_RELEASE_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ vars.IBE_RELEASE_SERVICE_NAME }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition_family=${{ vars.IBE_RELEASE_TASK_FAMILY }}" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ vars.IBE_RELEASE_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "gh_environment=staging" >> "$GITHUB_OUTPUT"
+            echo "ecs_cluster=${{ vars.IBE_DEVELOP_ECS_CLUSTER }}" >> "$GITHUB_OUTPUT"
+            echo "ecs_service=${{ vars.IBE_DEVELOP_SERVICE_NAME }}" >> "$GITHUB_OUTPUT"
+            echo "task_definition_family=${{ vars.IBE_DEVELOP_TASK_FAMILY }}" >> "$GITHUB_OUTPUT"
+            echo "container_name=${{ vars.IBE_DEVELOP_CONTAINER_NAME }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy ibe-app to ECS
+    needs:
+      - build
+      - create_git_tag
+      - resolve_deploy_env
+    if: ${{ startsWith(github.ref_name, 'develop-') || startsWith(github.ref_name, 'release-') }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      environment: ${{ needs.resolve_deploy_env.outputs.gh_environment }}
+      aws_region: ap-northeast-1
+      aws_oidc_role_arn: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      ecr_repository: ${{ vars.IBE_ECR_REPO }}
+      ecs_cluster: ${{ needs.resolve_deploy_env.outputs.ecs_cluster }}
+      ecs_service: ${{ needs.resolve_deploy_env.outputs.ecs_service }}
+      container_name: ${{ needs.resolve_deploy_env.outputs.container_name }}
+      task_definition_family: ${{ needs.resolve_deploy_env.outputs.task_definition_family }}
+      image_tag: ${{ needs.create_git_tag.outputs.version_tag }}
