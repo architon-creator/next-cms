@@ -26,6 +26,18 @@
           "label": "Card Description"
         },
         "type": "Text"
+      },
+      "forgotPassword": {
+        "config": {
+          "label": "Forgot Password"
+        },
+        "type": "Text"
+      },
+      "noAccount": {
+        "config": {
+          "label": "No Account"
+        },
+        "type": "Text"
       }
     }
   },

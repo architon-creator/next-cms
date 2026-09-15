@@ -150,11 +150,19 @@ export default function LabelsClient() {
         }, then push the updated customtypes/ folder to Prismic yourself (Type Builder or ` +
         `\`npx prismic push\`), then run Seed to fill in the new field values.`;
 
-  // Omit the filter entirely when every actionable namespace is selected
-  // (the common case) rather than sending each one by name — keeps that
-  // request identical to what the script does with no --namespaces flag.
+  // Only omit the filter when EVERY namespace in en.json is selected —
+  // not just every actionable one. Comparing against actionable.length
+  // instead was a real bug: with any up-to-date (disabled, never-
+  // selected) namespace present, selected.size can never reach
+  // actionable.length while also meaning "all of them" once combined
+  // with the disabled ones, so it fell through and silently generated
+  // ALL 19 namespaces instead of the 1 actually selected (confirmed live
+  // — clicking Generate with only LoginPage checked regenerated every
+  // namespace, not just LoginPage). Sending the explicit list even when
+  // it happens to equal `actionable` is always correct; omitting it is
+  // only ever safe when selected truly covers everything in en.json.
   const namespacesParam =
-    selected.size > 0 && selected.size < actionable.length
+    selected.size > 0 && selected.size < namespaces.length
       ? Array.from(selected).join(",")
       : null;
 
