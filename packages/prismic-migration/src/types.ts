@@ -118,3 +118,21 @@ export type PrismicCustomType = {
   status: boolean;
   json: unknown;
 };
+
+/**
+ * A reusable slice, referenced by id from one or more custom types'
+ * Slice Zones — a genuinely separate resource from the custom type
+ * itself (see lib/prismic-http.ts's "Shared Slices" section for why
+ * that distinction matters for migration). `variations`/`primary`/
+ * `items` field definitions are passed through as opaque JSON, same as
+ * PrismicCustomType's own `json` — this toolkit only ever diffs and
+ * transfers slice definitions verbatim, never inspects their field
+ * shape.
+ */
+export type PrismicSharedSlice = {
+  id: string;
+  type: "SharedSlice";
+  name: string;
+  description?: string;
+  variations: unknown[];
+};

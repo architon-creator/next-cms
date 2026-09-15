@@ -21,7 +21,7 @@ export type RunLogWriter = {
 
 /** Call once at the start of a run; pass every log() line to appendLine as it arrives. */
 export async function createRunLog(
-  action: "promote" | "confirm" | "backsync" | "rollback",
+  action: "promote" | "confirm" | "backsync" | "rollback" | "verify" | "reconcile",
   from: string,
   to: string,
 ): Promise<RunLogWriter> {
@@ -73,6 +73,32 @@ export async function listRunLogs(): Promise<RunLogSummary[]> {
   return summaries
     .filter((s): s is RunLogSummary => s !== null)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+}
+
+export type LastRunsByAction = Record<string, string>; // action -> ISO timestamp of its most recent run
+
+/**
+ * The most recent run timestamp per action, for one adjacent pair —
+ * matched by lower/upper name regardless of which direction a given
+ * action's from/to happened to run in (promote/confirm/verify/reconcile
+ * use from=lower,to=upper; backsync uses the reverse), since this is
+ * keyed by the PAIR, not by a specific from/to order.
+ */
+export async function lastRunsForPair(
+  lowerName: string,
+  upperName: string,
+): Promise<LastRunsByAction> {
+  const all = await listRunLogs(); // newest first
+  const result: LastRunsByAction = {};
+  for (const run of all) {
+    const matchesPair =
+      (run.from === lowerName && run.to === upperName) ||
+      (run.from === upperName && run.to === lowerName);
+    if (!matchesPair) continue;
+    if (result[run.action]) continue; // already have the newest for this action
+    result[run.action] = run.timestamp;
+  }
+  return result;
 }
 
 /**

@@ -18,6 +18,8 @@ import { runPhase1 } from "../phases/phase1-assets.js";
 import { buildTitle, runPhase2 } from "../phases/phase2-migrate.js";
 import { runConfirm } from "../phases/phase2-confirm.js";
 import { runPhase4 } from "../phases/phase4-backsync.js";
+import { runPhase3, type Phase3Report } from "../phases/phase3-verify.js";
+import { runReconcile, type ReconcileResult } from "../phases/phase-reconcile.js";
 import type { DocumentMapping } from "../types.js";
 
 // Re-exported so a non-CLI caller (admin-app's API routes) can
@@ -339,4 +341,100 @@ export async function listLowerDocuments(
     });
   }
   return documents;
+}
+
+export type VerifyActionResult = {
+  lowerName: string;
+  upperName: string;
+  report: Phase3Report;
+};
+
+/**
+ * Read-only end-to-end verification — nothing here writes to either
+ * repository. Works in either direction (unlike promote/confirm/
+ * reconcile, which are forward-only, and backsync, which is backward-
+ * only) since it's just checking the pair's current state, not moving
+ * anything.
+ */
+export async function runVerifyAction(
+  config: Config,
+  fromName: string,
+  toName: string,
+): Promise<VerifyActionResult> {
+  const pair = resolvePair(config, fromName, toName);
+  const report = await runPhase3({ config, pair });
+  return { lowerName: pair.lowerName, upperName: pair.upperName, report };
+}
+
+export type ReconcileActionResult = ReconcileResult & {
+  lowerName: string;
+  upperName: string;
+  dryRun: boolean;
+};
+
+/**
+ * Links a lower document to a pre-existing upper document of the same
+ * non-repeatable custom type, so `promote`/`migrate` stops trying to
+ * create a duplicate — see phase-reconcile.ts's own doc comment for why
+ * this is scoped to non-repeatable types only.
+ */
+export async function runReconcileAction(
+  config: Config,
+  fromName: string,
+  toName: string,
+  dryRun: boolean,
+): Promise<ReconcileActionResult> {
+  const pair = resolvePair(config, fromName, toName);
+  requireDirection(pair, "forward", "reconcile");
+  const result = await runReconcile({ config, pair, dryRun });
+  return { ...result, lowerName: pair.lowerName, upperName: pair.upperName, dryRun };
+}
+
+export type PairStatus = {
+  lowerName: string;
+  upperName: string;
+  configured: boolean;
+  counts: { synced: number; pending: number; conflict: number; total: number };
+};
+
+/**
+ * Summarizes one adjacent pair's mapping store by status — purely a
+ * local file read, no Prismic API calls, so this is cheap enough to
+ * call for every pair in the chain on every dashboard page load. An
+ * unconfigured pair (missing env vars for either side) is reported as
+ * such rather than thrown, since a dashboard needs to show every pair
+ * in the chain, configured or not.
+ */
+export async function getPairStatus(
+  config: Config,
+  lowerName: string,
+  upperName: string,
+): Promise<PairStatus> {
+  const configured = Boolean(config.environments[lowerName]) && Boolean(config.environments[upperName]);
+  if (!configured) {
+    return { lowerName, upperName, configured, counts: { synced: 0, pending: 0, conflict: 0, total: 0 } };
+  }
+
+  const mappingStore = new MappingStore<DocumentMapping>(
+    mappingFilePath(config.mappingDir, lowerName, upperName),
+  );
+  const mapping = await mappingStore.load();
+  const entries = Object.values(mapping);
+  const counts = {
+    synced: entries.filter((e) => e.status === "synced").length,
+    pending: entries.filter((e) => e.status === "pending").length,
+    conflict: entries.filter((e) => e.status === "conflict").length,
+    total: entries.length,
+  };
+  return { lowerName, upperName, configured, counts };
+}
+
+/** One PairStatus per adjacent hop in the configured environment chain, in chain order. */
+export async function listPairStatuses(config: Config): Promise<PairStatus[]> {
+  const chain = config.environmentChain;
+  const statuses: PairStatus[] = [];
+  for (let i = 0; i < chain.length - 1; i++) {
+    statuses.push(await getPairStatus(config, chain[i], chain[i + 1]));
+  }
+  return statuses;
 }

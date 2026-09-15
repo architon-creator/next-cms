@@ -6,16 +6,58 @@ import { MappingStore } from "../lib/mapping-store.js";
 import { assetMappingFilePath, mappingFilePath } from "../lib/mapping-paths.js";
 import {
   insertCustomType,
+  insertSharedSlice,
   listCustomTypes,
+  listSharedSlices,
   updateCustomType,
+  updateSharedSlice,
 } from "../lib/prismic-http.js";
 import { takeSnapshot } from "../lib/snapshot.js";
-import type { AssetMapping, DocumentMapping, PrismicCustomType } from "../types.js";
+import type {
+  AssetMapping,
+  DocumentMapping,
+  PrismicCustomType,
+  PrismicSharedSlice,
+} from "../types.js";
 
 export type CustomTypeDiff = {
   missing: PrismicCustomType[];
   differing: { id: string; lower: PrismicCustomType; upper: PrismicCustomType }[];
 };
+
+export type SharedSliceDiff = {
+  missing: PrismicSharedSlice[];
+  differing: { id: string; lower: PrismicSharedSlice; upper: PrismicSharedSlice }[];
+};
+
+/**
+ * Same shape as diffCustomTypes, for the separate Shared Slices
+ * resource — see lib/prismic-http.ts's "Shared Slices" section for why
+ * this has to be diffed/pushed independently of custom types at all. A
+ * custom type's Slice Zone referencing a slice by id that doesn't exist
+ * on the upper environment pushes and updates just fine; only a
+ * document actually using that slice fails, with a 400 easy to misread
+ * as a custom-type schema problem when the real gap is here.
+ */
+export function diffSharedSlices(
+  lowerSlices: PrismicSharedSlice[],
+  upperSlices: PrismicSharedSlice[],
+): SharedSliceDiff {
+  const upperById = new Map(upperSlices.map((s) => [s.id, s]));
+  const missing: PrismicSharedSlice[] = [];
+  const differing: SharedSliceDiff["differing"] = [];
+
+  for (const lower of lowerSlices) {
+    const upper = upperById.get(lower.id);
+    if (!upper) {
+      missing.push(lower);
+    } else if (canonicalStringify(lower) !== canonicalStringify(upper)) {
+      differing.push({ id: lower.id, lower, upper });
+    }
+  }
+
+  return { missing, differing };
+}
 
 /**
  * Pure diff — no network calls — so it's directly unit-testable. Compares
@@ -54,6 +96,39 @@ export type Phase0Options = {
 export async function runPhase0({ config, pair, dryRun }: Phase0Options): Promise<void> {
   log("info", "phase0.start", { dryRun, from: pair.lowerName, to: pair.upperName });
 
+  // Slices before custom types: not because Prismic enforces that
+  // order (confirmed on a real run that it doesn't — a custom type
+  // referencing a not-yet-existing slice pushes fine), but so a fresh
+  // upper environment's slice library is already complete by the time
+  // Phase 2 tries to write any document using one.
+  const [lowerSlices, upperSlices] = await Promise.all([
+    listSharedSlices(pair.lower),
+    listSharedSlices(pair.upper),
+  ]);
+  const sliceDiff = diffSharedSlices(lowerSlices, upperSlices);
+
+  log("info", "phase0.shared_slice_diff", {
+    missing: sliceDiff.missing.map((s) => s.id),
+    differing: sliceDiff.differing.map((s) => s.id),
+  });
+
+  const slicesNeedWork = sliceDiff.missing.length > 0 || sliceDiff.differing.length > 0;
+  if (slicesNeedWork && dryRun) {
+    log("warn", "phase0.shared_slice_parity_pending_dry_run", {
+      missing: sliceDiff.missing.length,
+      differing: sliceDiff.differing.length,
+    });
+  } else if (slicesNeedWork) {
+    for (const slice of sliceDiff.missing) {
+      await insertSharedSlice(pair.upper, slice);
+      log("info", "phase0.shared_slice_inserted", { id: slice.id });
+    }
+    for (const { id, lower } of sliceDiff.differing) {
+      await updateSharedSlice(pair.upper, lower);
+      log("info", "phase0.shared_slice_updated", { id });
+    }
+  }
+
   const [lowerTypes, upperTypes] = await Promise.all([
     listCustomTypes(pair.lower),
     listCustomTypes(pair.upper),
@@ -65,7 +140,7 @@ export async function runPhase0({ config, pair, dryRun }: Phase0Options): Promis
     differing: diff.differing.map((t) => t.id),
   });
 
-  if (diff.missing.length === 0 && diff.differing.length === 0) {
+  if (diff.missing.length === 0 && diff.differing.length === 0 && !slicesNeedWork) {
     log("info", "phase0.schema_parity_confirmed");
   } else if (dryRun) {
     log("warn", "phase0.schema_parity_pending_dry_run", {

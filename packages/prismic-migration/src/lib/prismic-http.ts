@@ -1,5 +1,5 @@
 import type { RepoConfig } from "../config.js";
-import type { PrismicAsset, PrismicCustomType, PrismicDocument } from "../types.js";
+import type { PrismicAsset, PrismicCustomType, PrismicDocument, PrismicSharedSlice } from "../types.js";
 import { log } from "./logger.js";
 import { createRateLimiter } from "./rate-limit.js";
 
@@ -190,6 +190,75 @@ export async function updateCustomType(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(customType),
+    },
+    fetchImpl,
+  );
+}
+
+// ---- Shared Slices ----
+// Same Types API host as custom types, but a genuinely separate
+// resource: a custom type's Slice Zone only ever REFERENCES a slice by
+// id — Prismic doesn't validate that the referenced slice actually
+// exists until a document tries to use it (confirmed on a real run: a
+// custom type with an unresolved slice reference pushes and updates
+// successfully; only the later document write 400s with "Slice 'x' not
+// found in this slice zone"). A repository with no shared slices of its
+// own (e.g. a brand-new upper environment) will reject every document
+// that uses one, no matter how correctly its custom type's zone lists
+// that slice as allowed.
+
+export async function listSharedSlices(
+  repo: RepoConfig,
+  fetchImpl: FetchFn = fetch,
+): Promise<PrismicSharedSlice[]> {
+  const res = await request(
+    `${CUSTOM_TYPES_API}/slices`,
+    {
+      headers: {
+        repository: repo.repository,
+        Authorization: `Bearer ${repo.migrationToken}`,
+      },
+    },
+    fetchImpl,
+  );
+  return (await res.json()) as PrismicSharedSlice[];
+}
+
+export async function insertSharedSlice(
+  repo: RepoConfig,
+  slice: PrismicSharedSlice,
+  fetchImpl: FetchFn = fetch,
+): Promise<void> {
+  await request(
+    `${CUSTOM_TYPES_API}/slices/insert`,
+    {
+      method: "POST",
+      headers: {
+        repository: repo.repository,
+        Authorization: `Bearer ${repo.migrationToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(slice),
+    },
+    fetchImpl,
+  );
+}
+
+export async function updateSharedSlice(
+  repo: RepoConfig,
+  slice: PrismicSharedSlice,
+  fetchImpl: FetchFn = fetch,
+): Promise<void> {
+  await request(
+    `${CUSTOM_TYPES_API}/slices/update`,
+    {
+      method: "POST",
+      headers: {
+        repository: repo.repository,
+        Authorization: `Bearer ${repo.migrationToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(slice),
     },
     fetchImpl,
   );

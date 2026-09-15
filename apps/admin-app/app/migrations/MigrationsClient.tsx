@@ -33,6 +33,30 @@ type BacksyncResult = {
   hadIssues: boolean;
 };
 
+type VerifyResult = {
+  lowerName: string;
+  upperName: string;
+  report: {
+    passed: boolean;
+    countCheck: { lowerCount: number; upperCount: number; matches: boolean };
+    spotCheck: { sampleSize: number; mismatches: string[] };
+    brokenLinkScan: { affectedDocuments: Record<string, string[]> };
+    assetCheck: { affectedDocuments: Record<string, string[]> };
+    deletedDocuments: { lowerId: string; upperId: string; deletedSide: "lower" | "upper" }[];
+    deletedAssets: { lowerAssetId: string; upperAssetId: string }[];
+  };
+};
+
+type ReconcileResult = {
+  lowerName: string;
+  upperName: string;
+  dryRun: boolean;
+  reconciled: number;
+  ambiguous: { lowerId: string; docType: string; lang: string; matchCount: number }[];
+  notFound: { lowerId: string; docType: string; lang: string }[];
+  failed: { lowerId: string; docType: string; message: string; status?: number; body?: string }[];
+};
+
 type EnvironmentsResponse = { chain: string[]; configured: string[] };
 
 type LowerDocument = {
@@ -77,6 +101,8 @@ export default function MigrationsClient() {
   const [promoteResult, setPromoteResult] = useState<PromoteResult | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
   const [backsyncResult, setBacksyncResult] = useState<BacksyncResult | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
@@ -173,6 +199,8 @@ export default function MigrationsClient() {
     setPromoteResult(null);
     setConfirmResult(null);
     setBacksyncResult(null);
+    setVerifyResult(null);
+    setReconcileResult(null);
     setErrorMsg(null);
     setRunning(true);
 
@@ -250,6 +278,24 @@ export default function MigrationsClient() {
     startStream(url, (data) => setBacksyncResult(data as BacksyncResult));
   }
 
+  function runVerify() {
+    if (!from || !to) return;
+    const url = `/api/migrations/verify?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    startStream(url, (data) => setVerifyResult(data as VerifyResult));
+  }
+
+  function runReconcile() {
+    if (!from || !to) return;
+    if (!dryRun) {
+      const ok = window.confirm(
+        `This will link some of "${from}"'s documents to pre-existing "${to}" documents (real write to the mapping file, not Prismic itself). Continue?`,
+      );
+      if (!ok) return;
+    }
+    const url = `/api/migrations/reconcile?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&dryRun=${dryRun}`;
+    startStream(url, (data) => setReconcileResult(data as ReconcileResult));
+  }
+
   return (
     <div className="max-w-[900px] mx-auto px-5 pt-8 pb-16">
       <p className="text-[11px] font-bold tracking-wider uppercase text-accent mb-1">admin-app</p>
@@ -322,6 +368,12 @@ export default function MigrationsClient() {
             : "Specific documents (optional)"}
         </button>
         <div className="flex-1 min-w-2 max-sm:hidden" />
+        <button onClick={runVerify} disabled={running || !from || !to} className={btnSecondary}>
+          Verify
+        </button>
+        <button onClick={runReconcile} disabled={running || !from || !to} className={btnSecondary}>
+          {dryRun ? "Reconcile dry run" : "Run reconcile"}
+        </button>
         <button onClick={runConfirm} disabled={running || !from || !to} className={btnSecondary}>
           Confirm (after publish)
         </button>
@@ -502,6 +554,73 @@ export default function MigrationsClient() {
             <p className="text-warning mt-1.5">
               {backsyncResult.deletedOnOneSide.length} document(s) deleted on only one side —
               decide by hand whether to `unlink` or recreate them.
+            </p>
+          )}
+        </ResultCard>
+      )}
+
+      {verifyResult && (
+        <ResultCard tone={verifyResult.report.passed ? "success" : "warning"}>
+          <strong className="font-display">
+            {verifyResult.lowerName} → {verifyResult.upperName}{" "}
+            {verifyResult.report.passed ? "— verify passed" : "— verify found issues"}
+          </strong>
+          <p className="mt-1.5">
+            {verifyResult.report.countCheck.lowerCount} lower / {verifyResult.report.countCheck.upperCount}{" "}
+            synced upper ({verifyResult.report.countCheck.matches ? "match" : "MISMATCH"}) ·{" "}
+            {verifyResult.report.spotCheck.mismatches.length}/{verifyResult.report.spotCheck.sampleSize}{" "}
+            spot-check mismatches
+          </p>
+          {Object.keys(verifyResult.report.brokenLinkScan.affectedDocuments).length > 0 && (
+            <p className="text-warning mt-1.5">
+              {Object.keys(verifyResult.report.brokenLinkScan.affectedDocuments).length} document(s)
+              have broken document links.
+            </p>
+          )}
+          {Object.keys(verifyResult.report.assetCheck.affectedDocuments).length > 0 && (
+            <p className="text-warning mt-1.5">
+              {Object.keys(verifyResult.report.assetCheck.affectedDocuments).length} document(s) have
+              broken asset references.
+            </p>
+          )}
+          {verifyResult.report.deletedDocuments.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {verifyResult.report.deletedDocuments.length} synced document(s) were deleted on one
+              side outside this tool.
+            </p>
+          )}
+          {verifyResult.report.deletedAssets.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {verifyResult.report.deletedAssets.length} migrated asset(s) were deleted on the upper
+              side outside this tool.
+            </p>
+          )}
+        </ResultCard>
+      )}
+
+      {reconcileResult && (
+        <ResultCard tone={reconcileResult.ambiguous.length + reconcileResult.failed.length > 0 ? "warning" : "success"}>
+          <strong className="font-display">
+            {reconcileResult.lowerName} → {reconcileResult.upperName}{" "}
+            {reconcileResult.dryRun ? "— reconcile dry run complete" : "— reconcile complete"}
+          </strong>
+          <p className="mt-1.5">{reconcileResult.reconciled} document(s) linked.</p>
+          {reconcileResult.notFound.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {reconcileResult.notFound.length} document(s) not found via the content API — the
+              pre-existing upper document is likely an unpublished draft. Find its id in the
+              dashboard and use <code>link --from={from} --to={to} &lt;lowerId&gt; &lt;upperId&gt;</code>.
+            </p>
+          )}
+          {reconcileResult.ambiguous.length > 0 && (
+            <p className="text-warning mt-1.5">
+              {reconcileResult.ambiguous.length} document(s) matched more than one upper document —
+              needs a human to pick the right one.
+            </p>
+          )}
+          {reconcileResult.failed.length > 0 && (
+            <p className="text-danger mt-1.5">
+              {reconcileResult.failed.length} lookup(s) failed — see the log above for detail.
             </p>
           )}
         </ResultCard>
