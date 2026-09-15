@@ -28,6 +28,6 @@
     "prismic": "^1.16.0",
     "prismic-ts-codegen": "^0.1.20",
     "tsx": "^4.19.2",
-    "typescript": "^5.5.4"
+    "typescript": "^6.0.3"
   }
 }
