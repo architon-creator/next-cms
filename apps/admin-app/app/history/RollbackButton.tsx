@@ -67,7 +67,7 @@ export default function RollbackButton({
   }
 
   return (
-    <div>
+    <div className="shrink-0">
       <button
         onClick={run}
         disabled={running || !isLatest}
@@ -76,37 +76,18 @@ export default function RollbackButton({
             ? `A newer run exists for ${from} → ${to} — only the most recent run can be rolled back.`
             : undefined
         }
-        style={{
-          border: "1px solid var(--danger)",
-          background: "var(--danger-weak)",
-          color: "var(--danger)",
-          borderRadius: 6,
-          padding: "5px 10px",
-          fontSize: 11.5,
-          fontWeight: 600,
-          cursor: running || !isLatest ? "default" : "pointer",
-          opacity: !isLatest ? 0.5 : 1,
-        }}
+        className={
+          "border border-danger bg-danger-weak text-danger rounded-control px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors " +
+          (running || !isLatest ? "cursor-default opacity-50" : "cursor-pointer enabled:active:translate-y-px")
+        }
       >
         {running ? "Rolling back…" : "Rollback"}
       </button>
 
       {open && (
-        <div style={{ marginTop: 8, fontSize: 12 }}>
+        <div className="mt-2 text-[12px] max-w-[320px]">
           {lines.length > 0 && (
-            <div
-              style={{
-                background: "var(--panel-2)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: 10,
-                maxHeight: 200,
-                overflowY: "auto",
-                fontFamily: "var(--mono)",
-                fontSize: 11.5,
-                marginBottom: 8,
-              }}
-            >
+            <div className="bg-panel-2 border border-border rounded-card p-2.5 max-h-[200px] overflow-y-auto font-mono text-[11.5px] mb-2">
               {lines.map((line, i) => (
                 <div key={i}>
                   <strong>{line.event}</strong>{" "}
@@ -118,34 +99,26 @@ export default function RollbackButton({
               ))}
             </div>
           )}
-          {errorMsg && <p style={{ color: "var(--danger)" }}>{errorMsg}</p>}
+          {errorMsg && <p className="text-danger">{errorMsg}</p>}
           {result && (
             <div>
               <p>
                 Reverted {result.reverted.filter((r) => r.ok).length} of {result.reverted.length} updated
                 document(s).
                 {result.reverted.some((r) => !r.ok) && (
-                  <span style={{ color: "var(--danger)" }}>
+                  <span className="text-danger">
                     {" "}
                     {result.reverted.filter((r) => !r.ok).length} failed to revert — see log above.
                   </span>
                 )}
               </p>
               {result.needsManualDeletion.length > 0 && (
-                <div
-                  style={{
-                    background: "var(--warning-weak)",
-                    border: "1px solid var(--warning)",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    color: "var(--warning)",
-                  }}
-                >
+                <div className="bg-warning-weak border border-warning text-warning rounded-card px-3 py-2.5">
                   <strong>
                     {result.needsManualDeletion.length} document(s) this run created can't be undone via
                     Prismic's API — delete these by hand in {to}&apos;s dashboard:
                   </strong>
-                  <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  <ul className="m-0 mt-1.5 pl-4.5">
                     {result.needsManualDeletion.map((d) => (
                       <li key={d.upperId}>
                         <code>{d.upperId}</code> ({d.docType})

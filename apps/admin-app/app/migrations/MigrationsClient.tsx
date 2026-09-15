@@ -339,17 +339,61 @@ export default function MigrationsClient() {
 
   return (
     <div className="max-w-[900px] mx-auto px-5 pt-8 pb-16">
-      <p className="text-[11px] font-bold tracking-wider uppercase text-accent mb-1">admin-app</p>
-      <h1 className="font-display text-[22px] font-extrabold tracking-tight mb-1.5 text-balance">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="size-6 rounded-[6px] bg-accent text-white flex items-center justify-center font-display font-extrabold text-[12px] shrink-0">
+            P
+          </div>
+          <span className="text-[11px] font-bold tracking-wider uppercase text-text-dim">
+            Admin Console
+          </span>
+        </div>
+        <Link
+          href="/history"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-text-dim no-underline transition-colors hover:text-accent"
+        >
+          Past runs <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+
+      <h1 className="font-display text-[24px] font-extrabold tracking-tight mb-1.5 text-balance">
         Prismic migrations
       </h1>
-      <p className="text-text-dim mb-6 text-[13px] leading-relaxed">
+      <p className="text-text-dim mb-5 text-[13px] leading-relaxed max-w-[620px]">
         Runs the same preflight + assets + migrate hop as{" "}
-        <code>pnpm cli promote --from=... --to=...</code>, live, without a terminal.{" "}
-        <Link href="/history" className="text-accent underline">
-          Past runs →
-        </Link>
+        <code>pnpm cli promote --from=... --to=...</code>, live, without a terminal.
       </p>
+
+      {chain.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-6" aria-label="Environment chain">
+          {chain.map((env, i) => {
+            const isActiveHop = env === from || env === to;
+            const isConfigured = configured.includes(env);
+            return (
+              <div key={env} className="flex items-center gap-1.5">
+                <span
+                  className={
+                    "px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap " +
+                    (isActiveHop
+                      ? "bg-accent text-white border-accent"
+                      : isConfigured
+                        ? "bg-panel-2 text-text border-border"
+                        : "bg-panel-2 text-text-dim border-border border-dashed")
+                  }
+                  title={!isConfigured ? `${env} isn't configured yet` : undefined}
+                >
+                  {env}
+                </span>
+                {i < chain.length - 1 && (
+                  <span aria-hidden="true" className="text-text-dim text-[12px]">
+                    →
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-end gap-x-3 gap-y-3.5 p-4.5 bg-panel border border-border rounded-card shadow-subtle mb-5 max-sm:flex-col max-sm:items-stretch">
@@ -443,7 +487,12 @@ export default function MigrationsClient() {
           label="Confirm (after publish)"
           caption={`Run this only once you've manually published the Release in "${to || "target"}"'s Prismic dashboard — it marks those documents as synced here.`}
           onClick={runConfirm}
-          disabled={running || !from || !to}
+          disabled={running || !from || !to || dryRun}
+          disabledReason={
+            dryRun
+              ? "Confirm always checks real, live sync state — it has no dry-run mode of its own. Uncheck \"Dry run\" above to use it."
+              : undefined
+          }
         />
         <ActionButton
           eyebrow="Anytime · check-only"
@@ -864,6 +913,7 @@ function ActionButton({
   caption,
   onClick,
   disabled,
+  disabledReason,
   variant = "secondary",
 }: {
   eyebrow: string;
@@ -871,12 +921,19 @@ function ActionButton({
   caption: string;
   onClick: () => void;
   disabled: boolean;
+  /** Shown as the button's tooltip only while `disabled` is true — lets a disabled state explain itself instead of just going inert. */
+  disabledReason?: string;
   variant?: "secondary" | "primary";
 }) {
   return (
     <div className="flex flex-col gap-1.5 items-start basis-[170px] flex-1 min-w-[150px] max-w-[230px]">
       <span className="text-[10px] uppercase tracking-wide font-semibold text-text-dim">{eyebrow}</span>
-      <button onClick={onClick} disabled={disabled} className={`${variant === "primary" ? btnPrimary : btnSecondary} w-full`}>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        title={disabled ? disabledReason : undefined}
+        className={`${variant === "primary" ? btnPrimary : btnSecondary} w-full`}
+      >
         {label}
       </button>
       <span className="text-[10.5px] text-text-dim leading-snug">{caption}</span>

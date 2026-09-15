@@ -168,6 +168,57 @@ export async function buildRollbackPlanFromLog(filename: string): Promise<Rollba
   return { upperSnapshotPath, updated, created };
 }
 
+/**
+ * Whether a completed "verify"/"reconcile"/"backsync" run found nothing
+ * worth a human's attention — used only to let the History page's
+ * "Hide no-op runs" filter de-clutter repeated checks during active
+ * testing; "promote"/"confirm"/"rollback" are never treated as no-op
+ * here (promote's own no-op-ness is already known from
+ * buildRollbackPlanFromLog's created/updated counts, and confirm/
+ * rollback are always meaningful regardless of what they find).
+ * Defaults to false (never hidden) if the run's terminal event is
+ * missing or unparseable — hiding a run this can't positively confirm
+ * was a no-op would risk hiding one that wasn't.
+ */
+export async function isNoOpCheckRun(
+  action: string,
+  filename: string,
+): Promise<boolean> {
+  if (action !== "verify" && action !== "reconcile" && action !== "backsync") return false;
+
+  const text = await readRunLog(filename);
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    let entry: Record<string, unknown>;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    if (action === "verify" && entry.event === "phase3.done") {
+      return entry.passed === true;
+    }
+    if (action === "reconcile" && entry.event === "reconcile.done") {
+      return (
+        entry.reconciled === 0 &&
+        entry.ambiguous === 0 &&
+        entry.notFound === 0 &&
+        entry.failed === 0
+      );
+    }
+    if (action === "backsync" && entry.event === "phase4.done") {
+      return (
+        entry.synced === 0 &&
+        Number(entry.conflictCount ?? 0) === 0 &&
+        Number(entry.deletedOnOneSideCount ?? 0) === 0
+      );
+    }
+  }
+  return false;
+}
+
 export async function readRunLog(filename: string): Promise<string> {
   // Reject anything that isn't a bare filename we generated ourselves —
   // this is served back over HTTP, so path traversal (`../../etc`) must

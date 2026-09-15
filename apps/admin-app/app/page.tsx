@@ -26,17 +26,30 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-[900px] mx-auto px-5 pt-8 pb-16">
-      <p className="text-[11px] font-bold tracking-wider uppercase text-accent mb-1">admin-app</p>
-      <h1 className="font-display text-[22px] font-extrabold tracking-tight mb-1.5">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="size-6 rounded-[6px] bg-accent text-white flex items-center justify-center font-display font-extrabold text-[12px] shrink-0">
+            P
+          </div>
+          <span className="text-[11px] font-bold tracking-wider uppercase text-text-dim">
+            Admin Console
+          </span>
+        </div>
+        <Link
+          href="/history"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-text-dim no-underline transition-colors hover:text-accent"
+        >
+          Past runs <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+
+      <h1 className="font-display text-[24px] font-extrabold tracking-tight mb-1.5 text-balance">
         Environment status
       </h1>
-      <p className="text-text-dim mb-6 text-[13px] leading-relaxed">
+      <p className="text-text-dim mb-6 text-[13px] leading-relaxed max-w-[620px]">
         One card per adjacent hop in the configured chain.{" "}
         <Link href="/migrations" className="text-accent underline">
           Run a migration →
-        </Link>{" "}
-        <Link href="/history" className="text-accent underline">
-          Past runs →
         </Link>
       </p>
 
