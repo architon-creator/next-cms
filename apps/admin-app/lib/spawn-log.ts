@@ -1,6 +1,34 @@
 import { spawn } from "node:child_process";
 
 /**
+ * Validates a `?namespaces=A,B,C` query value before it's ever
+ * interpolated into a spawned command string. This matters more than it
+ * would for a normal argv array: spawnAndStream below runs with
+ * `shell: true` (required so `pnpm` resolves on Windows), and Node
+ * explicitly does NOT escape shell metacharacters in that mode — an
+ * unvalidated value here is a real command-injection vector (e.g.
+ * `?namespaces=x;rm -rf /` or backticks), not just a theoretical one.
+ * en.json's own top-level keys are always identifier-like PascalCase
+ * words (Header, ContactPage, ...), so this can afford to be strict:
+ * letters/digits/underscore only, comma-separated, nothing else.
+ * Returns null for an empty/absent value (meaning "no filter"); throws
+ * for anything that doesn't match, which callers turn into a 400.
+ */
+export function parseNamespaceListParam(raw: string | null): string[] | null {
+  if (!raw) return null;
+  const items = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (items.length === 0) return null;
+  for (const item of items) {
+    if (!/^[A-Za-z][A-Za-z0-9]*$/.test(item)) {
+      throw new Error(
+        `Invalid namespace "${item}" — namespace names may only contain letters and digits.`,
+      );
+    }
+  }
+  return items;
+}
+
+/**
  * Runs a command, line-buffering its stdout/stderr and handing each
  * complete line to `onLine` as it arrives — for streaming a plain-text
  * script's output over SSE the same way the migration toolkit's own

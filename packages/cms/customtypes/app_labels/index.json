@@ -182,6 +182,16 @@
           "select": "document"
         },
         "type": "Link"
+      },
+      "submission_confirmation_page": {
+        "config": {
+          "customtypes": [
+            "submission_confirmation_page"
+          ],
+          "label": "Submission Confirmation Page",
+          "select": "document"
+        },
+        "type": "Link"
       }
     }
   },

@@ -104,6 +104,13 @@
     "confirmSection": "Confirm",
     "changeSection": "Change",
     "confirmedBadge": "Confirmed",
-    "submit": "Submit"
+    "submit": "Submit",
+    "submitting": "Submitting…",
+    "successMessage": "Your submission has been received! Thank you for providing your information."
+  },
+  "SubmissionConfirmationPage": {
+    "title": "Submission Confirmation",
+    "description": "Thank you for your submission! We have received your information and will be in touch shortly.",
+    "backToHome": "Back to Home"
   }
 }

@@ -32,6 +32,18 @@
           "label": "Submit"
         },
         "type": "Text"
+      },
+      "submitting": {
+        "config": {
+          "label": "Submitting"
+        },
+        "type": "Text"
+      },
+      "successMessage": {
+        "config": {
+          "label": "Success Message"
+        },
+        "type": "Text"
       }
     }
   },

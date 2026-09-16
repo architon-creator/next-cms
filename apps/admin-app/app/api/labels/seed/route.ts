@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import path from "node:path";
-import { spawnAndStream } from "@/lib/spawn-log";
+import { isLabelsToolEnabled } from "@/lib/labels-guard";
+import { parseNamespaceListParam, spawnAndStream } from "@/lib/spawn-log";
 
 // Same child-process approach as ../generate/route.ts, and same reasoning
 // for why (packages/cms/src/prismic/config.ts's cwd-relative env loading).
@@ -20,9 +21,19 @@ export const runtime = "nodejs";
 const cmsDir = path.resolve(process.cwd(), "../../packages/cms");
 
 export async function GET(req: NextRequest) {
+  if (!isLabelsToolEnabled()) {
+    return new Response("The labels tool is disabled in this environment.", { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
   const write = searchParams.get("write") === "true";
-  const namespaces = searchParams.get("namespaces"); // comma-separated; omitted/empty = all
+
+  let namespaces: string[] | null;
+  try {
+    namespaces = parseNamespaceListParam(searchParams.get("namespaces"));
+  } catch (err) {
+    return new Response(err instanceof Error ? err.message : String(err), { status: 400 });
+  }
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -36,7 +47,7 @@ export async function GET(req: NextRequest) {
 
       const scriptArgs = [
         ...(write ? ["--write"] : []),
-        ...(namespaces ? [`--namespaces=${namespaces}`] : []),
+        ...(namespaces ? [`--namespaces=${namespaces.join(",")}`] : []),
       ];
       const args =
         scriptArgs.length > 0

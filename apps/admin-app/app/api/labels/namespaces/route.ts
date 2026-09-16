@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { isLabelsToolEnabled } from "@/lib/labels-guard";
 
 // Cheap, safe, read-only — parses the same source file
 // generate-prismic-models-demo.ts / seed-prismic-content-demo.ts consume,
@@ -72,6 +73,10 @@ async function diffNamespace(
 }
 
 export async function GET() {
+  if (!isLabelsToolEnabled()) {
+    return new Response("The labels tool is disabled in this environment.", { status: 403 });
+  }
+
   try {
     const raw = await readFile(messagesPath, "utf8");
     const messages = JSON.parse(raw) as Record<string, unknown>;

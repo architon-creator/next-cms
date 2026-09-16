@@ -1,0 +1,29 @@
+{
+  "format": "custom",
+  "id": "submission_confirmation_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      },
+      "description": {
+        "config": {
+          "label": "Description"
+        },
+        "type": "Text"
+      },
+      "backToHome": {
+        "config": {
+          "label": "Back To Home"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Submission Confirmation Page",
+  "repeatable": false,
+  "status": true
+}
