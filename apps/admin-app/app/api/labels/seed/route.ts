@@ -54,15 +54,19 @@ export async function GET(req: NextRequest) {
           ? ["run", "prismic-seed-content", "--", ...scriptArgs]
           : ["run", "prismic-seed-content"];
 
+      // Set when seed-prismic-content-demo.ts logs its "every requested
+      // namespace was skipped" line (see that script) — lets the UI show
+      // an honest "nothing happened" result instead of "Content seeded."
+      // for a run that skipped every namespace it was asked to seed.
+      let nothingToSeed = false;
+
       try {
-        const { exitCode } = await spawnAndStream(
-          "pnpm",
-          args,
-          cmsDir,
-          (line) => send("log", { line }),
-        );
+        const { exitCode } = await spawnAndStream("pnpm", args, cmsDir, (line) => {
+          if (line.includes("Nothing to seed —")) nothingToSeed = true;
+          send("log", { line });
+        });
         if (exitCode === 0) {
-          send("done", { ok: true, write });
+          send("done", { ok: true, write, nothingToSeed });
         } else {
           send("error", { message: `seed script exited with code ${exitCode}` });
         }

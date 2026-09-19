@@ -12,6 +12,18 @@ type Namespace = {
   removedKeys: string[];
 };
 
+/**
+ * Whether a namespace's document already exists in Prismic — from
+ * /api/labels/prismic-status, a live Prismic lookup (see
+ * check-labels-prismic-status-demo.ts). Deliberately separate from
+ * NamespaceStatus above: that one only diffs en.json against the local
+ * customtypes/ model file, which answers "does Step 1 have anything left
+ * to generate", not "has Step 2 ever actually run for this namespace" —
+ * a namespace can be schema up-to-date and still have no document in
+ * Prismic at all.
+ */
+type PrismicNamespaceStatus = "no-model" | "new" | "existing" | "error";
+
 const btnBase =
   "inline-flex items-center justify-center gap-1.5 rounded-control px-3.5 py-2 text-[12.5px] font-semibold whitespace-nowrap " +
   "transition-colors enabled:active:translate-y-px disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer";
@@ -48,6 +60,8 @@ function NamespacePicker({
   onSelectAll,
   onSelectNone,
   disabled,
+  prismicStatuses,
+  prismicStatusesLoaded,
 }: {
   label: string;
   /**
@@ -60,6 +74,12 @@ function NamespacePicker({
    * (see README: prismic push needs an interactive login this can't
    * script around) — a person who knows they already pushed can still
    * check it by hand.
+   *
+   * Unlike "generate", "seed" does NOT grey out schema "up-to-date"
+   * namespaces — that status is about whether en.json matches the local
+   * model file, not about whether this namespace has ever been seeded
+   * into Prismic. Whether to grey a namespace out here comes from
+   * `prismicStatuses` instead (see PrismicNamespaceStatus).
    */
   variant: "generate" | "seed";
   namespaces: Namespace[];
@@ -69,14 +89,29 @@ function NamespacePicker({
   onSelectAll: () => void;
   onSelectNone: () => void;
   disabled: boolean;
+  /** "seed" variant only: live Prismic existence per namespace, keyed by namespace name. */
+  prismicStatuses?: Record<string, PrismicNamespaceStatus>;
+  /** "seed" variant only: whether the /api/labels/prismic-status fetch has resolved yet. */
+  prismicStatusesLoaded?: boolean;
 }) {
+  const existingInPrismicCount =
+    variant === "seed" && prismicStatuses
+      ? namespaces.filter((ns) => prismicStatuses[ns.namespace] === "existing").length
+      : 0;
+
   return (
     <div className="bg-panel-2 border border-border rounded-card p-3 mt-2">
       <div className="flex items-center justify-between gap-3 mb-2">
         <p className="text-[11px] uppercase tracking-wide font-semibold text-text-dim m-0">
           {label} — {selected.size}/{actionable.length} selected
-          {namespaces.length > actionable.length &&
+          {variant === "generate" &&
+            namespaces.length > actionable.length &&
             ` · ${namespaces.length - actionable.length} already up to date`}
+          {variant === "seed" && !prismicStatusesLoaded && " · checking Prismic…"}
+          {variant === "seed" &&
+            prismicStatusesLoaded &&
+            existingInPrismicCount > 0 &&
+            ` · ${existingInPrismicCount} already in Prismic`}
         </p>
         <div className="flex gap-1.5">
           <button
@@ -97,22 +132,42 @@ function NamespacePicker({
       </div>
       <div className="flex flex-wrap gap-1.5">
         {namespaces.map((ns) => {
-          const isUpToDate = ns.status === "up-to-date";
           const isUnpushedForSeed = variant === "seed" && ns.status === "new";
+          const prismicStatus = prismicStatuses?.[ns.namespace];
+          const isUpToDate =
+            variant === "generate"
+              ? ns.status === "up-to-date"
+              : variant === "seed"
+                ? isUnpushedForSeed || (!isUnpushedForSeed && !prismicStatusesLoaded)
+                : false;
+          const isExistingInPrismic = variant === "seed" && prismicStatus === "existing";
+          const isWarned = isUnpushedForSeed || isExistingInPrismic || prismicStatus === "error";
           const isChecked = !isUpToDate && selected.has(ns.namespace);
+
+          let title: string;
+          if (isUnpushedForSeed) {
+            title = `${ns.fieldCount} field(s) — no customtypes/ file yet, so this almost certainly isn't live in Prismic either. Generate + push its schema first, or seeding will fail.`;
+          } else if (variant === "seed" && !prismicStatusesLoaded) {
+            title = `${ns.fieldCount} field(s) — checking whether this document already exists in Prismic…`;
+          } else if (variant === "seed" && prismicStatus === "existing") {
+            title = `${ns.fieldCount} field(s) — a document already exists in Prismic. Seeding will overwrite its entire content with en.json's current values.`;
+          } else if (variant === "seed" && prismicStatus === "error") {
+            title = `${ns.fieldCount} field(s) — couldn't determine whether this document exists in Prismic yet (checked at page load).`;
+          } else if (variant === "seed" && prismicStatus === "new") {
+            title = `${ns.fieldCount} field(s) — no document in Prismic yet; seeding will create it.`;
+          } else {
+            title = diffTooltip(ns);
+          }
+
           return (
             <label
               key={ns.namespace}
-              title={
-                isUnpushedForSeed
-                  ? `${ns.fieldCount} field(s) — no customtypes/ file yet, so this almost certainly isn't live in Prismic either. Generate + push its schema first, or seeding will fail.`
-                  : diffTooltip(ns)
-              }
+              title={title}
               className={
                 "flex items-center gap-1.5 text-[11.5px] font-medium border rounded-full px-2.5 py-1 transition-colors select-none " +
                 (isUpToDate
                   ? "bg-panel border-border text-text-dim opacity-60 cursor-default"
-                  : isUnpushedForSeed
+                  : isWarned
                     ? isChecked
                       ? "bg-warning-weak border-warning text-warning cursor-pointer"
                       : "bg-panel border-warning text-warning cursor-pointer"
@@ -129,16 +184,37 @@ function NamespacePicker({
                 className="size-3 accent-accent cursor-pointer disabled:cursor-default"
               />
               {ns.namespace}{" "}
-              <span className={isChecked ? "opacity-80" : isUnpushedForSeed ? "" : "text-text-dim"}>
+              <span className={isChecked ? "opacity-80" : isWarned ? "" : "text-text-dim"}>
                 · {ns.fieldCount}
-                {ns.status === "new" && (isUnpushedForSeed ? " · needs push first" : " · new file")}
-                {ns.status === "changed" &&
+                {variant === "generate" && ns.status === "new" && " · new file"}
+                {variant === "generate" &&
+                  ns.status === "changed" &&
                   ` · ${[
                     ns.addedKeys.length > 0 ? `+${ns.addedKeys.length} key` : null,
                     ns.removedKeys.length > 0 ? `-${ns.removedKeys.length} key` : null,
                   ]
                     .filter(Boolean)
                     .join(" ")}`}
+                {variant === "seed" && isUnpushedForSeed && " · needs push first"}
+                {variant === "seed" &&
+                  !isUnpushedForSeed &&
+                  !prismicStatusesLoaded &&
+                  " · checking…"}
+                {variant === "seed" &&
+                  !isUnpushedForSeed &&
+                  prismicStatusesLoaded &&
+                  prismicStatus === "new" &&
+                  " · not seeded yet"}
+                {variant === "seed" &&
+                  !isUnpushedForSeed &&
+                  prismicStatusesLoaded &&
+                  prismicStatus === "existing" &&
+                  " · already in Prismic"}
+                {variant === "seed" &&
+                  !isUnpushedForSeed &&
+                  prismicStatusesLoaded &&
+                  prismicStatus === "error" &&
+                  " · status unknown"}
               </span>
             </label>
           );
@@ -213,6 +289,17 @@ function actionableOf(namespaces: Namespace[]): Namespace[] {
 }
 
 /**
+ * Every namespace that actually has a local customtypes/ model, i.e. Seed
+ * has somewhere to write to — unlike `actionableOf` above, this does NOT
+ * exclude schema "up-to-date" namespaces: whether Step 1 thinks a
+ * namespace's schema is current says nothing about whether Step 2 has
+ * ever run for it (see PrismicNamespaceStatus).
+ */
+function seedActionableOf(namespaces: Namespace[]): Namespace[] {
+  return namespaces.filter((ns) => ns.status !== "new");
+}
+
+/**
  * Only omit the `namespaces` filter when EVERY namespace in en.json is
  * selected — not just every actionable one. Comparing against the
  * actionable count instead was a real bug: with any up-to-date (disabled,
@@ -235,6 +322,12 @@ export default function LabelsClient() {
   const [writeMode, setWriteMode] = useState(false);
   const [generateSelected, setGenerateSelected] = useState<Set<string>>(new Set());
   const [seedSelected, setSeedSelected] = useState<Set<string>>(new Set());
+  const [prismicStatuses, setPrismicStatuses] = useState<Record<string, PrismicNamespaceStatus>>(
+    {},
+  );
+  const [prismicStatusesLoaded, setPrismicStatusesLoaded] = useState(false);
+  const [prismicStatusError, setPrismicStatusError] = useState<string | null>(null);
+  const seedDefaultAppliedRef = useRef(false);
 
   const generate = useSseRunner();
   const seed = useSseRunner();
@@ -244,7 +337,7 @@ export default function LabelsClient() {
       .then((r) => r.json())
       .then((data: { namespaces: Namespace[] }) => {
         setNamespaces(data.namespaces);
-        // Default both pickers to every namespace that actually has
+        // Generate defaults to every namespace that actually has
         // something to do — "up-to-date" ones are disabled entirely, so
         // there's nothing useful a default selection could do with them.
         setGenerateSelected(
@@ -252,20 +345,50 @@ export default function LabelsClient() {
             data.namespaces.filter((ns) => ns.status !== "up-to-date").map((ns) => ns.namespace),
           ),
         );
-        // Seed's default excludes "new" ones too, not just "up-to-date" —
-        // a namespace with no customtypes/ file yet almost certainly
-        // hasn't been pushed to Prismic either, and seeding it would just
-        // fail. They're still individually checkable in the picker itself
-        // (see NamespacePicker's "seed" variant) for the rare case
-        // someone already pushed by hand.
-        setSeedSelected(
-          new Set(data.namespaces.filter((ns) => ns.status === "changed").map((ns) => ns.namespace)),
-        );
+        // Seed's default selection is set once the Prismic status fetch
+        // below also resolves (see that effect) — it needs to know which
+        // namespaces already have a document in Prismic, not just which
+        // ones have a local model.
       })
       .catch((err) => setNamespacesError(err instanceof Error ? err.message : String(err)));
   }, []);
 
+  useEffect(() => {
+    fetch("/api/labels/prismic-status")
+      .then((r) => {
+        if (!r.ok) return r.text().then((text) => Promise.reject(new Error(text)));
+        return r.json();
+      })
+      .then((data: { statuses: Record<string, PrismicNamespaceStatus> }) => {
+        setPrismicStatuses(data.statuses);
+        setPrismicStatusesLoaded(true);
+      })
+      .catch((err) => {
+        setPrismicStatusError(err instanceof Error ? err.message : String(err));
+        setPrismicStatusesLoaded(true);
+      });
+  }, []);
+
+  // Seed's default: only namespaces with a local model (seedActionable)
+  // AND no document in Prismic yet — the same "safe to bulk-run" bar
+  // Select All uses (see onSelectAll below). Runs once, as soon as both
+  // the namespace list and the Prismic lookup have resolved; later
+  // re-renders (e.g. a user toggling a checkbox) must not stomp on that.
+  useEffect(() => {
+    if (seedDefaultAppliedRef.current) return;
+    if (namespaces.length === 0 || !prismicStatusesLoaded) return;
+    seedDefaultAppliedRef.current = true;
+    setSeedSelected(
+      new Set(
+        namespaces
+          .filter((ns) => ns.status !== "new" && prismicStatuses[ns.namespace] === "new")
+          .map((ns) => ns.namespace),
+      ),
+    );
+  }, [namespaces, prismicStatuses, prismicStatusesLoaded]);
+
   const actionable = actionableOf(namespaces);
+  const seedActionable = seedActionableOf(namespaces);
 
   function toggleIn(setSelected: React.Dispatch<React.SetStateAction<Set<string>>>, namespace: string) {
     setSelected((prev) => {
@@ -464,22 +587,44 @@ export default function LabelsClient() {
             label="Namespaces to seed"
             variant="seed"
             namespaces={namespaces}
-            actionable={actionable}
+            actionable={seedActionable}
             selected={seedSelected}
             onToggle={(ns) => toggleIn(setSeedSelected, ns)}
             onSelectAll={() =>
               setSeedSelected(
-                new Set(actionable.filter((ns) => ns.status === "changed").map((ns) => ns.namespace)),
+                new Set(
+                  seedActionable
+                    .filter((ns) => prismicStatuses[ns.namespace] === "new")
+                    .map((ns) => ns.namespace),
+                ),
               )
             }
             onSelectNone={() => setSeedSelected(new Set())}
             disabled={anyRunning}
+            prismicStatuses={prismicStatuses}
+            prismicStatusesLoaded={prismicStatusesLoaded}
           />
+        )}
+        {prismicStatusError && (
+          <p className="text-danger text-[12.5px] mt-2">
+            Couldn&apos;t check Prismic for existing documents: {prismicStatusError}. Namespaces
+            below are shown as not-yet-checked; seeding will still report create-vs-update
+            correctly once it actually runs.
+          </p>
         )}
 
         <LogPanel lines={seed.lines} running={seed.running} />
         {seed.errorMsg && <p className="text-danger text-[13px] mt-2">{seed.errorMsg}</p>}
-        {seed.doneData && (
+        {seed.doneData && seed.doneData.nothingToSeed === true && (
+          <div className="bg-warning-weak border border-warning rounded-card px-4 py-3 mt-3 text-[13px] leading-relaxed">
+            <strong className="font-display">Nothing was seeded.</strong>
+            <p className="mt-1.5">
+              Every selected namespace was skipped — none of them has a customtypes/ model yet
+              (see the log above). Run Generate for them and push the result to Prismic first.
+            </p>
+          </div>
+        )}
+        {seed.doneData && seed.doneData.nothingToSeed !== true && (
           <div className="bg-success-weak border border-success rounded-card px-4 py-3 mt-3 text-[13px] leading-relaxed">
             <strong className="font-display">
               {seed.doneData.write ? "Content seeded." : "Dry run complete."}

@@ -151,6 +151,22 @@ async function main() {
         .join("\n"),
   );
 
+  // Every requested namespace got skipped above (no customtypes/ model
+  // yet) — there is nothing new to link into the hub, so don't touch it.
+  // Without this, a run that skipped everything still did a real
+  // fetch-merge-write against app_labels (a no-op write, since hubData
+  // would equal existingHub.data unchanged, but a live Prismic write
+  // nonetheless) and printed misleading success output — see the caller
+  // in admin-app's /labels UI, which surfaced that as "Content seeded."
+  // even though zero documents were actually created or updated.
+  if (operations.length === 0) {
+    console.log(
+      "Nothing to seed — every requested namespace was skipped (see warnings above). " +
+        `Skipping the "${HUB_TYPE_ID}" hub update too, since there's nothing new to link.`,
+    );
+    return;
+  }
+
   const hubAction = (await findExistingSingleton(readClient, HUB_TYPE_ID))
     ? "update"
     : "create";

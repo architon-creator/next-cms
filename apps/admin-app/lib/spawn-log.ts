@@ -73,3 +73,33 @@ export function spawnAndStream(
     });
   });
 }
+
+/**
+ * Runs a command to completion and returns its full stdout/stderr, for a
+ * script that prints one structured result (e.g. a single JSON line)
+ * rather than an ongoing log a browser should watch live — unlike
+ * spawnAndStream, there's no SSE response to push partial output through,
+ * so callers just await the whole thing. Same `shell: true` reasoning as
+ * spawnAndStream (pnpm.cmd resolution on Windows).
+ */
+export function spawnAndCapture(
+  command: string,
+  args: string[],
+  cwd: string,
+): Promise<{ exitCode: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd, shell: true });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (err) => reject(err));
+    child.on("close", (exitCode) => resolve({ exitCode, stdout, stderr }));
+  });
+}
