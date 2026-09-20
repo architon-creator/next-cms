@@ -99,6 +99,21 @@ function NamespacePicker({
       ? namespaces.filter((ns) => prismicStatuses[ns.namespace] === "existing").length
       : 0;
 
+  // Seed's "Select all" only ever bulk-selects not-yet-seeded namespaces
+  // (see onSelectAll at the call site) — re-seeding an existing document
+  // is opt-in only, one at a time. If every actionable namespace already
+  // has a document in Prismic (or the lookup hasn't resolved yet), that
+  // button would be a no-op if clicked, so disable it instead of leaving
+  // it clickable with nothing for it to do.
+  const selectAllDisabled =
+    disabled ||
+    (variant === "seed"
+      ? !prismicStatusesLoaded ||
+        namespaces.filter(
+          (ns) => ns.status !== "new" && prismicStatuses?.[ns.namespace] === "new",
+        ).length === 0
+      : actionable.length === 0);
+
   return (
     <div className="bg-panel-2 border border-border rounded-card p-3 mt-2">
       <div className="flex items-center justify-between gap-3 mb-2">
@@ -116,7 +131,7 @@ function NamespacePicker({
         <div className="flex gap-1.5">
           <button
             onClick={onSelectAll}
-            disabled={disabled || actionable.length === 0}
+            disabled={selectAllDisabled}
             className={`${btnSecondary} !px-2.5 !py-1 !text-[11px]`}
           >
             Select all
