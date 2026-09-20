@@ -9,7 +9,8 @@
     "types": "prismic-ts-codegen",
     "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts",
     "prismic-seed-content": "tsx scripts/seed-prismic-content-demo.ts",
-    "prismic-labels-status": "tsx scripts/check-labels-prismic-status-demo.ts"
+    "prismic-labels-status": "tsx scripts/check-labels-prismic-status-demo.ts",
+    "prismic-labels-drift-report": "tsx scripts/labels-drift-report-demo.ts"
   },
   "peerDependencies": {
     "react": "^19.0.0"

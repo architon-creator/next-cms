@@ -1,0 +1,67 @@
+name: labels-drift
+
+on:
+  # Lets anyone trigger the report on demand from the Actions tab.
+  workflow_dispatch:
+  # Daily check that the labels tool's three stages (en.json -> local
+  # schema -> pushed Prismic type -> seeded document) haven't drifted
+  # apart since anyone last opened admin-app's /labels UI — see
+  # packages/cms/scripts/labels-drift-report-demo.ts for what "drift"
+  # means here and why it's split into schema vs content drift.
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  report:
+    name: "labels: drift report"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
+      # packages/cms's own .env (PRISMIC_REPOSITORY_NAME=next-js-ssr) is
+      # gitignored, so it doesn't exist in this checkout — without this,
+      # prismicConfig.repositoryName silently falls back to "zipair-dev"
+      # and the report would check the wrong repository. Override via a
+      # repo/org Variable if this ever needs to point elsewhere.
+      PRISMIC_REPOSITORY_NAME: ${{ vars.PRISMIC_REPOSITORY_NAME || 'next-js-ssr' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same graceful-skip shape as prismic-migration.yml's verify job —
+      # report plainly and exit 0 rather than failing a scheduled run
+      # every day for a token nobody has configured yet.
+      - name: Check required secret is configured
+        id: guard
+        run: |
+          if [ -z "$PRISMIC_ACCESS_TOKEN" ]; then
+            {
+              echo "# labels-drift — skipped"
+              echo ""
+              echo "No PRISMIC_ACCESS_TOKEN secret is configured on this repo yet."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run drift report
+        if: steps.guard.outputs.configured == 'true'
+        working-directory: packages/cms
+        run: |
+          set -o pipefail
+          pnpm run --silent prismic-labels-drift-report | tee drift-report.md
+          cat drift-report.md >> "$GITHUB_STEP_SUMMARY"
