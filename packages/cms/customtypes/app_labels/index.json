@@ -192,6 +192,16 @@
           "select": "document"
         },
         "type": "Link"
+      },
+      "error_page": {
+        "config": {
+          "customtypes": [
+            "error_page"
+          ],
+          "label": "Error Page",
+          "select": "document"
+        },
+        "type": "Link"
       }
     }
   },

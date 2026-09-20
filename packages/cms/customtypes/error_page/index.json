@@ -1,0 +1,29 @@
+{
+  "format": "custom",
+  "id": "error_page",
+  "json": {
+    "Main": {
+      "title": {
+        "config": {
+          "label": "Title"
+        },
+        "type": "Text"
+      },
+      "description": {
+        "config": {
+          "label": "Description"
+        },
+        "type": "Text"
+      },
+      "backToHome": {
+        "config": {
+          "label": "Back To Home"
+        },
+        "type": "Text"
+      }
+    }
+  },
+  "label": "Error Page",
+  "repeatable": false,
+  "status": true
+}
