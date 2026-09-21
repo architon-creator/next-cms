@@ -65,21 +65,27 @@ function NamespacePicker({
 }: {
   label: string;
   /**
-   * "seed" excludes "new" namespaces (no customtypes/ file exists yet,
-   * so almost certainly nothing pushed to Prismic yet either) from the
-   * bulk Select all and warns on their own chip instead — seeding one
-   * before its schema is live in Prismic will just fail with a 404-ish
-   * "type not found" error. They stay individually checkable, since this
-   * tool has no way to actually confirm whether a push already happened
-   * (see README: prismic push needs an interactive login this can't
-   * script around) — a person who knows they already pushed can still
-   * check it by hand.
+   * "seed" disables a namespace's chip entirely in two cases, neither of
+   * which the checkbox can safely act on:
+   *  - no local customtypes/ model yet (schema "new") — seeding before
+   *    the type is even pushed to Prismic just fails with a 404-ish
+   *    "type not found" error.
+   *  - a document already exists in Prismic (prismicStatus "existing")
+   *    — re-seeding overwrites its entire content from en.json, and this
+   *    card's own description already tells people to edit an existing
+   *    document directly in Prismic instead. Nothing here can distinguish
+   *    "deliberate re-seed" from "forgot this was already done," so the
+   *    UI doesn't offer it at all; do it via the CLI script directly
+   *    (`pnpm run prismic-seed-content -- --write --namespaces=X`) if you
+   *    really mean to overwrite one.
+   * Only prismicStatus "new" (schema pushed, no document yet) is
+   * actionable — that's also all Select All ever bulk-selects.
    *
    * Unlike "generate", "seed" does NOT grey out schema "up-to-date"
-   * namespaces — that status is about whether en.json matches the local
-   * model file, not about whether this namespace has ever been seeded
-   * into Prismic. Whether to grey a namespace out here comes from
-   * `prismicStatuses` instead (see PrismicNamespaceStatus).
+   * namespaces on their own — that status is about whether en.json
+   * matches the local model file, not about whether this namespace has
+   * ever been seeded into Prismic. Whether to grey a namespace out here
+   * comes from `prismicStatuses` instead (see PrismicNamespaceStatus).
    */
   variant: "generate" | "seed";
   namespaces: Namespace[];
@@ -149,13 +155,18 @@ function NamespacePicker({
         {namespaces.map((ns) => {
           const isUnpushedForSeed = variant === "seed" && ns.status === "new";
           const prismicStatus = prismicStatuses?.[ns.namespace];
+          const isExistingInPrismic = variant === "seed" && prismicStatus === "existing";
           const isUpToDate =
             variant === "generate"
               ? ns.status === "up-to-date"
               : variant === "seed"
-                ? isUnpushedForSeed || (!isUnpushedForSeed && !prismicStatusesLoaded)
+                ? // "existing" is disabled too, not just opt-in-checkable: the
+                  // card text above already tells people to edit an existing
+                  // document directly in Prismic instead. Leaving its
+                  // checkbox live invited exactly the accidental-overwrite
+                  // re-seed this tool's docs warn against.
+                  isUnpushedForSeed || isExistingInPrismic || !prismicStatusesLoaded
                 : false;
-          const isExistingInPrismic = variant === "seed" && prismicStatus === "existing";
           const isWarned = isUnpushedForSeed || isExistingInPrismic || prismicStatus === "error";
           const isChecked = !isUpToDate && selected.has(ns.namespace);
 
