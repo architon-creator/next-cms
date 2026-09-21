@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -72,7 +72,7 @@ jobs:
       # with what's already in ECR.
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.include_ecr_tags }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.aws_oidc_role_arn }}
           aws-region: ${{ inputs.aws_region }}
