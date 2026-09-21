@@ -97,5 +97,11 @@
     "changeSection": "変更する",
     "confirmedBadge": "確認済み",
     "submit": "送信"
+  },
+  "Calendar": {
+    "today": "今日",
+    "clear": "クリア",
+    "selected": "選択日: {date}",
+    "none": "日付未選択"
   }
 }

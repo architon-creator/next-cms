@@ -20,3 +20,14 @@ minimumReleaseAgeExclude:
   - next@16.3.5
 overrides:
   postcss: ^8.5.28
+  # Forces a single React/Next.js instance across every workspace package.
+  # Without this, packages/ui's looser "react": "^19.0.0" peer range let
+  # pnpm resolve a separate, older React copy (19.2.8) for it than what
+  # the apps actually use (19.3.0) — two React instances means two
+  # different React Context identities, which silently breaks any
+  # Context-based library (next-intl's useTranslations/
+  # NextIntlClientProvider included) shared through packages/ui. See
+  # packages/ui/src/calendar/mini-calendar.tsx's doc comment.
+  react: 19.3.0
+  react-dom: 19.3.0
+  next: 16.3.5
