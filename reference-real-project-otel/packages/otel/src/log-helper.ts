@@ -1,5 +1,6 @@
 import { trace, SpanStatusCode } from "@opentelemetry/api";
-import { getJourneyId } from "./journey";
+// journey_id support (journey.ts) is deferred — see backup/otel-logger-with-journey
+// tag on this branch for the version with it wired in, to restore later.
 
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
@@ -34,7 +35,6 @@ export function createLogger(name: string) {
       const timestamp = new Date().toISOString();
       const color = colorMap[level];
       const traceContext = getTraceContext();
-      const journeyId = getJourneyId();
 
       // JSON object for structured logging
       const logObject = {
@@ -42,7 +42,6 @@ export function createLogger(name: string) {
         level,
         logger: name,
         message,
-        ...(journeyId && { journey_id: journeyId }),
         ...(traceContext && {
           trace_id: traceContext.traceId,
           span_id: traceContext.spanId,
@@ -61,7 +60,6 @@ export function createLogger(name: string) {
         // Development: pretty-printed format with colors
         const prefix = `${color}[${level}]${resetColor}`;
         const idSuffix = [
-          journeyId ? `journey=${journeyId}` : undefined,
           traceContext ? `trace=${traceContext.traceId}` : undefined,
         ]
           .filter(Boolean)

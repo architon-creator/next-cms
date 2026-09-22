@@ -7,13 +7,23 @@ by another team. This doc is the full runbook: what to copy where, how to
 wire it up, how to verify it locally, and what's still blocked on other
 people before it's production-ready.
 
-## What's in this branch
+**Scope of this copy: logger only.** `journey_id` and
+`external_correlation_id` support are deliberately NOT included here —
+they're planned as a later, separate integration. The full version with
+`journey_id` wired in (via `journey.ts`) is preserved at the
+`backup/otel-logger-with-journey` git tag on this branch; restore from
+there when that work starts instead of rebuilding it from scratch.
+(`external_correlation_id` was previously removed entirely as dead code —
+see commit `d0d9e26`.)
 
-- `reference-otel-*.{ts,json}` → copy into a new `packages/otel/` workspace
-  package (same role as this repo's existing `packages/ui`, `packages/sdk`,
-  etc.): `package.json`, `tsconfig.json`, and `src/{index,logger,log-helper,
-  trace-context,journey}.ts` (drop the `reference-otel-` prefix and `src/`
-  them accordingly).
+## What's in this folder
+
+Everything under `reference-real-project-otel/` mirrors its target path in
+the real project 1:1 (see the tree below) — copy the whole folder's
+contents into the real repo root and every file lands where it needs to.
+
+- `packages/otel/` → a new workspace package (same role as this repo's
+  existing `packages/ui`, `packages/sdk`, etc.).
   - **Deliberately NOT included:** `otel/logging` (a subpath export for a
     plain Node/Express consumer, like `next-cms`'s own `apps/api`). Neither
     `ibe-app` nor `top-app` is a plain-Node service — both are Next.js apps
@@ -21,42 +31,41 @@ people before it's production-ready.
     from "otel"`). Only add a `logging.ts` + the matching `"./logging"`
     entry in `package.json`'s `exports` if this monorepo ever gains its own
     non-Next.js Node service.
-- `reference-instrumentation.ts` → copy **verbatim** to both
+  - **Also not included:** `journey.ts` (see scope note above).
+- `instrumentation.ts` → copy **verbatim** to both
   `apps/ibe-app/instrumentation.ts` and `apps/top-app/instrumentation.ts`
   (identical file, nothing app-specific inside it — the app is identified
   via the `OTEL_SERVICE_NAME` env var instead, set per app).
-- `reference-otel-docker-compose.yml` / `reference-otel-collector-config.yaml`
-  → copy to `docker-compose.yml` / `otel-collector-config.yaml` at the repo
-  root, for a local Jaeger + otel-collector stack.
+- `docker-compose.yml` / `otel-collector-config.yaml` → copy to the real
+  repo's root, for a local Jaeger + otel-collector stack.
 
 ## Target folder structure (real project)
 
 ```
 next-cms/                                  (repo root)
-├── docker-compose.yml                     ← reference-otel-docker-compose.yml
-├── otel-collector-config.yaml             ← reference-otel-collector-config.yaml
+├── docker-compose.yml                     ← reference-real-project-otel/docker-compose.yml
+├── otel-collector-config.yaml             ← reference-real-project-otel/otel-collector-config.yaml
 │
 ├── apps/
 │   ├── ibe-app/
-│   │   ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim)
+│   │   ├── instrumentation.ts             ← reference-real-project-otel/instrumentation.ts
 │   │   ├── .env.local                     (add OTEL_SERVICE_NAME=ibe-app, see below)
 │   │   └── package.json                   (add "otel": "workspace:*" dependency)
 │   │
 │   └── top-app/
-│       ├── instrumentation.ts             ← reference-instrumentation.ts (verbatim, same file)
+│       ├── instrumentation.ts             ← reference-real-project-otel/instrumentation.ts (same file)
 │       ├── .env.local                     (add OTEL_SERVICE_NAME=top-app, see below)
 │       └── package.json                   (add "otel": "workspace:*" dependency)
 │
 └── packages/
-    └── otel/                              (new workspace package)
-        ├── package.json                   ← reference-otel-package.json
-        ├── tsconfig.json                  ← reference-otel-tsconfig.json
+    └── otel/                              ← reference-real-project-otel/packages/otel/ (copy whole dir)
+        ├── package.json
+        ├── tsconfig.json
         └── src/
-            ├── index.ts                   ← reference-otel-index.ts
-            ├── logger.ts                  ← reference-otel-logger.ts
-            ├── log-helper.ts              ← reference-otel-log-helper.ts
-            ├── trace-context.ts           ← reference-otel-trace-context.ts
-            └── journey.ts                 ← reference-otel-journey.ts
+            ├── index.ts
+            ├── logger.ts
+            ├── log-helper.ts
+            └── trace-context.ts
 ```
 
 Check the real repo's actual `pnpm-workspace.yaml` before creating
