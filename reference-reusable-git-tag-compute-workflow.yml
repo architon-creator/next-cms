@@ -1,0 +1,152 @@
+name: Reusable Git Tag (Compute)
+
+# Computes the next semantic version for this app+branch series WITHOUT
+# creating or pushing any git tag — pure calculation, no side effects.
+# Callers use this output to label the build (image_tag) and pass the same
+# value through to reusable-git-tag-publish-workflow.yml at the very end,
+# once build/deploy have actually succeeded. This split exists so a failed
+# build or deploy never leaves behind a git tag for a release that never
+# shipped — see reusable-git-tag-publish-workflow.yml for the other half.
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
+      include_ecr_tags:
+        required: false
+        type: boolean
+        default: false
+      aws_region:
+        required: false
+        type: string
+        default: ''
+      aws_oidc_role_arn:
+        required: false
+        type: string
+        default: ''
+      ecr_repository:
+        required: false
+        type: string
+        default: ''
+      major_minor:
+        required: false
+        type: string
+        default: ''
+    outputs:
+      version_tag:
+        description: Per-app, per-branch semantic version tag this run would use.
+        value: ${{ jobs.compute.outputs.version_tag }}
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.compute.outputs.version_tag }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.include_ecr_tags }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Compute next semantic tag
+        id: compute
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SANITIZED_BRANCH="$(echo "${BRANCH_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH#-}"
+          SANITIZED_BRANCH="${SANITIZED_BRANCH%-}"
+
+          if [ -z "${SANITIZED_BRANCH}" ]; then
+            SANITIZED_BRANCH="branch"
+          fi
+
+          SANITIZED_APP="$(echo "${{ inputs.app_name }}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+          SANITIZED_APP="${SANITIZED_APP#-}"
+          SANITIZED_APP="${SANITIZED_APP%-}"
+
+          if [ -z "${SANITIZED_APP}" ]; then
+            SANITIZED_APP="app"
+          fi
+
+          if [[ "${{ inputs.major_minor }}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+            TARGET_MAJOR="${BASH_REMATCH[1]}"
+            TARGET_MINOR="${BASH_REMATCH[2]}"
+          else
+            TARGET_MAJOR="0"
+            TARGET_MINOR="0"
+          fi
+
+          TAG_PREFIX="${SANITIZED_APP}-${SANITIZED_BRANCH}"
+          ESCAPED_PREFIX="$(printf '%s' "${TAG_PREFIX}" | sed -E 's/[][(){}.^$?+*|\\/]/\\\\&/g')"
+          TAG_REGEX="^${ESCAPED_PREFIX}-([0-9]+)\.([0-9]+)\.([0-9]+)$"
+
+          MAX_PATCH=0
+          FOUND_SERIES=false
+
+          update_max_patch() {
+            local tag="$1"
+
+            if [[ "${tag}" =~ ${TAG_REGEX} ]]; then
+              local major="${BASH_REMATCH[1]}"
+              local minor="${BASH_REMATCH[2]}"
+              local patch="${BASH_REMATCH[3]}"
+
+              if [ "${major}" -eq "${TARGET_MAJOR}" ] && [ "${minor}" -eq "${TARGET_MINOR}" ]; then
+                FOUND_SERIES=true
+                if [ "${patch}" -gt "${MAX_PATCH}" ]; then
+                  MAX_PATCH="${patch}"
+                fi
+              fi
+            fi
+          }
+
+          git fetch --tags --force
+
+          # NOTE: no "reuse existing tag on HEAD" shortcut here, unlike the
+          # old single-job version. It's unnecessary now: since publishing
+          # is deferred to the end of the pipeline, a retried/rerun workflow
+          # simply recomputes the same next version again (nothing's been
+          # published yet to find), and the publish step's own
+          # already-exists check (see reusable-git-tag-publish-workflow.yml)
+          # handles the case where a previous attempt DID already publish.
+          while IFS= read -r tag; do
+            [ -n "${tag}" ] || continue
+            update_max_patch "${tag}"
+          done < <(git tag -l "${TAG_PREFIX}-*")
+
+          if [ "${{ inputs.include_ecr_tags }}" = "true" ]; then
+            ECR_TAGS="$(aws ecr describe-images \
+              --repository-name "${{ inputs.ecr_repository }}" \
+              --region "${{ inputs.aws_region }}" \
+              --query 'imageDetails[].imageTags' \
+              --output json | jq -r '.[]?[]?' 2>/dev/null || true)"
+
+            for tag in ${ECR_TAGS}; do
+              update_max_patch "${tag}"
+            done
+          fi
+
+          if [ "${FOUND_SERIES}" = "true" ]; then
+            NEXT_PATCH=$((MAX_PATCH + 1))
+          else
+            NEXT_PATCH=1
+          fi
+
+          VERSION_TAG="${TAG_PREFIX}-${TARGET_MAJOR}.${TARGET_MINOR}.${NEXT_PATCH}"
+          echo "version_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,71 @@
+name: Reusable Git Tag (Publish)
+
+# Actually creates and pushes the git tag. Deliberately the ONLY workflow
+# that performs this side effect — call it LAST in your pipeline, gated on
+# `needs: [build, deploy]` (or however far your pipeline goes), so a
+# failure anywhere upstream means this job never runs at all and no tag
+# ever gets created for a release that didn't ship. Pass it the exact
+# same version_tag value reusable-git-tag-compute-workflow.yml already
+# produced earlier in the same run — this workflow does not recompute it.
+
+on:
+  workflow_call:
+    inputs:
+      version_tag:
+        required: true
+        type: string
+        description: The exact tag to create, e.g. the compute workflow's version_tag output.
+      force_update:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="${{ inputs.version_tag }}"
+          git fetch --tags --force
+
+          REMOTE_TAG_EXISTS=false
+          if git ls-remote --tags origin "refs/tags/${TAG_NAME}" | grep -q "refs/tags/${TAG_NAME}$"; then
+            REMOTE_TAG_EXISTS=true
+          fi
+
+          if [ "${REMOTE_TAG_EXISTS}" = "true" ]; then
+            if [ "${{ inputs.force_update }}" = "true" ]; then
+              git tag -d "${TAG_NAME}" || true
+              git push origin ":refs/tags/${TAG_NAME}" || true
+            else
+              echo "Tag ${TAG_NAME} already exists on remote. Skipping creation."
+              exit 0
+            fi
+          fi
+
+          if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
+            git tag -d "${TAG_NAME}" || true
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${TAG_NAME}" -m "Release ${TAG_NAME}"
+
+          if [ "${{ inputs.force_update }}" = "true" ]; then
+            git push origin "${TAG_NAME}" --force
+          else
+            git push origin "${TAG_NAME}"
+          fi
