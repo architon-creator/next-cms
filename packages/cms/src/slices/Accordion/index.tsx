@@ -36,6 +36,84 @@ function splitCards(field: RichTextField): RichTextField[] {
 
 const files = [1, 2, 3] as const;
 
+type AccordionItem = Content.AccordionSlice["items"][number];
+
+const cardContentClass =
+  "px-8 [&>:first-child]:mt-0! [&_h4]:mb-3 [&_h4]:text-lg [&_h4]:leading-6 [&_h4]:font-normal [&_p]:text-xs [&_p]:leading-[18px] [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:text-xs [&_ul]:leading-[18px] [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:text-xs [&_ol]:leading-[18px]";
+
+function hasDownloads(item: AccordionItem) {
+  return files.some((n) => item[`file_${n}_label`] || item[`file_${n}_heading`]);
+}
+
+function Downloads({ item, spaced }: { item: AccordionItem; spaced: boolean }) {
+  return (
+    <div className={spaced ? "mt-6" : undefined}>
+      {files.map((n) => {
+        const label = item[`file_${n}_label`];
+        const file = item[`file_${n}`];
+        const heading = item[`file_${n}_heading`];
+        const size = item[`file_${n}_size`];
+        if (!label && !heading) return null;
+
+        return (
+          <div className="mt-6 first:mt-0" key={n}>
+            {heading ? <p className="m-0! font-bold">{heading}</p> : null}
+            {label ? (
+              <div className={heading ? "mt-3 max-w-80" : "max-w-80"}>
+                {isFilled.link(file) ? (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-auto! w-full border-primary! bg-white px-6 py-3 font-semibold text-primary! hover:bg-accent!"
+                  >
+                    <PrismicNextLink field={file}>{label}</PrismicNextLink>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    disabled
+                    className="h-auto! w-full border-border! px-6 py-3 font-semibold text-muted-foreground! opacity-100!"
+                  >
+                    {label}
+                  </Button>
+                )}
+                {size ? (
+                  <p className="mt-1.5! text-xs text-muted-foreground">
+                    File Size: {size}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Grey cards (from `cards`); the download buttons sit inside the last card, or in a card of their own. */
+function ItemBoxes({ item }: { item: AccordionItem }) {
+  const cards = isFilled.richText(item.cards) ? splitCards(item.cards) : [];
+  const downloads = hasDownloads(item);
+  if (cards.length === 0 && !downloads) return null;
+
+  const boxes: (RichTextField | null)[] = cards.length > 0 ? cards : [null];
+  // 1-based card that holds the downloads; blank/out of range = the last card.
+  const requested = item.downloads_card ?? boxes.length;
+  const downloadsIndex = requested >= 1 && requested <= boxes.length ? requested - 1 : boxes.length - 1;
+
+  return boxes.map((card, index) => (
+    <Card className="mt-4 gap-0 rounded bg-[#F4F7F6] py-7 ring-0" key={index}>
+      <CardContent className={cardContentClass}>
+        {card ? <PrismicRichText field={card} components={cardComponents} /> : null}
+        {downloads && index === downloadsIndex ? (
+          <Downloads item={item} spaced={card !== null} />
+        ) : null}
+      </CardContent>
+    </Card>
+  ));
+}
+
 export default function Accordion({ slice }: AccordionProps) {
   const showNumber = !slice.primary.hide_number;
 
@@ -53,7 +131,7 @@ export default function Accordion({ slice }: AccordionProps) {
           className="border-t! border-b-0! last:border-b!"
           key={`${item.title}-${index}`}
         >
-          <AccordionTrigger className="items-center! gap-2.5 py-5! text-base hover:no-underline **:data-[slot=accordion-trigger-icon]:hidden!">
+          <AccordionTrigger className="cursor-pointer items-center! gap-2.5 py-5! text-base hover:no-underline **:data-[slot=accordion-trigger-icon]:hidden!">
             {showNumber ? (
               <span className="shrink-0 font-bold text-primary">{index + 1}</span>
             ) : null}
@@ -80,58 +158,7 @@ export default function Accordion({ slice }: AccordionProps) {
 
             <PrismicRichText field={item.body} components={richTextLabelComponents} />
 
-            {isFilled.richText(item.cards)
-              ? splitCards(item.cards).map((card, cardIndex) => (
-                  <Card
-                    className="mt-4 gap-0 rounded bg-[#F4F7F6] py-7 ring-0"
-                    key={cardIndex}
-                  >
-                    <CardContent className="px-8 [&_h4]:mb-1 [&_h4]:text-[1.05rem] [&_h4]:leading-6 [&_h4]:font-bold [&_p]:text-sm [&_p]:leading-[22px] [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5">
-                      <PrismicRichText field={card} components={cardComponents} />
-                    </CardContent>
-                  </Card>
-                ))
-              : null}
-
-            {files.map((n) => {
-              const label = item[`file_${n}_label`];
-              const file = item[`file_${n}`];
-              const heading = item[`file_${n}_heading`];
-              const size = item[`file_${n}_size`];
-              if (!label && !heading) return null;
-
-              return (
-                <div key={n}>
-                  {heading ? <p className="mt-6! font-bold">{heading}</p> : null}
-                  {label ? (
-                    <div className="mt-4 max-w-80">
-                      {isFilled.link(file) ? (
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="h-auto! w-full border-primary! px-6 py-3 font-semibold text-primary! hover:bg-accent!"
-                        >
-                          <PrismicNextLink field={file}>{label}</PrismicNextLink>
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          disabled
-                          className="h-auto! w-full border-border! px-6 py-3 font-semibold text-muted-foreground! opacity-100!"
-                        >
-                          {label}
-                        </Button>
-                      )}
-                      {size ? (
-                        <p className="mt-1.5! text-center text-xs text-muted-foreground">
-                          File Size: {size}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+            <ItemBoxes item={item} />
 
             {isFilled.richText(item.necessities) ? (
               <>

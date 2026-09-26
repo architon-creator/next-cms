@@ -49,7 +49,7 @@ All flat — Prismic can't nest a Group inside `items` (see [Flat-slice limitati
 | `file_N_label`, `file_N`, `file_N_size`                                  | Text, Link, Text                      | Outline download button + "File Size: …" caption. Up to 3 slots. The button is disabled if `file_N` has no link.                                                     |
 | `footnote`                                                               | Rich Text (paragraph, strong, em, hyperlink; labels `muted`, `small`) | Small muted text after the downloads (e.g. `* Assistance and service dogs…`).                                                                                        |
 
-Render order inside an item: `note` → `body` → `cards` → downloads → `necessities` → `footnote` → `link`/`link2`.
+Render order inside an item: `note` → `body` → `cards` (with the downloads **inside the card numbered by `downloads_card`** — the last card if blank — or in a card of their own when there are no cards) → `necessities` → `footnote` → `link`/`link2`.
 
 ### Example: an unnumbered section with cards and a download
 
