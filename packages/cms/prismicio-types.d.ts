@@ -1078,6 +1078,16 @@ export interface AccordionSliceDefaultItem {
 	file_3_size: prismic.KeyTextField;
 	
 	/**
+	 * Downloads go in card # (blank = last card) field in *Accordion → Items*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.items[].downloads_card
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	downloads_card: prismic.NumberField;
+	
+	/**
 	 * Footnote field in *Accordion → Items*
 	 *
 	 * - **Field Type**: Rich Text

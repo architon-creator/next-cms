@@ -125,6 +125,10 @@
           "type": "Text",
           "config": { "label": "File 3 Size", "placeholder": "" }
         },
+        "downloads_card": {
+          "type": "Number",
+          "config": { "label": "Downloads go in card # (blank = last card)", "placeholder": "" }
+        },
         "footnote": {
           "type": "StructuredText",
           "config": {
