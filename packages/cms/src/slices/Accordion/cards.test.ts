@@ -61,19 +61,19 @@ describe("resolveDownloadsIndex", () => {
 });
 
 describe("getOpenValues", () => {
-  it("opens every item when none is collapsed (existing content)", () => {
-    assert.deepEqual(getOpenValues([{}, {}, {}] as never), ["item-0", "item-1", "item-2"]);
+  it("starts every item collapsed by default (no value set)", () => {
+    assert.deepEqual(getOpenValues([{}, {}, {}] as never), []);
   });
 
-  it("leaves out items marked start_collapsed", () => {
+  it("expands only the items marked start_expanded", () => {
     assert.deepEqual(
-      getOpenValues([{ start_collapsed: false }, { start_collapsed: true }, { start_collapsed: null }]),
-      ["item-0", "item-2"],
+      getOpenValues([{ start_expanded: false }, { start_expanded: true }, { start_expanded: null }, { start_expanded: true }]),
+      ["item-1", "item-3"],
     );
   });
 
-  it("opens nothing when every item is collapsed", () => {
-    assert.deepEqual(getOpenValues([{ start_collapsed: true }]), []);
+  it("expands everything when every item is marked", () => {
+    assert.deepEqual(getOpenValues([{ start_expanded: true }, { start_expanded: true }]), ["item-0", "item-1"]);
   });
 
   it("uses the same value format as the item keys", () => {

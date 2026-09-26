@@ -18,11 +18,11 @@ export function splitCards(field: RichTextField): RichTextField[] {
 }
 
 /**
- * Values of the items that start open. An item is open unless the editor ticked
- * `start_collapsed` — so content that predates the field stays fully open.
+ * Values of the items that start expanded. Every item starts collapsed unless
+ * the editor ticked `start_expanded`.
  */
-export function getOpenValues(items: { start_collapsed?: boolean | null }[]): string[] {
-  return items.flatMap((item, index) => (item.start_collapsed ? [] : [itemValue(index)]));
+export function getOpenValues(items: { start_expanded?: boolean | null }[]): string[] {
+  return items.flatMap((item, index) => (item.start_expanded ? [itemValue(index)] : []));
 }
 
 export function itemValue(index: number): string {

@@ -23,13 +23,13 @@
         }
       },
       "items": {
-        "start_collapsed": {
+        "start_expanded": {
           "type": "Boolean",
           "config": {
-            "label": "Start collapsed",
+            "label": "Start expanded",
             "default_value": false,
-            "placeholder_false": "Open",
-            "placeholder_true": "Collapsed"
+            "placeholder_false": "Collapsed",
+            "placeholder_true": "Expanded"
           }
         },
         "title": {
