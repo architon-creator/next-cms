@@ -12,7 +12,7 @@ type ChevronLinkProps = {
 };
 
 /**
- * The trailing "read more"-style link used across Accordion, DisclosureList,
+ * The trailing "read more"-style link used across Accordion,
  * and LinkList — `font-semibold text-primary`, optionally with a `›` suffix
  * and row spacing for stacked/list contexts.
  */

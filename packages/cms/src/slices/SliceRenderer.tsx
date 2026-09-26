@@ -3,8 +3,6 @@ import type { FC } from "react";
 import Accordion from "./Accordion";
 import Breadcrumbs from "./Breadcrumbs";
 import ButtonLink from "./ButtonLink";
-import Callout from "./Callout";
-import DisclosureList from "./DisclosureList";
 import FaqAccordion from "./FaqAccordion";
 import FaqAnswerSwap from "./FaqAnswerSwap";
 import FaqQuestionList from "./FaqQuestionList";
@@ -16,6 +14,7 @@ import PageTitle from "./PageTitle";
 import QuestionAnswer from "./QuestionAnswer";
 import QuestionList from "./QuestionList";
 import RichTextSection from "./RichTextSection";
+import type { SliceContext } from "./types";
 
 /**
  * Slice Registry
@@ -32,6 +31,8 @@ type SliceComponent = FC<any>;
 
 export interface SliceRendererProps {
   slice: SliceType;
+  /** Passed through to the slice component as its `context` prop. */
+  context?: SliceContext;
 }
 
 /**
@@ -42,8 +43,6 @@ const sliceRegistry: Record<string, SliceComponent> = {
   accordion: Accordion,
   breadcrumbs: Breadcrumbs,
   button_link: ButtonLink,
-  callout: Callout,
-  disclosure_list: DisclosureList,
   faq_accordion: FaqAccordion,
   faq_answer_swap: FaqAnswerSwap,
   faq_question_list: FaqQuestionList,
@@ -120,7 +119,7 @@ function UnmappedSlice({ slice }: { slice: SliceType }) {
  * - No switch statements or string comparisons
  * - Suitable for 200+ slice types
  */
-export default function SliceRenderer({ slice }: SliceRendererProps) {
+export default function SliceRenderer({ slice, context }: SliceRendererProps) {
   // Safely access slice type
   if (!slice?.slice_type) {
     return null;
@@ -135,5 +134,5 @@ export default function SliceRenderer({ slice }: SliceRendererProps) {
   }
 
   // Render the component with the slice
-  return <Component slice={slice} />;
+  return <Component slice={slice} context={context} />;
 }

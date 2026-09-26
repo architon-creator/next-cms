@@ -36,9 +36,9 @@ No item fields.
 
 ## Styling conventions
 
-- `mb-2 text-4xl font-semibold` on the H1.
+- `text-4xl font-semibold` on the H1 (no margin — the accordion/list below supplies its own top padding).
 - `text-muted-foreground` on the subtitle.
-- `mt-4` on the wrapping `<section>`.
+- `mt-[66px]` on the wrapping `<section>` (measured gap from the breadcrumb to the title in the source design).
 
 ## Known limitations
 

@@ -23,8 +23,6 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 | [`Accordion`](Accordion/README.md)               | Numbered, individually collapsible step-by-step sections                      | `default`                                                 |
 | [`Breadcrumbs`](Breadcrumbs/README.md)           | Home › Level 1 › Level 2 › Level 3 trail                                      | `default`                                                 |
 | [`ButtonLink`](ButtonLink/README.md)             | A single centered outline CTA button                                          | `default`                                                 |
-| [`Callout`](Callout/README.md)                   | A bordered, colored box for a note/warning/highlight                          | `default`                                                 |
-| [`DisclosureList`](DisclosureList/README.md)     | One collapsible topic with an optional box, download buttons, and a link      | `default`                                                 |
 | [`FaqAnswerSwap`](FaqAnswerSwap/README.md)       | Client-side Q&A card with a related-question switcher (no navigation)         | `default`                                                 |
 | [`FaqAccordion`](FaqAccordion/README.md)         | ⚠️ Ported reference copy — FAQ sidebar topic-switcher + generic Q&A accordion | `default`, `sidebar_nav`                                  |
 | [`FaqQuestionList`](FaqQuestionList/README.md)   | FAQ category/question lists — 5 different layouts                             | `default`, `grid`, `accordion`, `footer_grid`, `withicon` |
@@ -41,10 +39,64 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 
 - **`data-slice-type` / `data-slice-variation`** attributes are always present on the slice's root element — useful for debugging which variation rendered, and as CSS/e2e-test hooks.
 - **shadcn primitives** (`Accordion`, `Card`, `Button` from `ui`) are used wherever the design calls for that pattern, rather than hand-rolled markup — see [shadcn/ui docs](https://ui.shadcn.com) for the underlying Radix behavior (keyboard nav, ARIA, animation).
-- **Design tokens**: color comes from the shared token set in `app/globals.css` (`text-primary`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-accent`, `border`) — never a raw hex value, except where a design explicitly calls for an off-palette color (e.g. `Callout`'s warning/success tints).
+- **Design tokens**: color comes from the shared token set in `app/globals.css` (`text-primary`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-accent`, `border`) — never a raw hex value, except where a design explicitly calls for an off-palette color (e.g. a status-coloured tint).
 - **Rich text styling**: `PrismicRichText` renders raw `<p>`/`<h2>`/`<a>` tags that can't take a `className`, so slices style them via Tailwind v4's arbitrary descendant-selector syntax on the wrapping element (`[&_p]:mb-3`, `[&_a]:text-primary`, etc.) rather than global CSS.
-- **Chevron links**: any slice offering a single "read more"-style trailing link (`Accordion`, `DisclosureList`, `LinkList`) renders it via the shared [`ChevronLink`](../../ui/src/chevron-link.tsx) component (`font-semibold text-primary`, trailing `›` via `after:content-['\203A']` — pass `chevron={false}` for a plain inline link with no trailing `›`/row spacing, as `DisclosureList` does).
+- **Chevron links**: any slice offering a single "read more"-style trailing link (`Accordion`, `LinkList`) renders it via the shared [`ChevronLink`](../../ui/src/chevron-link.tsx) component (`font-semibold text-primary`, trailing `›` via `after:content-['\203A']` — pass `chevron={false}` for a plain inline link with no trailing `›`/row spacing).
 - **Rich-text `label` spans**: any `PrismicRichText` field whose model config has a `labels` list (muted/small/large/accent/highlight/underline) should pass the shared [`richTextLabelComponents`](../lib/rich-text-components.tsx) as its `components` prop — otherwise an editor applying one of those labels in the toolbar renders as an unstyled `<span>` with no visible effect. `RichTextSection` and `Accordion` (`body`/`necessities`) use it today.
 - **Placeholder links**: when authoring content for a slice's `Link` field before the real destination page/asset exists, this project's convention is `#`, not a guessed URL.
-- **Flat-slice limitation**: Prismic shared slices cannot nest a repeatable `Group` field inside another repeatable `items` zone (confirmed by a rejected push — see `FaqQuestionList`'s `footer_grid` variation history). Where a design needs "N categories, each with M links," the fix used here is **one slice instance per category**, all sharing the same zone — never a nested structure. A Group directly on a variation's `primary` is fine, though — `DisclosureList`'s `files` field uses exactly that, which is why that slice has no `items` at all (each instance is already one topic, so there's nothing to repeat at the top level).
+- **Flat-slice limitation**: Prismic shared slices cannot nest a repeatable `Group` field inside another repeatable `items` zone (confirmed by a rejected push — see `FaqQuestionList`'s `footer_grid` variation history). Where a design needs "N categories, each with M links," the fix used here is **one slice instance per category**, all sharing the same zone — never a nested structure. A Group directly on a variation's `primary` is fine, though — the old `DisclosureList` slice's `files` field used exactly that (it has since been merged into `Accordion`, which keeps its download buttons as flat `file_1..3` fields instead).
 - **Server by default, client only when interactivity requires it**: most slices are plain server components. [`FaqAnswerSwap`](FaqAnswerSwap/README.md) needs local `useState`; the ⚠️ ported [`FaqAccordion`](FaqAccordion/README.md)/[`QuestionList`](QuestionList/README.md)/[`QuestionAnswer`](QuestionAnswer/README.md) trio needs `useContext` (via `useFaqTopic()`) to read/write shared topic state. Default to a server component; reach for a client component only when the design needs in-place state that a link/navigation genuinely can't express.
+
+## Composing a slice: use `ui` primitives, never other slices
+
+When a slice needs a card, button, link, etc., import the primitive from `ui` (`packages/ui/src`) — **do not render another slice inside it.**
+
+| | Import from `ui` (do this) | Nest another slice (don't) |
+| --- | --- | --- |
+| Input | plain props you map yourself | a Prismic `slice` object (`slice.primary.*`) you'd have to fake |
+| Coupling | one-way: `cms/slices` → `ui` | slice ↔ slice, breaks when either model changes |
+| Design changes | edit one primitive, every slice follows | edit each slice separately |
+| Prismic | works | a slice can only sit in a slice zone, never inside another slice |
+
+Each slice maps **its own fields** onto the primitive. Two slices with the same visual can still have different models — only the primitive is shared.
+
+### Sample: the same `Card` used by two slices with different models
+
+```tsx
+// InfoCardList — fields per item: title (text), body (rich text)
+import { Card, CardContent, CardHeader, CardTitle } from "ui";
+
+<Card className="bg-muted">
+  <CardHeader>
+    <CardTitle>{item.title}</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <PrismicRichText field={item.body} />
+  </CardContent>
+</Card>;
+```
+
+```tsx
+// Accordion — fields per item: note (text), necessities (rich text), link + link_label
+import { Card, CardContent, ChevronLink } from "ui";
+
+{item.note ? (
+  <Card className="mb-[29px] gap-0 rounded bg-[#F4F7F6] py-7 ring-0">
+    <CardContent className="px-8">
+      <p className="m-0! leading-6 font-bold">{item.note}</p>
+    </CardContent>
+  </Card>
+) : null}
+
+{isFilled.link(item.link) ? (
+  <ChevronLink field={item.link} className="mb-0 pt-5">
+    {item.link_label}
+  </ChevronLink>
+) : null}
+```
+
+Overriding a primitive's defaults (`rounded`, `ring-0`, `py-7`) with `className` is fine — `cn` (tailwind-merge) lets the slice's classes win. If the same override repeats in a **second** slice, extract a small shared component into `ui` (e.g. `InfoBox variant="note" | "outline"`) rather than copying the classes or nesting a slice.
+
+### Tailwind must be able to see the classes
+
+Classes that only appear in `packages/ui/src` or `packages/cms/src` are generated only if `apps/frontend/app/globals.css` lists them with `@source`. Both are registered today; a new package needs its own `@source` line, otherwise its styles silently don't render.

@@ -1,6 +1,6 @@
 # LinkList
 
-An optional heading followed by a vertical, unlimited-length list of chevron links — the general-purpose sibling to `Accordion`'s (max 2) and `DisclosureList`'s (max 1) trailing links.
+An optional heading followed by a vertical, unlimited-length list of chevron links — the general-purpose sibling to `Accordion`'s (max 2) trailing links.
 
 **Live examples**: none authored yet — added for the "Reservations and fares" page's "How to Book" section (3 trailing links: "Changing and Cancelling Reservations", "About Payment", "To Customers Traveling on U.S. Bound Flights"), not yet built out.
 
@@ -11,7 +11,7 @@ An optional heading followed by a vertical, unlimited-length list of chevron lin
 
 ## When NOT to use
 
-- The links are attached to a single collapsible section's content → use `Accordion`'s (`link`/`link2`) or `DisclosureList`'s (`link`) built-in fields instead, to keep the link visually inside that section's panel.
+- The links are attached to a single collapsible section's content → use `Accordion`'s (`link`/`link2`) built-in fields instead, to keep the link visually inside that section's panel.
 - You need each link to look like a button, not a plain chevron link → [`ButtonLink`](../ButtonLink/README.md) / [`FileDownloadList`](../FileDownloadList/README.md).
 
 ## Variation: `default`
@@ -59,5 +59,4 @@ An optional heading followed by a vertical, unlimited-length list of chevron lin
 ## Related slices
 
 - [`Accordion`](../Accordion/README.md) — up to 2 trailing links, attached to a collapsible section.
-- [`DisclosureList`](../DisclosureList/README.md) — 1 trailing link, attached to a collapsible section.
 - [`ButtonLink`](../ButtonLink/README.md) — single prominent button instead of a plain link list.

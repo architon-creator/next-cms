@@ -9,58 +9,94 @@ import {
   ChevronLink,
 } from "ui";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
+import type { SliceContext } from "../types";
+import { getOpenValues, itemValue } from "./cards";
+import { InfoBox } from "./InfoBox";
+import { ItemBoxes } from "./ItemBoxes";
+import {
+  contentClass,
+  iconClass,
+  necessitiesContentClass,
+  titleClass,
+  triggerClass,
+} from "./styles";
 
-export type AccordionProps = SliceComponentProps<Content.AccordionSlice>;
+export type AccordionProps = SliceComponentProps<Content.AccordionSlice, SliceContext>;
 
-export default function Accordion({ slice }: AccordionProps) {
+const DEFAULT_FILE_SIZE_LABEL = "File Size";
+
+export default function Accordion({ slice, context }: AccordionProps) {
+  const showNumber = !slice.primary.hide_number;
+  const fileSizeLabel = context?.labels?.fileSize ?? DEFAULT_FILE_SIZE_LABEL;
+
   return (
     <AccordionRoot
       type="multiple"
-      defaultValue={slice.items.map((_, index) => `item-${index}`)}
-      className="mt-6"
+      defaultValue={getOpenValues(slice.items)}
+      className="pt-[26px]"
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
       {slice.items.map((item, index) => (
         <AccordionItem
-          value={`item-${index}`}
-          className="border-t! border-b-0! py-1 last:border-b!"
+          value={itemValue(index)}
+          className="border-t! border-b-0! last:border-b!"
           key={`${item.title}-${index}`}
         >
-          <AccordionTrigger className="items-center! gap-3 py-3!">
-            <span className="w-5 shrink-0 font-bold text-primary">{index + 1}</span>
-            <span className="flex-1 font-bold text-foreground">{item.title}</span>
+          <AccordionTrigger className={triggerClass}>
+            {showNumber ? (
+              <span className="shrink-0 font-bold text-primary">{index + 1}</span>
+            ) : null}
+            <span className={titleClass}>{item.title}</span>
+            {/* Replaces the shared trigger's default chevrons (hidden by triggerClass) — other apps keep those. */}
+            <span aria-hidden="true" className={iconClass}>
+              expand_circle_down
+            </span>
           </AccordionTrigger>
 
-          <AccordionContent className="pb-2! pl-8! [&_a]:text-primary [&_p]:mb-3 [&_p]:leading-relaxed">
+          <AccordionContent className={contentClass}>
             {item.note ? (
-              <div className="mb-4 rounded bg-muted px-5 py-4">
-                <p className="m-0 font-bold">{item.note}</p>
-              </div>
+              <InfoBox className="mb-[29px]">
+                <p className="m-0! font-bold leading-6">{item.note}</p>
+              </InfoBox>
             ) : null}
 
             <PrismicRichText field={item.body} components={richTextLabelComponents} />
 
+            <ItemBoxes item={item} fileSizeLabel={fileSizeLabel} />
+
             {isFilled.richText(item.necessities) ? (
               <>
                 {item.necessities_heading ? (
-                  <p className="mt-4 mb-2 font-bold">{item.necessities_heading}</p>
+                  <p className="mt-11! mb-3! text-xs leading-[18px]! font-bold">
+                    {item.necessities_heading}
+                  </p>
                 ) : null}
-                <div className="mb-4 rounded border px-5 py-4 [&_h4:not(:first-child)]:mt-4 [&_h4]:mb-1 [&_h4]:text-[0.95rem] [&_h4]:font-bold [&_p]:m-0 [&_p]:text-[0.9rem] [&_p]:text-muted-foreground">
+                <InfoBox variant="outline" contentClassName={necessitiesContentClass}>
                   <PrismicRichText
                     field={item.necessities}
                     components={richTextLabelComponents}
                   />
-                </div>
+                </InfoBox>
               </>
             ) : null}
 
+            {isFilled.richText(item.footnote) ? (
+              <div className="mt-6 text-xs leading-[18px] text-muted-foreground [&_p]:mt-2!">
+                <PrismicRichText field={item.footnote} components={richTextLabelComponents} />
+              </div>
+            ) : null}
+
             {isFilled.link(item.link) ? (
-              <ChevronLink field={item.link}>{item.link_label}</ChevronLink>
+              <ChevronLink field={item.link} className="mb-0 w-fit pt-2">
+                {item.link_label}
+              </ChevronLink>
             ) : null}
 
             {isFilled.link(item.link2) ? (
-              <ChevronLink field={item.link2}>{item.link2_label}</ChevronLink>
+              <ChevronLink field={item.link2} className="mb-0 w-fit pt-2">
+                {item.link2_label}
+              </ChevronLink>
             ) : null}
           </AccordionContent>
         </AccordionItem>

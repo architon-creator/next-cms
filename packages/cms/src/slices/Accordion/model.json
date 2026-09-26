@@ -2,7 +2,7 @@
   "id": "accordion",
   "type": "SharedSlice",
   "name": "Accordion",
-  "description": "Numbered, individually collapsible sections (e.g. a step-by-step process)",
+  "description": "Individually collapsible sections (numbered by default) with optional cards, download buttons and links",
   "variations": [
     {
       "id": "default",
@@ -11,8 +11,27 @@
       "version": "initial",
       "description": "Numbered accordion items",
       "imageUrl": "",
-      "primary": {},
+      "primary": {
+        "hide_number": {
+          "type": "Boolean",
+          "config": {
+            "label": "Hide numbers",
+            "default_value": false,
+            "placeholder_false": "Numbered",
+            "placeholder_true": "Unnumbered"
+          }
+        }
+      },
       "items": {
+        "start_collapsed": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start collapsed",
+            "default_value": false,
+            "placeholder_false": "Open",
+            "placeholder_true": "Collapsed"
+          }
+        },
         "title": {
           "type": "Text",
           "config": { "label": "Title", "placeholder": "" }
@@ -57,6 +76,76 @@
         "link2": {
           "type": "Link",
           "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
+        },
+        "cards": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading4,paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+            "labels": ["muted", "small"],
+            "label": "Cards (each Heading 4 starts a new grey card)",
+            "placeholder": ""
+          }
+        },
+        "file_1_heading": {
+          "type": "Text",
+          "config": { "label": "File 1 Heading", "placeholder": "" }
+        },
+        "file_1_label": {
+          "type": "Text",
+          "config": { "label": "File 1 Button Label", "placeholder": "" }
+        },
+        "file_1": {
+          "type": "Link",
+          "config": { "label": "File 1", "placeholder": "", "allowTargetBlank": true }
+        },
+        "file_1_size": {
+          "type": "Text",
+          "config": { "label": "File 1 Size", "placeholder": "" }
+        },
+        "file_2_heading": {
+          "type": "Text",
+          "config": { "label": "File 2 Heading", "placeholder": "" }
+        },
+        "file_2_label": {
+          "type": "Text",
+          "config": { "label": "File 2 Button Label", "placeholder": "" }
+        },
+        "file_2": {
+          "type": "Link",
+          "config": { "label": "File 2", "placeholder": "", "allowTargetBlank": true }
+        },
+        "file_2_size": {
+          "type": "Text",
+          "config": { "label": "File 2 Size", "placeholder": "" }
+        },
+        "file_3_heading": {
+          "type": "Text",
+          "config": { "label": "File 3 Heading", "placeholder": "" }
+        },
+        "file_3_label": {
+          "type": "Text",
+          "config": { "label": "File 3 Button Label", "placeholder": "" }
+        },
+        "file_3": {
+          "type": "Link",
+          "config": { "label": "File 3", "placeholder": "", "allowTargetBlank": true }
+        },
+        "file_3_size": {
+          "type": "Text",
+          "config": { "label": "File 3 Size", "placeholder": "" }
+        },
+        "downloads_card": {
+          "type": "Number",
+          "config": { "label": "Downloads go in card # (blank = last card)", "placeholder": "" }
+        },
+        "footnote": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink",
+            "labels": ["muted", "small"],
+            "label": "Footnote",
+            "placeholder": ""
+          }
         }
       }
     }

@@ -6,6 +6,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/slices/Accordion/cards.test.ts",
     "types": "prismic-ts-codegen",
     "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts",
     "prismic-seed-content": "tsx scripts/seed-prismic-content-demo.ts"
