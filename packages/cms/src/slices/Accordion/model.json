@@ -23,6 +23,15 @@
         }
       },
       "items": {
+        "start_collapsed": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start collapsed",
+            "default_value": false,
+            "placeholder_false": "Open",
+            "placeholder_true": "Collapsed"
+          }
+        },
         "title": {
           "type": "Text",
           "config": { "label": "Title", "placeholder": "" }

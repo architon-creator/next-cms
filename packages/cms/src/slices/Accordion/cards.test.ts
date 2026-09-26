@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import type { RichTextField } from "@prismicio/client";
 
-import { resolveDownloadsIndex, splitCards } from "./cards";
+import { getOpenValues, itemValue, resolveDownloadsIndex, splitCards } from "./cards";
 
 const node = (type: string, text: string) =>
   ({ type, text, spans: [], direction: "ltr" }) as unknown as RichTextField[number];
@@ -57,5 +57,26 @@ describe("resolveDownloadsIndex", () => {
 
   it("returns 0 when there are no cards", () => {
     assert.equal(resolveDownloadsIndex(null, 0), 0);
+  });
+});
+
+describe("getOpenValues", () => {
+  it("opens every item when none is collapsed (existing content)", () => {
+    assert.deepEqual(getOpenValues([{}, {}, {}] as never), ["item-0", "item-1", "item-2"]);
+  });
+
+  it("leaves out items marked start_collapsed", () => {
+    assert.deepEqual(
+      getOpenValues([{ start_collapsed: false }, { start_collapsed: true }, { start_collapsed: null }]),
+      ["item-0", "item-2"],
+    );
+  });
+
+  it("opens nothing when every item is collapsed", () => {
+    assert.deepEqual(getOpenValues([{ start_collapsed: true }]), []);
+  });
+
+  it("uses the same value format as the item keys", () => {
+    assert.equal(itemValue(4), "item-4");
   });
 });

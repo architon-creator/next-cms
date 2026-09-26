@@ -10,7 +10,7 @@ This slice replaces the former `DisclosureList` slice (see [Migrating from Discl
 
 - An ordered sequence of steps, each collapsible → leave `hide_number` off.
 - A set of topics that each need a title, some text, and optionally cards, downloads and links → turn `hide_number` on.
-- All sections should be visible/expanded by default (this slice always starts fully open — see [Rendering & behavior](#rendering--behavior)).
+- Sections start open by default; tick `start_collapsed` on any item to start it closed (see [Rendering & behavior](#rendering--behavior)).
 
 ## When NOT to use
 
@@ -36,6 +36,7 @@ All item fields are flat — Prismic can't nest a Group inside an `items` zone (
 | Field   | Type                                                                                              | Required | Notes                                                                                                                                                  |
 | ------- | ------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `title` | Text                                                                                              | Yes      | The section heading (next to its number, if numbered).                                                                                                 |
+| `start_collapsed` | Boolean                                                                                 | No       | Off (default) → the section starts open. On → it starts collapsed. Existing content has no value, so it stays open.                                    |
 | `note`  | Text                                                                                              | No       | A single-line bold note in a grey box above the body (e.g. "From 3 hours to 1 hour before departure").                                                 |
 | `body`  | Rich Text (`paragraph,strong,em,hyperlink,list-item,o-list-item`; labels `muted`, `small`)        | No       | Main text. `muted`/`small` labels de-emphasise inline text via the shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer.   |
 
@@ -105,7 +106,7 @@ All item fields are flat — Prismic can't nest a Group inside an `items` zone (
 ## Rendering & behavior
 
 - Built on `Accordion` / `AccordionItem` / `AccordionTrigger` / `AccordionContent` from `ui` (Radix underneath). The shared `ui` accordion is **not modified** — other apps use it.
-- `type="multiple"` with every item open by default (matches the source designs). Users can still collapse sections individually.
+- `type="multiple"`: any number of sections can be open. Every item starts **open** unless its `start_collapsed` is ticked (open/closed is per item, so mixed states work). Users can toggle sections either way.
 - **Numbering** comes from the array index, not from Prismic — reordering items renumbers them.
 - **Trigger row:** the whole row is clickable (pointer cursor). On hover the title turns green and underlines; the number does not.
 - **Trigger icon:** Google Material Symbols `expand_circle_down` (green), rotated 180° when open. The slice hides the shared trigger's default chevrons and draws its own. The font is loaded by a `<link>` in `apps/frontend/app/[locale]/layout.tsx` (a CSS `@import` in `globals.css` doesn't work — Tailwind's generated rules must precede imports). **Any other app rendering this slice must load the same font**, otherwise the icon shows as the text "expand_circle_down".
@@ -156,7 +157,7 @@ Set `hide_number` on, since `DisclosureList` was unnumbered. Many former slices 
 
 ## Known limitations
 
-- **No "collapsed by default" option** — every item starts open. Mixed default-open/closed would need a new field (cf. `FaqQuestionList`'s `accordion` variation's `current` field).
+- **Collapsed-by-default is per item** — there's no single "collapse all" switch on the slice, so an all-closed list means ticking `start_collapsed` on each item.
 - **Downloads are capped at 3 per section** — they are flat fields (`file_1..3`) because Prismic can't nest a Group inside `items`. A fourth would need four new fields.
 - **`downloads_card` is a position**, not a link to a card: inserting or reordering cards can move the buttons into the wrong card.
 - **Cards are rich text**, so they can hold text, lists and images only — no buttons or other components (downloads are separate fields).

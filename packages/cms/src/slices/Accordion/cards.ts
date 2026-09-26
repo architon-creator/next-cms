@@ -18,6 +18,18 @@ export function splitCards(field: RichTextField): RichTextField[] {
 }
 
 /**
+ * Values of the items that start open. An item is open unless the editor ticked
+ * `start_collapsed` — so content that predates the field stays fully open.
+ */
+export function getOpenValues(items: { start_collapsed?: boolean | null }[]): string[] {
+  return items.flatMap((item, index) => (item.start_collapsed ? [] : [itemValue(index)]));
+}
+
+export function itemValue(index: number): string {
+  return `item-${index}`;
+}
+
+/**
  * Which card (0-based) holds the download buttons. `requested` is the editor's
  * 1-based `downloads_card`; blank or out of range falls back to the last card.
  */

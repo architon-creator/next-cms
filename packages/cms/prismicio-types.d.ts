@@ -858,6 +858,17 @@ export interface AccordionSliceDefaultPrimary {
  */
 export interface AccordionSliceDefaultItem {
 	/**
+	 * Start collapsed field in *Accordion → Items*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.items[].start_collapsed
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	start_collapsed: prismic.BooleanField;
+	
+	/**
 	 * Title field in *Accordion → Items*
 	 *
 	 * - **Field Type**: Text

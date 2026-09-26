@@ -10,6 +10,7 @@ import {
 } from "ui";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
 import type { SliceContext } from "../types";
+import { getOpenValues, itemValue } from "./cards";
 import { InfoBox } from "./InfoBox";
 import { ItemBoxes } from "./ItemBoxes";
 import {
@@ -31,14 +32,14 @@ export default function Accordion({ slice, context }: AccordionProps) {
   return (
     <AccordionRoot
       type="multiple"
-      defaultValue={slice.items.map((_, index) => `item-${index}`)}
+      defaultValue={getOpenValues(slice.items)}
       className="pt-[26px]"
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >
       {slice.items.map((item, index) => (
         <AccordionItem
-          value={`item-${index}`}
+          value={itemValue(index)}
           className="border-t! border-b-0! last:border-b!"
           key={`${item.title}-${index}`}
         >
