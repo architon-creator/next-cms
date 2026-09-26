@@ -1,57 +1,73 @@
 # Accordion
 
-Individually collapsible sections (numbered by default; set `hide_number` for plain titles) — for a step-by-step process where each step needs a title, some body copy, and optionally a highlighted callout, a "necessities" checklist, and up to two trailing links.
+Individually collapsible sections. Numbered by default (a step-by-step process); turn on `hide_number` for plain titled sections. Each section can have a highlighted note, body text, grey cards, download buttons, a "necessities" box, a footnote and up to two trailing links.
 
-**Live examples**: Boarding Process (`boarding-process`).
+**Live examples**: Boarding Process (`boarding-process`, numbered), Special Assistance (`special-assistance`, unnumbered, cards + downloads + footnotes).
+
+This slice replaces the former `DisclosureList` slice (see [Migrating from DisclosureList](#migrating-from-disclosurelist)).
 
 ## When to use
 
-- The content is an ordered sequence of steps (numbered).
-- Each step benefits from being collapsible, but all steps should be visible/expanded by default (this slice always starts fully open — see [Rendering & behavior](#rendering--behavior)).
+- An ordered sequence of steps, each collapsible → leave `hide_number` off.
+- A set of topics that each need a title, some text, and optionally cards, downloads and links → turn `hide_number` on.
+- All sections should be visible/expanded by default (this slice always starts fully open — see [Rendering & behavior](#rendering--behavior)).
 
 ## When NOT to use
 
-- The sections aren't a sequence → still use this slice, and turn on `hide_number` to drop the `1, 2, 3…` numbers.
-- You need more than two trailing links per item → use [`LinkList`](../LinkList/README.md) as a separate slice after this one, or split further.
+- More than two trailing links per section → put a [`LinkList`](../LinkList/README.md) slice after this one.
+- A standalone list of cards that doesn't collapse → [`InfoCardList`](../InfoCardList/README.md).
+- Downloads that aren't tied to a section → [`FileDownloadList`](../FileDownloadList/README.md).
+- More than 3 downloads in one section, or downloads needing more than a heading per button → the flat-field model tops out at 3 (see [Known limitations](#known-limitations)).
 
 ## Variation: `default`
 
-No primary fields — everything lives on repeatable `items`.
-
-### Item fields
-
-| Field                 | Type                                                                                               | Required | Notes                                                                                                                                                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `title`               | Text                                                                                               | Yes      | The step's heading, shown next to its number.                                                                                                                                                                                        |
-| `note`                | Text                                                                                               | No       | A single-line highlighted note rendered in a `bg-muted` box above the body (e.g. "From 3 hours to 1 hour before departure").                                                                                                         |
-| `body`                | Rich Text (multi: `paragraph,strong,em,hyperlink,list-item,o-list-item`; labels: `muted`, `small`) | No       | Main step content. The `muted`/`small` toolbar labels are available for de-emphasizing inline text (e.g. an asterisked caveat) — rendered via the shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer. |
-| `necessities_heading` | Text                                                                                               | No       | Heading above the "necessities" box (e.g. "Necessities"). Only rendered if `necessities` has content.                                                                                                                                |
-| `necessities`         | Rich Text (multi: `heading4,paragraph,strong,em,hyperlink`)                                        | No       | A bordered checklist box. Use `heading4` blocks as sub-item titles followed by a `paragraph` — see example.                                                                                                                          |
-| `link_label`          | Text                                                                                               | No       | Label for the first trailing link.                                                                                                                                                                                                   |
-| `link`                | Link (target-blank allowed)                                                                        | No       | First trailing link. Rendered as a chevron link only if filled.                                                                                                                                                                      |
-| `link2_label`         | Text                                                                                               | No       | Label for the second trailing link.                                                                                                                                                                                                  |
-| `link2`               | Link (target-blank allowed)                                                                        | No       | Second trailing link.                                                                                                                                                                                                                |
-
 ### Primary field
 
-| Field         | Type    | Notes                                                                                                             |
-| ------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
-| `hide_number` | Boolean | Off by default → numbered `1, 2, 3…`. Turn on for plain titled sections (e.g. Special Assistance). Existing pages are unaffected. |
+| Field         | Type    | Notes                                                                                                   |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `hide_number` | Boolean | Off (default) → numbered `1, 2, 3…`. On → plain titles. Existing numbered pages are unaffected.         |
 
-### Extra item fields (cards, downloads, footnote)
+### Item fields (repeatable `items`)
 
-All flat — Prismic can't nest a Group inside `items` (see [Flat-slice limitation](../README.md#conventions-used-across-every-slice)).
+All item fields are flat — Prismic can't nest a Group inside an `items` zone (see the [flat-slice limitation](../README.md#conventions-used-across-every-slice)).
 
-| Field                                                                    | Type                                  | Notes                                                                                                                                                                |
-| ------------------------------------------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cards`                                                                  | Rich Text (`heading4`, paragraph, lists, hyperlink, **image**) | Grey cards. **Every `heading4` starts a new card**; anything until the next `heading4` (paragraphs, lists, an image) goes inside it. Any number of cards. |
-| `file_1_heading` / `file_2_heading` / `file_3_heading`                   | Text                                  | Optional bold sub-heading above that download button (e.g. "Canada-bound Service").                                                                                  |
-| `file_N_label`, `file_N`, `file_N_size`                                  | Text, Link, Text                      | Outline download button + "File Size: …" caption. Up to 3 slots. The button is disabled if `file_N` has no link.                                                     |
-| `footnote`                                                               | Rich Text (paragraph, strong, em, hyperlink; labels `muted`, `small`) | Small muted text after the downloads (e.g. `* Assistance and service dogs…`).                                                                                        |
+**Content**
 
-Render order inside an item: `note` → `body` → `cards` (with the downloads **inside the card numbered by `downloads_card`** — the last card if blank — or in a card of their own when there are no cards) → `necessities` → `footnote` → `link`/`link2`.
+| Field   | Type                                                                                              | Required | Notes                                                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `title` | Text                                                                                              | Yes      | The section heading (next to its number, if numbered).                                                                                                 |
+| `note`  | Text                                                                                              | No       | A single-line bold note in a grey box above the body (e.g. "From 3 hours to 1 hour before departure").                                                 |
+| `body`  | Rich Text (`paragraph,strong,em,hyperlink,list-item,o-list-item`; labels `muted`, `small`)        | No       | Main text. `muted`/`small` labels de-emphasise inline text via the shared [`richTextLabelComponents`](../../lib/rich-text-components.tsx) serializer.   |
 
-### Example: an unnumbered section with cards and a download
+**Cards and downloads**
+
+| Field                                                | Type                                                                            | Notes                                                                                                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cards`                                              | Rich Text (`heading4`, paragraph, strong, em, hyperlink, lists, **image**; labels `muted`, `small`) | Grey cards. **Every `heading4` starts a new card**; everything until the next `heading4` (paragraphs, lists, an image) goes inside it. Any number of cards.       |
+| `downloads_card`                                     | Number                                                                          | Which card (1-based) holds the download buttons. Blank or out of range → the last card. With no cards, the downloads get a card of their own.                              |
+| `file_1_heading` … `file_3_heading`                  | Text                                                                            | Optional bold sub-heading above that download button (e.g. "Canada-bound Service").                                                                                         |
+| `file_N_label`, `file_N`, `file_N_size`              | Text, Link, Text                                                                | Outline button + "File Size: …" caption (left-aligned). Up to 3 slots. The button is disabled (greyed) if `file_N` has no link.                                             |
+| `footnote`                                           | Rich Text (`paragraph,strong,em,hyperlink`; labels `muted`, `small`)            | Small muted text after the cards and downloads (e.g. `* Assistance and service dogs…`).                                                                                     |
+
+**Necessities and links**
+
+| Field                 | Type                                                        | Notes                                                                                                         |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `necessities_heading` | Text                                                        | Small bold label above the necessities box (e.g. "Necessities"). Only rendered if `necessities` has content.  |
+| `necessities`         | Rich Text (`heading4,paragraph,strong,em,hyperlink`)        | A bordered (white) box. `heading4` = sub-item title, followed by a `paragraph`.                                |
+| `link_label`, `link`  | Text, Link (target-blank allowed)                           | First trailing chevron link (`Check-in ›`). Rendered only if `link` is filled.                                 |
+| `link2_label`, `link2`| Text, Link (target-blank allowed)                           | Second trailing chevron link.                                                                                  |
+
+**Render order inside a section:** `note` → `body` → `cards` (downloads inside the chosen card) → `necessities_heading` + `necessities` → `footnote` → `link` → `link2`.
+
+### Authoring tips
+
+- **Line breaks:** in a rich-text paragraph, Shift+Enter inserts a line break (rendered as `<br>`), so two lines can sit together without the paragraph gap.
+- **Cards:** start each card with a **Heading 4**. Content placed before the first Heading 4 becomes a card with no heading.
+- **Downloads in a specific card:** set `downloads_card` to the card's position. If you later insert a card above it, update the number — it is a position, not a link to the card.
+- **Placeholder links:** use `#` until the real destination exists (project convention).
+
+### Example: an unnumbered section with a card and a download
 
 ```json
 {
@@ -67,31 +83,19 @@ Render order inside an item: `note` → `body` → `cards` (with the downloads *
 }
 ```
 
-### Example content (one item)
+### Example: a numbered step with a note, necessities and a link
 
 ```json
 {
   "title": "Check-in",
   "note": "From 3 hours to 1 hour before departure (check-in may start earlier depending on the number of passengers).",
   "body": [
-    {
-      "type": "paragraph",
-      "content": {
-        "text": "Please check in at the check-in counter one hour before departure...",
-        "spans": []
-      }
-    }
+    { "type": "paragraph", "content": { "text": "Please check in at the check-in counter one hour before departure...", "spans": [] } }
   ],
   "necessities_heading": "Necessities",
   "necessities": [
     { "type": "heading4", "content": { "text": "Itinerary", "spans": [] } },
-    {
-      "type": "paragraph",
-      "content": {
-        "text": "Present the printed paper or the electronic version sent by email.",
-        "spans": []
-      }
-    }
+    { "type": "paragraph", "content": { "text": "Present the printed paper or the electronic version sent by email.", "spans": [] } }
   ],
   "link_label": "Check-in",
   "link": { "url": "#" }
@@ -100,41 +104,68 @@ Render order inside an item: `note` → `body` → `cards` (with the downloads *
 
 ## Rendering & behavior
 
-- Built on shadcn's `Accordion`/`AccordionItem`/`AccordionTrigger`/`AccordionContent` (`ui`, Radix underneath).
-- `type="multiple"` with `defaultValue` set to **every** item's key — all sections start expanded. This is deliberate (matches the source designs, which showed every step visible), not the Radix default. Users can still individually collapse sections since it's a real accordion, not a static list.
-- Item numbering (`1`, `2`, `3`...) is computed from array index, not stored in Prismic — reordering items in the dashboard automatically renumbers them.
+- Built on `Accordion` / `AccordionItem` / `AccordionTrigger` / `AccordionContent` from `ui` (Radix underneath). The shared `ui` accordion is **not modified** — other apps use it.
+- `type="multiple"` with every item open by default (matches the source designs). Users can still collapse sections individually.
+- **Numbering** comes from the array index, not from Prismic — reordering items renumbers them.
+- **Trigger row:** the whole row is clickable (pointer cursor). On hover the title turns green and underlines; the number does not.
+- **Trigger icon:** Google Material Symbols `expand_circle_down` (green), rotated 180° when open. The slice hides the shared trigger's default chevrons and draws its own. The font is loaded by a `<link>` in `apps/frontend/app/[locale]/layout.tsx` (a CSS `@import` in `globals.css` doesn't work — Tailwind's generated rules must precede imports). **Any other app rendering this slice must load the same font**, otherwise the icon shows as the text "expand_circle_down".
+- **Links** inside the panel (in-text hyperlinks and chevron links) are plain green, underline on hover, and don't change colour on hover.
+- **Downloads** render inside a card; `downloads_card` picks which one.
+- **"File Size" label:** not a Prismic field. Pages pass it via `SliceRenderer`'s `context.labels.fileSize` (the frontend sets it per locale in `apps/frontend/lib/slice-context.ts`); it falls back to English.
 
 ## Files
 
-| File                   | Responsibility                                                                                      |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `index.tsx`            | The slice: accordion shell, trigger (number, title, icon), note, necessities, footnote, links.      |
-| `ItemBoxes.tsx`        | The grey cards from `cards`, with the downloads inside the card chosen by `downloads_card`.         |
-| `Downloads.tsx`        | Download buttons with optional sub-headings and the "File Size" caption (label comes from context). |
-| `InfoBox.tsx`          | The flat box (`fill` / `outline` variants) — the one place the box padding and colour are defined.  |
-| `cards.ts`             | Pure logic: `splitCards`, `resolveDownloadsIndex`. Unit-tested in `cards.test.ts` (`pnpm test`).     |
-| `styles.ts`            | The long Tailwind class constants, with the design measurements they came from.                      |
-| `types.ts`             | `AccordionItem` type.                                                                                |
-
-The "File Size" prefix is not a Prismic field: pages pass it as `SliceRenderer`'s `context.labels.fileSize` (the frontend sets it per locale in `apps/frontend/lib/slice-context.ts`); it defaults to English.
+| File            | Responsibility                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `index.tsx`     | The slice: accordion shell, trigger (number, title, icon), note, necessities, footnote, links.        |
+| `ItemBoxes.tsx` | The grey cards from `cards`, with the downloads inside the card chosen by `downloads_card`.           |
+| `Downloads.tsx` | Download buttons with optional sub-headings and the "File Size" caption.                               |
+| `InfoBox.tsx`   | The flat box (`fill` / `outline` variants) — the one place the box padding and colour are defined.    |
+| `cards.ts`      | Pure logic: `splitCards`, `resolveDownloadsIndex`. Unit-tested in `cards.test.ts` (`pnpm test` in `packages/cms`). |
+| `styles.ts`     | The long Tailwind class constants, each with the design measurement it came from.                     |
+| `types.ts`      | The `AccordionItem` type.                                                                             |
 
 ## Styling conventions
 
-Values below were measured from the source design (ZIPAIR Boarding Process) in browser DevTools.
+Values were measured from the source design (ZIPAIR Boarding Process / Special Assistance) in browser DevTools. They live in `styles.ts` and `InfoBox.tsx`.
 
-- Built from `ui` primitives (`Card`, `CardContent`, `ChevronLink`), not other slices — see [Composing a slice](../README.md#composing-a-slice-use-ui-primitives-never-other-slices).
-- Header row: `py-5` (20px) around a 24px line, 16px text. Number `text-primary font-bold`, title `text-foreground font-bold`. The item has no vertical padding of its own.
-- Panel (`AccordionContent`): padding `7px 0 48px`, 16px text, `#100D0D`, 24px line height, paragraphs `margin: 16px 0 0`. Content is **not** indented under the number.
-- `note` box: `Card` with `bg-[#F4F7F6]`, padding `28px 32px`, `margin-bottom: 29px`, bold 24px line.
-- `necessities`: a small bold 12px label (`necessities_heading`, `margin-top: 44px`, 12px gap below) above a `Card` with a 1px `border`, padding `28px 32px`, no bottom margin. `heading4` is bold 24px-line, its paragraph 12px / 18px line, 26px between groups.
-- Trailing links: shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) with `pt-5 mb-0` (20px above, no margin).
-- shadcn's default `AccordionItem` border classes are overridden (`border-t! border-b-0! last:border-b!`) to get one divider between items instead of Radix's default (which would double up with this slice's own top border).
-- The two raw hex values (`#F4F7F6`, `#100D0D`) are deliberate off-palette design colours taken from the source design.
+- Built from `ui` primitives (`Card`, `Button`, `ChevronLink`), not other slices — see [Composing a slice](../README.md#composing-a-slice-use-ui-primitives-never-other-slices).
+- **Colours** are theme tokens defined in `apps/frontend/app/globals.css`: `bg-surface-muted` (`#f4f7f6`) for boxes and cards, `text-ink` (`#100d0d`) for body text and titles, `text-primary` for numbers, icon and links.
+- **Trigger row:** `py-5` (20px) around a 24px line, 16px bold title, 10px gap between number and title. The item has no vertical padding of its own.
+- **Panel:** padding `7px 0 48px`, 16px / 24px text, paragraphs `margin: 16px 0 0`. Content is not indented under the number.
+- **`note` box:** grey `InfoBox`, padding `28px 32px`, `margin-bottom: 29px`, bold 24px line.
+- **Cards:** grey `InfoBox`, padding `28px 32px`, `margin-top: 16px`; headings 18px regular (24px line, 12px gap below); text and lists 12px / 18px.
+- **Downloads:** buttons max 320px wide, white background with a green outline; the size caption is 12px, left-aligned.
+- **`necessities`:** small bold 12px label (`margin-top: 44px`, 12px gap below) above an outlined `InfoBox`; `heading4` bold with a 24px line, text 12px / 18px, 26px between groups.
+- **Footnote:** 12px / 18px muted text, 24px above.
+- **Trailing links:** `ChevronLink` with `w-fit pt-2 mb-0` — `w-fit` keeps the hover/click area to the text, not the full row.
+- shadcn's default `AccordionItem` border classes are overridden (`border-t! border-b-0! last:border-b!`) for one divider between items.
+
+## Migrating from DisclosureList
+
+`DisclosureList` (one slice per topic) was merged into this slice and removed. Mapping:
+
+| DisclosureList field         | Accordion equivalent                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| `title`, `body`              | `title`, `body` (one Accordion item per former slice)                             |
+| `box_heading` + `box_body`   | one card in `cards`: a `heading4` (the box heading) followed by the box body      |
+| `files` group                | `file_1..3` (label, link, size) — max 3                                            |
+| `link_label`, `link`         | `link_label`, `link`                                                              |
+
+Set `hide_number` on, since `DisclosureList` was unnumbered. Many former slices can become items of a single Accordion slice.
 
 ## Known limitations
 
-- No "collapsed by default" option — every item always starts open. If a future design needs mixed default-open/closed state, this would need a new primary/item field (cf. `FaqQuestionList`'s `accordion` variation's `current` field).
+- **No "collapsed by default" option** — every item starts open. Mixed default-open/closed would need a new field (cf. `FaqQuestionList`'s `accordion` variation's `current` field).
+- **Downloads are capped at 3 per section** — they are flat fields (`file_1..3`) because Prismic can't nest a Group inside `items`. A fourth would need four new fields.
+- **`downloads_card` is a position**, not a link to a card: inserting or reordering cards can move the buttons into the wrong card.
+- **Cards are rich text**, so they can hold text, lists and images only — no buttons or other components (downloads are separate fields).
+- **Icon font dependency** — the Material Symbols font must be loaded by the host app (see Rendering & behavior). There is no inline fallback.
+- **Wide editor form** — the item has many optional fields; only the ones a section needs should be filled.
 
 ## Related slices
 
+- [`InfoCardList`](../InfoCardList/README.md) — a stack of grey cards that doesn't collapse.
+- [`LinkList`](../LinkList/README.md) — an unlimited list of chevron links, for more than the two trailing links here.
+- [`FileDownloadList`](../FileDownloadList/README.md) — standalone downloads not tied to a collapsible section.
 - [`FaqQuestionList`](../FaqQuestionList/README.md) `accordion` variation — single-item collapsible category block.
