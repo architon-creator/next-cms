@@ -104,6 +104,20 @@ Render order inside an item: `note` → `body` → `cards` (with the downloads *
 - `type="multiple"` with `defaultValue` set to **every** item's key — all sections start expanded. This is deliberate (matches the source designs, which showed every step visible), not the Radix default. Users can still individually collapse sections since it's a real accordion, not a static list.
 - Item numbering (`1`, `2`, `3`...) is computed from array index, not stored in Prismic — reordering items in the dashboard automatically renumbers them.
 
+## Files
+
+| File                   | Responsibility                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `index.tsx`            | The slice: accordion shell, trigger (number, title, icon), note, necessities, footnote, links.      |
+| `ItemBoxes.tsx`        | The grey cards from `cards`, with the downloads inside the card chosen by `downloads_card`.         |
+| `Downloads.tsx`        | Download buttons with optional sub-headings and the "File Size" caption (label comes from context). |
+| `InfoBox.tsx`          | The flat box (`fill` / `outline` variants) — the one place the box padding and colour are defined.  |
+| `cards.ts`             | Pure logic: `splitCards`, `resolveDownloadsIndex`. Unit-tested in `cards.test.ts` (`pnpm test`).     |
+| `styles.ts`            | The long Tailwind class constants, with the design measurements they came from.                      |
+| `types.ts`             | `AccordionItem` type.                                                                                |
+
+The "File Size" prefix is not a Prismic field: pages pass it as `SliceRenderer`'s `context.labels.fileSize` (the frontend sets it per locale in `apps/frontend/lib/slice-context.ts`); it defaults to English.
+
 ## Styling conventions
 
 Values below were measured from the source design (ZIPAIR Boarding Process) in browser DevTools.

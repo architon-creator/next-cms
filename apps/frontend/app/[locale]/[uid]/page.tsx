@@ -5,6 +5,7 @@ import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "c
 
 import { cn } from "@/lib/utils";
 import { formatLabel } from "@/lib/format-label";
+import { getSliceContext } from "@/lib/slice-context";
 
 type PageProps = { params: Promise<{ locale: string; uid: string }> };
 
@@ -31,6 +32,7 @@ export default async function Page({ params }: PageProps) {
     ],
   };
 
+  const sliceContext = getSliceContext(locale);
   const hasAside = page.data.aside.length > 0;
   const hasFooter = page.data.footer.length > 0;
   // Design order is always breadcrumbs above the title, whatever order the
@@ -52,20 +54,20 @@ export default async function Page({ params }: PageProps) {
       >
         <div className="md:col-span-2">
           {heading.map((slice, index) => (
-            <SliceRenderer key={`heading-${index}`} slice={slice} />
+            <SliceRenderer key={`heading-${index}`} slice={slice} context={sliceContext} />
           ))}
         </div>
 
         <main className={cn("min-w-0", !hasAside && "md:col-span-2")}>
           {page.data.main.map((slice, index) => (
-            <SliceRenderer key={`main-${index}`} slice={slice} />
+            <SliceRenderer key={`main-${index}`} slice={slice} context={sliceContext} />
           ))}
         </main>
 
         {hasAside ? (
           <aside className="min-w-0">
             {page.data.aside.map((slice, index) => (
-              <SliceRenderer key={`aside-${index}`} slice={slice} />
+              <SliceRenderer key={`aside-${index}`} slice={slice} context={sliceContext} />
             ))}
           </aside>
         ) : null}
@@ -73,7 +75,7 @@ export default async function Page({ params }: PageProps) {
         {hasFooter ? (
           <footer className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-4 md:col-span-2">
             {page.data.footer.map((slice, index) => (
-              <SliceRenderer key={`footer-${index}`} slice={slice} />
+              <SliceRenderer key={`footer-${index}`} slice={slice} context={sliceContext} />
             ))}
           </footer>
         ) : null}
