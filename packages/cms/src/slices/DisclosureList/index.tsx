@@ -33,7 +33,7 @@ export default function DisclosureList({ slice }: DisclosureListProps) {
           <span className="flex-1 font-bold text-foreground">{title}</span>
         </AccordionTrigger>
 
-        <AccordionContent className="pb-2! [&_a]:text-primary [&_p]:mb-3 [&_p]:leading-relaxed">
+        <AccordionContent className="pb-2! [&_a]:text-primary [&_p]:mb-3 [&_p]:leading-relaxed [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5">
           <PrismicRichText field={body} />
 
           {hasBox ? (

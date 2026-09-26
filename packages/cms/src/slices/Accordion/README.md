@@ -1,6 +1,6 @@
 # Accordion
 
-Numbered, individually collapsible sections — for a step-by-step process where each step needs a title, some body copy, and optionally a highlighted callout, a "necessities" checklist, and up to two trailing links.
+Individually collapsible sections (numbered by default; set `hide_number` for plain titles) — for a step-by-step process where each step needs a title, some body copy, and optionally a highlighted callout, a "necessities" checklist, and up to two trailing links.
 
 **Live examples**: Boarding Process (`boarding-process`).
 
@@ -31,6 +31,41 @@ No primary fields — everything lives on repeatable `items`.
 | `link`                | Link (target-blank allowed)                                                                        | No       | First trailing link. Rendered as a chevron link only if filled.                                                                                                                                                                      |
 | `link2_label`         | Text                                                                                               | No       | Label for the second trailing link.                                                                                                                                                                                                  |
 | `link2`               | Link (target-blank allowed)                                                                        | No       | Second trailing link.                                                                                                                                                                                                                |
+
+### Primary field
+
+| Field         | Type    | Notes                                                                                                             |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `hide_number` | Boolean | Off by default → numbered `1, 2, 3…`. Turn on for plain titled sections (e.g. Special Assistance). Existing pages are unaffected. |
+
+### Extra item fields (cards, downloads, footnote)
+
+All flat — Prismic can't nest a Group inside `items` (see [Flat-slice limitation](../README.md#conventions-used-across-every-slice)).
+
+| Field                                                                    | Type                                  | Notes                                                                                                                                                                |
+| ------------------------------------------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cards`                                                                  | Rich Text (`heading4`, paragraph, lists, hyperlink, **image**) | Grey cards. **Every `heading4` starts a new card**; anything until the next `heading4` (paragraphs, lists, an image) goes inside it. Any number of cards. |
+| `file_1_heading` / `file_2_heading` / `file_3_heading`                   | Text                                  | Optional bold sub-heading above that download button (e.g. "Canada-bound Service").                                                                                  |
+| `file_N_label`, `file_N`, `file_N_size`                                  | Text, Link, Text                      | Outline download button + "File Size: …" caption. Up to 3 slots. The button is disabled if `file_N` has no link.                                                     |
+| `footnote`                                                               | Rich Text (paragraph, strong, em, hyperlink; labels `muted`, `small`) | Small muted text after the downloads (e.g. `* Assistance and service dogs…`).                                                                                        |
+
+Render order inside an item: `note` → `body` → `cards` → downloads → `necessities` → `footnote` → `link`/`link2`.
+
+### Example: an unnumbered section with cards and a download
+
+```json
+{
+  "title": "Pregnant Customers",
+  "body": [{ "type": "paragraph", "content": { "text": "Pregnant customers must confirm the following…", "spans": [] } }],
+  "cards": [
+    { "type": "heading4", "content": { "text": "Due Date", "spans": [] } },
+    { "type": "paragraph", "content": { "text": "If you are within 28 days of your expected delivery date…", "spans": [] } }
+  ],
+  "file_1_label": "MEDICAL INFORMATION FORM (Questionnaire)",
+  "file_1": { "url": "#" },
+  "file_1_size": "504KB"
+}
+```
 
 ### Example content (one item)
 

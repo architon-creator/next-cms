@@ -1,11 +1,14 @@
 import { Content, isFilled } from "@prismicio/client";
-import { PrismicRichText, SliceComponentProps } from "@prismicio/react";
+import type { RichTextField } from "@prismicio/client";
+import { PrismicNextImage, PrismicNextLink } from "@prismicio/next";
+import { JSXMapSerializer, PrismicRichText, SliceComponentProps } from "@prismicio/react";
 
 import {
   Accordion as AccordionRoot,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
+  Button,
   Card,
   CardContent,
   ChevronLink,
@@ -14,7 +17,28 @@ import { richTextLabelComponents } from "../../lib/rich-text-components";
 
 export type AccordionProps = SliceComponentProps<Content.AccordionSlice>;
 
+const cardComponents: JSXMapSerializer = {
+  ...richTextLabelComponents,
+  image: ({ node }) => (
+    <PrismicNextImage field={node} className="mt-4 h-auto max-w-full" />
+  ),
+};
+
+/** Splits a rich-text field into cards: every `heading4` starts a new card. */
+function splitCards(field: RichTextField): RichTextField[] {
+  const cards: RichTextField[] = [];
+  for (const node of field) {
+    if (node.type === "heading4" || cards.length === 0) cards.push([]);
+    (cards[cards.length - 1] as RichTextField).push(node as never);
+  }
+  return cards;
+}
+
+const files = [1, 2, 3] as const;
+
 export default function Accordion({ slice }: AccordionProps) {
+  const showNumber = !slice.primary.hide_number;
+
   return (
     <AccordionRoot
       type="multiple"
@@ -29,12 +53,23 @@ export default function Accordion({ slice }: AccordionProps) {
           className="border-t! border-b-0! last:border-b!"
           key={`${item.title}-${index}`}
         >
-          <AccordionTrigger className="items-center! gap-3 py-5! text-base">
-            <span className="w-5 shrink-0 font-bold text-primary">{index + 1}</span>
-            <span className="flex-1 font-bold text-foreground">{item.title}</span>
+          <AccordionTrigger className="items-center! gap-2.5 py-5! text-base hover:no-underline **:data-[slot=accordion-trigger-icon]:hidden!">
+            {showNumber ? (
+              <span className="shrink-0 font-bold text-primary">{index + 1}</span>
+            ) : null}
+            <span className="flex-1 font-bold text-[#100D0D] group-hover/accordion-trigger:text-primary group-hover/accordion-trigger:underline">
+              {item.title}
+            </span>
+            {/* Replaces the shared trigger's default chevrons (hidden above) — other apps keep those. */}
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none shrink-0 leading-none text-primary transition-transform group-aria-expanded/accordion-trigger:rotate-180"
+            >
+              expand_circle_down
+            </span>
           </AccordionTrigger>
 
-          <AccordionContent className="pt-[7px]! pb-12! text-base text-[#100D0D] [&_a]:text-primary [&_p]:mt-4 [&_p]:mb-0 [&_p]:leading-6">
+          <AccordionContent className="pt-[7px]! pb-12! text-base text-[#100D0D] [&_a]:text-primary [&_a]:no-underline [&_a]:hover:text-primary [&_a]:hover:underline [&_p]:mt-4 [&_p]:mb-0 [&_p]:leading-6">
             {item.note ? (
               <Card className="mb-[29px] gap-0 rounded bg-[#F4F7F6] py-7 ring-0">
                 <CardContent className="px-8">
@@ -44,6 +79,59 @@ export default function Accordion({ slice }: AccordionProps) {
             ) : null}
 
             <PrismicRichText field={item.body} components={richTextLabelComponents} />
+
+            {isFilled.richText(item.cards)
+              ? splitCards(item.cards).map((card, cardIndex) => (
+                  <Card
+                    className="mt-4 gap-0 rounded bg-[#F4F7F6] py-7 ring-0"
+                    key={cardIndex}
+                  >
+                    <CardContent className="px-8 [&_h4]:mb-1 [&_h4]:text-[1.05rem] [&_h4]:leading-6 [&_h4]:font-bold [&_p]:text-sm [&_p]:leading-[22px] [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5">
+                      <PrismicRichText field={card} components={cardComponents} />
+                    </CardContent>
+                  </Card>
+                ))
+              : null}
+
+            {files.map((n) => {
+              const label = item[`file_${n}_label`];
+              const file = item[`file_${n}`];
+              const heading = item[`file_${n}_heading`];
+              const size = item[`file_${n}_size`];
+              if (!label && !heading) return null;
+
+              return (
+                <div key={n}>
+                  {heading ? <p className="mt-6! font-bold">{heading}</p> : null}
+                  {label ? (
+                    <div className="mt-4 max-w-80">
+                      {isFilled.link(file) ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="h-auto! w-full border-primary! px-6 py-3 font-semibold text-primary! hover:bg-accent!"
+                        >
+                          <PrismicNextLink field={file}>{label}</PrismicNextLink>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="h-auto! w-full border-border! px-6 py-3 font-semibold text-muted-foreground! opacity-100!"
+                        >
+                          {label}
+                        </Button>
+                      )}
+                      {size ? (
+                        <p className="mt-1.5! text-center text-xs text-muted-foreground">
+                          File Size: {size}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
 
             {isFilled.richText(item.necessities) ? (
               <>
@@ -61,12 +149,18 @@ export default function Accordion({ slice }: AccordionProps) {
               </>
             ) : null}
 
+            {isFilled.richText(item.footnote) ? (
+              <div className="mt-6 text-xs leading-[18px] text-muted-foreground [&_p]:mt-2!">
+                <PrismicRichText field={item.footnote} components={richTextLabelComponents} />
+              </div>
+            ) : null}
+
             {isFilled.link(item.link) ? (
-              <ChevronLink field={item.link} className="mb-0 pt-5">{item.link_label}</ChevronLink>
+              <ChevronLink field={item.link} className="mb-0 w-fit pt-2">{item.link_label}</ChevronLink>
             ) : null}
 
             {isFilled.link(item.link2) ? (
-              <ChevronLink field={item.link2} className="mb-0 pt-5">{item.link2_label}</ChevronLink>
+              <ChevronLink field={item.link2} className="mb-0 w-fit pt-2">{item.link2_label}</ChevronLink>
             ) : null}
           </AccordionContent>
         </AccordionItem>

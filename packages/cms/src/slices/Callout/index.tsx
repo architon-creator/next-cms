@@ -29,7 +29,7 @@ export default function Callout({ slice }: CalloutProps) {
           </CardTitle>
         </CardHeader>
       ) : null}
-      <CardContent className="[&_p:last-child]:mb-0 [&_p]:mb-2 [&_p]:leading-relaxed">
+      <CardContent className="[&_p:last-child]:mb-0 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5">
         <PrismicRichText field={slice.primary.body} />
       </CardContent>
     </Card>
