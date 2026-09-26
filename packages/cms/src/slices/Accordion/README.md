@@ -71,10 +71,16 @@ No primary fields — everything lives on repeatable `items`.
 
 ## Styling conventions
 
-- Number: `text-primary font-bold`. Title: `text-foreground font-bold`.
-- `note` box: `bg-muted`. `necessities` box: plain `border`, with `heading4` styled `text-[0.95rem] font-bold` and its paragraphs `text-muted-foreground text-[0.9rem]`.
-- Trailing links: shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) component (see [slice library conventions](../README.md#conventions-used-across-every-slice)).
+Values below were measured from the source design (ZIPAIR Boarding Process) in browser DevTools.
+
+- Built from `ui` primitives (`Card`, `CardContent`, `ChevronLink`), not other slices — see [Composing a slice](../README.md#composing-a-slice-use-ui-primitives-never-other-slices).
+- Header row: `py-5` (20px) around a 24px line, 16px text. Number `text-primary font-bold`, title `text-foreground font-bold`. The item has no vertical padding of its own.
+- Panel (`AccordionContent`): padding `7px 0 48px`, 16px text, `#100D0D`, 24px line height, paragraphs `margin: 16px 0 0`. Content is **not** indented under the number.
+- `note` box: `Card` with `bg-[#F4F7F6]`, padding `28px 32px`, `margin-bottom: 29px`, bold 24px line.
+- `necessities`: a small bold 12px label (`necessities_heading`, `margin-top: 44px`, 12px gap below) above a `Card` with a 1px `border`, padding `28px 32px`, no bottom margin. `heading4` is bold 24px-line, its paragraph 12px / 18px line, 26px between groups.
+- Trailing links: shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) with `pt-5 mb-0` (20px above, no margin).
 - shadcn's default `AccordionItem` border classes are overridden (`border-t! border-b-0! last:border-b!`) to get one divider between items instead of Radix's default (which would double up with this slice's own top border).
+- The two raw hex values (`#F4F7F6`, `#100D0D`) are deliberate off-palette design colours, like `Callout`'s tints.
 
 ## Known limitations
 

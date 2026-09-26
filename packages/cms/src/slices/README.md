@@ -48,3 +48,59 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 - **Placeholder links**: when authoring content for a slice's `Link` field before the real destination page/asset exists, this project's convention is `#`, not a guessed URL.
 - **Flat-slice limitation**: Prismic shared slices cannot nest a repeatable `Group` field inside another repeatable `items` zone (confirmed by a rejected push — see `FaqQuestionList`'s `footer_grid` variation history). Where a design needs "N categories, each with M links," the fix used here is **one slice instance per category**, all sharing the same zone — never a nested structure. A Group directly on a variation's `primary` is fine, though — `DisclosureList`'s `files` field uses exactly that, which is why that slice has no `items` at all (each instance is already one topic, so there's nothing to repeat at the top level).
 - **Server by default, client only when interactivity requires it**: most slices are plain server components. [`FaqAnswerSwap`](FaqAnswerSwap/README.md) needs local `useState`; the ⚠️ ported [`FaqAccordion`](FaqAccordion/README.md)/[`QuestionList`](QuestionList/README.md)/[`QuestionAnswer`](QuestionAnswer/README.md) trio needs `useContext` (via `useFaqTopic()`) to read/write shared topic state. Default to a server component; reach for a client component only when the design needs in-place state that a link/navigation genuinely can't express.
+
+## Composing a slice: use `ui` primitives, never other slices
+
+When a slice needs a card, button, link, etc., import the primitive from `ui` (`packages/ui/src`) — **do not render another slice inside it.**
+
+| | Import from `ui` (do this) | Nest another slice (don't) |
+| --- | --- | --- |
+| Input | plain props you map yourself | a Prismic `slice` object (`slice.primary.*`) you'd have to fake |
+| Coupling | one-way: `cms/slices` → `ui` | slice ↔ slice, breaks when either model changes |
+| Design changes | edit one primitive, every slice follows | edit each slice separately |
+| Prismic | works | a slice can only sit in a slice zone, never inside another slice |
+
+Each slice maps **its own fields** onto the primitive. Two slices with the same visual can still have different models — only the primitive is shared.
+
+### Sample: the same `Card` used by two slices with different models
+
+```tsx
+// Callout — fields: heading (rich text), body (rich text), style (select)
+import { Card, CardContent, CardHeader, CardTitle } from "ui";
+
+<Card className="bg-muted">
+  <CardHeader>
+    <CardTitle>
+      <PrismicRichText field={slice.primary.heading} />
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <PrismicRichText field={slice.primary.body} />
+  </CardContent>
+</Card>;
+```
+
+```tsx
+// Accordion — fields per item: note (text), necessities (rich text), link + link_label
+import { Card, CardContent, ChevronLink } from "ui";
+
+{item.note ? (
+  <Card className="mb-[29px] gap-0 rounded bg-[#F4F7F6] py-7 ring-0">
+    <CardContent className="px-8">
+      <p className="m-0! leading-6 font-bold">{item.note}</p>
+    </CardContent>
+  </Card>
+) : null}
+
+{isFilled.link(item.link) ? (
+  <ChevronLink field={item.link} className="mb-0 pt-5">
+    {item.link_label}
+  </ChevronLink>
+) : null}
+```
+
+Overriding a primitive's defaults (`rounded`, `ring-0`, `py-7`) with `className` is fine — `cn` (tailwind-merge) lets the slice's classes win. If the same override repeats in a **second** slice, extract a small shared component into `ui` (e.g. `InfoBox variant="note" | "outline"`) rather than copying the classes or nesting a slice.
+
+### Tailwind must be able to see the classes
+
+Classes that only appear in `packages/ui/src` or `packages/cms/src` are generated only if `apps/frontend/app/globals.css` lists them with `@source`. Both are registered today; a new package needs its own `@source` line, otherwise its styles silently don't render.

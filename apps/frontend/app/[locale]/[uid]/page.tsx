@@ -33,17 +33,25 @@ export default async function Page({ params }: PageProps) {
 
   const hasAside = page.data.aside.length > 0;
   const hasFooter = page.data.footer.length > 0;
+  // Design order is always breadcrumbs above the title, whatever order the
+  // editor left the Heading zone in (Array.sort is stable).
+  const heading = [...page.data.heading].sort(
+    (a, b) =>
+      Number(b.slice_type === "breadcrumbs") - Number(a.slice_type === "breadcrumbs"),
+  );
 
   return (
     <BreadcrumbsProvider breadcrumbs={context.breadcrumbs}>
       <div
         className={cn(
-          "mx-auto grid max-w-[1200px] grid-cols-1 gap-8 p-6",
-          hasAside && "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]",
+          "mx-auto grid grid-cols-1 px-6 pb-6",
+          hasAside
+            ? "max-w-[1200px] gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+            : "max-w-[846px] gap-x-8 gap-y-0",
         )}
       >
         <div className="md:col-span-2">
-          {page.data.heading.map((slice, index) => (
+          {heading.map((slice, index) => (
             <SliceRenderer key={`heading-${index}`} slice={slice} />
           ))}
         </div>
