@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import type { RichTextField } from "@prismicio/client";
 
-import { getOpenValues, itemValue, resolveDownloadsIndex, splitCards } from "./cards";
+import { getOpenValues, hasRomanLabel, itemValue, resolveDownloadsIndex, splitCards } from "./cards";
 
 const node = (type: string, text: string) =>
   ({ type, text, spans: [], direction: "ltr" }) as unknown as RichTextField[number];
@@ -78,5 +78,23 @@ describe("getOpenValues", () => {
 
   it("uses the same value format as the item keys", () => {
     assert.equal(itemValue(4), "item-4");
+  });
+});
+
+describe("hasRomanLabel", () => {
+  const item = (...spans: { type: string; data?: unknown }[]) => ({ spans });
+
+  it("is true when any item has the roman label", () => {
+    assert.equal(
+      hasRomanLabel([item(), item({ type: "label", data: { label: "roman" } })]),
+      true,
+    );
+  });
+
+  it("is false for other labels, other span types, or no spans", () => {
+    assert.equal(hasRomanLabel([item({ type: "label", data: { label: "muted" } })]), false);
+    assert.equal(hasRomanLabel([item({ type: "strong" })]), false);
+    assert.equal(hasRomanLabel([item()]), false);
+    assert.equal(hasRomanLabel([]), false);
   });
 });

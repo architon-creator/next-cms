@@ -3,15 +3,15 @@ import type { RichTextField } from "@prismicio/client";
 import { PrismicNextImage } from "@prismicio/next";
 import { JSXMapSerializer, PrismicRichText } from "@prismicio/react";
 
-import { richTextLabelComponents } from "../../lib/rich-text-components";
 import { resolveDownloadsIndex, splitCards } from "./cards";
 import { Downloads, hasDownloads } from "./Downloads";
 import { InfoBox } from "./InfoBox";
+import { listRichTextComponents } from "./lists";
 import { cardContentClass } from "./styles";
 import type { AccordionItem } from "./types";
 
 const cardComponents: JSXMapSerializer = {
-  ...richTextLabelComponents,
+  ...listRichTextComponents,
   image: ({ node }) => <PrismicNextImage field={node} className="mt-4 h-auto max-w-full" />,
 };
 

@@ -29,6 +29,24 @@ export function itemValue(index: number): string {
   return `item-${index}`;
 }
 
+/** Inline label an editor applies to a numbered list to make it use Roman numerals (i, ii, iii). */
+export const ROMAN_LABEL = "roman";
+
+type LabelledSpan = { type: string; data?: unknown };
+
+/**
+ * True when any item of the list carries the `roman` label. Prismic rich text
+ * has only bullet and numbered lists, so the style is chosen with this label.
+ */
+export function hasRomanLabel(items: { spans: readonly LabelledSpan[] }[]): boolean {
+  return items.some((item) =>
+    item.spans.some(
+      (span) =>
+        span.type === "label" && (span.data as { label?: string } | undefined)?.label === ROMAN_LABEL,
+    ),
+  );
+}
+
 /**
  * Which card (0-based) holds the download buttons. `requested` is the editor's
  * 1-based `downloads_card`; blank or out of range falls back to the last card.

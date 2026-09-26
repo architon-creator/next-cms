@@ -44,7 +44,7 @@
           "type": "StructuredText",
           "config": {
             "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
-            "labels": ["muted", "small"],
+            "labels": ["muted", "small", "roman"],
             "label": "Body",
             "placeholder": ""
           }
@@ -81,7 +81,7 @@
           "type": "StructuredText",
           "config": {
             "multi": "heading4,paragraph,strong,em,hyperlink,list-item,o-list-item,image",
-            "labels": ["muted", "small"],
+            "labels": ["muted", "small", "roman"],
             "label": "Cards (each Heading 4 starts a new grey card)",
             "placeholder": ""
           }

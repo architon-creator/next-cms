@@ -17,7 +17,7 @@ export const iconClass =
 
 /** Panel: 7px above, 48px below; 16px / 24px body text; links plain, underlined on hover, never recoloured. */
 export const contentClass =
-  "pt-[7px]! pb-12! text-base text-ink [&_a]:text-primary [&_a]:no-underline [&_a]:hover:text-primary [&_a]:hover:underline [&_p]:mt-4 [&_p]:mb-0 [&_p]:leading-6";
+  "pt-[7px]! pb-12! text-base text-ink [&_a]:text-primary [&_a]:no-underline [&_a]:hover:text-primary [&_a]:hover:underline [&_p]:mt-4 [&_p]:mb-0 [&_p]:leading-6 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-5";
 
 /** Card body: 18px regular headings, 12px / 18px text and lists. */
 export const cardContentClass =

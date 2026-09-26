@@ -13,6 +13,7 @@ import type { SliceContext } from "../types";
 import { getOpenValues, itemValue } from "./cards";
 import { InfoBox } from "./InfoBox";
 import { ItemBoxes } from "./ItemBoxes";
+import { listRichTextComponents } from "./lists";
 import {
   contentClass,
   iconClass,
@@ -61,7 +62,7 @@ export default function Accordion({ slice, context }: AccordionProps) {
               </InfoBox>
             ) : null}
 
-            <PrismicRichText field={item.body} components={richTextLabelComponents} />
+            <PrismicRichText field={item.body} components={listRichTextComponents} />
 
             <ItemBoxes item={item} fileSizeLabel={fileSizeLabel} />
 
