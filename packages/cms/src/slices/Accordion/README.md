@@ -11,7 +11,7 @@ Individually collapsible sections (numbered by default; set `hide_number` for pl
 
 ## When NOT to use
 
-- The sections aren't numbered / aren't a sequence → use [`DisclosureList`](../DisclosureList/README.md).
+- The sections aren't a sequence → still use this slice, and turn on `hide_number` to drop the `1, 2, 3…` numbers.
 - You need more than two trailing links per item → use [`LinkList`](../LinkList/README.md) as a separate slice after this one, or split further.
 
 ## Variation: `default`
@@ -115,7 +115,7 @@ Values below were measured from the source design (ZIPAIR Boarding Process) in b
 - `necessities`: a small bold 12px label (`necessities_heading`, `margin-top: 44px`, 12px gap below) above a `Card` with a 1px `border`, padding `28px 32px`, no bottom margin. `heading4` is bold 24px-line, its paragraph 12px / 18px line, 26px between groups.
 - Trailing links: shared [`ChevronLink`](../../../ui/src/chevron-link.tsx) with `pt-5 mb-0` (20px above, no margin).
 - shadcn's default `AccordionItem` border classes are overridden (`border-t! border-b-0! last:border-b!`) to get one divider between items instead of Radix's default (which would double up with this slice's own top border).
-- The two raw hex values (`#F4F7F6`, `#100D0D`) are deliberate off-palette design colours, like `Callout`'s tints.
+- The two raw hex values (`#F4F7F6`, `#100D0D`) are deliberate off-palette design colours taken from the source design.
 
 ## Known limitations
 
@@ -123,5 +123,4 @@ Values below were measured from the source design (ZIPAIR Boarding Process) in b
 
 ## Related slices
 
-- [`DisclosureList`](../DisclosureList/README.md) — same collapsible pattern, unnumbered, single link.
 - [`FaqQuestionList`](../FaqQuestionList/README.md) `accordion` variation — single-item collapsible category block.

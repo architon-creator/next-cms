@@ -3,8 +3,6 @@ import type { FC } from "react";
 import Accordion from "./Accordion";
 import Breadcrumbs from "./Breadcrumbs";
 import ButtonLink from "./ButtonLink";
-import Callout from "./Callout";
-import DisclosureList from "./DisclosureList";
 import FaqAccordion from "./FaqAccordion";
 import FaqAnswerSwap from "./FaqAnswerSwap";
 import FaqQuestionList from "./FaqQuestionList";
@@ -42,8 +40,6 @@ const sliceRegistry: Record<string, SliceComponent> = {
   accordion: Accordion,
   breadcrumbs: Breadcrumbs,
   button_link: ButtonLink,
-  callout: Callout,
-  disclosure_list: DisclosureList,
   faq_accordion: FaqAccordion,
   faq_answer_swap: FaqAnswerSwap,
   faq_question_list: FaqQuestionList,

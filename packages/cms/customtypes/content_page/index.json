@@ -96,12 +96,6 @@
             "button_link": {
               "type": "SharedSlice"
             },
-            "callout": {
-              "type": "SharedSlice"
-            },
-            "disclosure_list": {
-              "type": "SharedSlice"
-            },
             "faq_answer_swap": {
               "type": "SharedSlice"
             },
@@ -145,12 +139,6 @@
             "button_link": {
               "type": "SharedSlice"
             },
-            "callout": {
-              "type": "SharedSlice"
-            },
-            "disclosure_list": {
-              "type": "SharedSlice"
-            },
             "faq_question_list": {
               "type": "SharedSlice"
             },
@@ -189,12 +177,6 @@
               "type": "SharedSlice"
             },
             "button_link": {
-              "type": "SharedSlice"
-            },
-            "callout": {
-              "type": "SharedSlice"
-            },
-            "disclosure_list": {
               "type": "SharedSlice"
             },
             "faq_question_list": {
