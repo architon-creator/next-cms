@@ -307,11 +307,11 @@ export type ContactPageDocument<Lang extends string = string> = prismic.PrismicD
 
 type ContentPageDocumentDataHeadingSlice = PageTitleSlice | BreadcrumbsSlice
 
-type ContentPageDocumentDataMainSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataMainSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
-type ContentPageDocumentDataAsideSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataAsideSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
-type ContentPageDocumentDataFooterSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataFooterSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
 /**
  * Content for Content Page documents
@@ -2574,6 +2574,64 @@ type RichTextSectionSliceVariation = RichTextSectionSliceDefault
  */
 export type RichTextSectionSlice = prismic.SharedSlice<"rich_text_section", RichTextSectionSliceVariation>;
 
+/**
+ * Primary content in *SpecBoxList → Items*
+ */
+export interface SpecBoxListSliceDefaultItem {
+	/**
+	 * Label (shown above the box) field in *SpecBoxList → Items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: spec_box_list.items[].label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * Anchor ID (optional, for in-page jump links, e.g. from a LinkList slice's href "#this-value") field in *SpecBoxList → Items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: spec_box_list.items[].anchor_id
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	anchor_id: prismic.KeyTextField;
+	
+	/**
+	 * Rows (each Heading 4 is a row label; the paragraphs/bullets after it, until the next Heading 4, are its value) field in *SpecBoxList → Items*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: spec_box_list.items[].rows
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	rows: prismic.RichTextField;
+}
+
+/**
+ * Default variation for SpecBoxList Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: One box per item, each with label/value rows
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type SpecBoxListSliceDefault = prismic.SharedSliceVariation<"default", Record<string, never>, Simplify<SpecBoxListSliceDefaultItem>>;
+
+/**
+ * Slice variation for *SpecBoxList*
+ */
+type SpecBoxListSliceVariation = SpecBoxListSliceDefault
+
+/**
+ * SpecBoxList Shared Slice
+ *
+ * - **API ID**: `spec_box_list`
+ * - **Description**: A list of bordered definition-list boxes (label/value rows) — e.g. a fare rule table
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type SpecBoxListSlice = prismic.SharedSlice<"spec_box_list", SpecBoxListSliceVariation>;
+
 declare module "@prismicio/client" {
 	interface CreateClient {
 		(repositoryNameOrEndpoint: string, options?: prismic.ClientConfig): prismic.Client<AllDocumentTypes>;
@@ -2700,7 +2758,11 @@ declare module "@prismicio/client" {
 			RichTextSectionSliceDefaultPrimary,
 			RichTextSectionSliceDefaultItem,
 			RichTextSectionSliceVariation,
-			RichTextSectionSliceDefault
+			RichTextSectionSliceDefault,
+			SpecBoxListSlice,
+			SpecBoxListSliceDefaultItem,
+			SpecBoxListSliceVariation,
+			SpecBoxListSliceDefault
 		}
 	}
 }

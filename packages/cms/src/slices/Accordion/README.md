@@ -165,7 +165,7 @@ Each `with_cards` instance renders its own bordered `AccordionItem`, matching th
 
 ## Styling conventions
 
-Values were measured from the source design (ZIPAIR Boarding Process / Special Assistance) in browser DevTools. Trigger/panel/necessities styles live in this folder's `styles.ts`; the box and card styles live in [`lib/content-blocks/`](../../lib/content-blocks/).
+Values were measured from the source design (ZIPAIR Boarding Process / Special Assistance) in browser DevTools. Trigger/panel styles live in this folder's `styles.ts`; the box, card and definition-row (`necessities`) styles live in [`lib/content-blocks/`](../../lib/content-blocks/) — `necessities` shares its row styling with [`SpecBoxList`](../SpecBoxList/README.md).
 
 - Built from `ui` primitives (`Card`, `Button`, `ChevronLink`), not other slices — see [Composing a slice](../README.md#composing-a-slice-use-ui-primitives-never-other-slices).
 - **Colours** are theme tokens defined in `apps/frontend/app/globals.css`: `bg-surface-muted` (`#f4f7f6`) for boxes and cards, `text-ink` (`#100d0d`) for body text and titles, `text-primary` for numbers, icon and links.

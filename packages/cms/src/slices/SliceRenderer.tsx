@@ -15,6 +15,7 @@ import PageTitle from "./PageTitle";
 import QuestionAnswer from "./QuestionAnswer";
 import QuestionList from "./QuestionList";
 import RichTextSection from "./RichTextSection";
+import SpecBoxList from "./SpecBoxList";
 import type { SliceContext } from "./types";
 
 /**
@@ -56,6 +57,7 @@ const sliceRegistry: Record<string, SliceComponent> = {
   question_answer_slice: QuestionAnswer,
   question_list_slice: QuestionList,
   rich_text_section: RichTextSection,
+  spec_box_list: SpecBoxList,
 };
 
 /**

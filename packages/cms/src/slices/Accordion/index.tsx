@@ -12,7 +12,8 @@ import { InfoBox } from "../../lib/content-blocks/InfoBox";
 import { listRichTextComponents } from "../../lib/content-blocks/lists";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
 import { getOpenValues, itemValue } from "./cards";
-import { contentClass, iconClass, necessitiesContentClass, titleClass, triggerClass } from "./styles";
+import { definitionRowsClass } from "../../lib/content-blocks/styles";
+import { contentClass, iconClass, titleClass, triggerClass } from "./styles";
 import WithCards from "./WithCards";
 
 export type AccordionProps = SliceComponentProps<Content.AccordionSlice>;
@@ -81,7 +82,7 @@ function DefaultSteps({ slice }: DefaultStepsProps) {
                     {item.necessities_heading}
                   </p>
                 ) : null}
-                <InfoBox variant="outline" contentClassName={necessitiesContentClass}>
+                <InfoBox variant="outline" contentClassName={definitionRowsClass}>
                   <PrismicRichText
                     field={item.necessities}
                     components={richTextLabelComponents}

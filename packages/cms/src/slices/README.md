@@ -35,6 +35,7 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 | [`QuestionAnswer`](QuestionAnswer/README.md)     | ⚠️ Ported reference copy — topic-filtered answer card + related links         | `default`                                                 |
 | [`QuestionList`](QuestionList/README.md)         | ⚠️ Ported reference copy — topic-filtered question list                       | `default`                                                 |
 | [`RichTextSection`](RichTextSection/README.md)   | Heading + body rich text, with per-block/per-line size & color                | `default`                                                 |
+| [`SpecBoxList`](SpecBoxList/README.md)           | A list of bordered definition-list boxes (label/value rows) — e.g. a fare rule table | `default`                                                 |
 
 ## Conventions used across every slice
 

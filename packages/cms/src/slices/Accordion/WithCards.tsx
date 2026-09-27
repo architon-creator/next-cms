@@ -12,7 +12,8 @@ import { Blocks } from "../../lib/content-blocks/Blocks";
 import { InfoBox } from "../../lib/content-blocks/InfoBox";
 import { listRichTextComponents } from "../../lib/content-blocks/lists";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
-import { contentClass, iconClass, necessitiesContentClass, titleClass, triggerClass } from "./styles";
+import { definitionRowsClass } from "../../lib/content-blocks/styles";
+import { contentClass, iconClass, titleClass, triggerClass } from "./styles";
 
 export type WithCardsProps = {
   slice: Extract<Content.AccordionSlice, { variation: "with_cards" }>;
@@ -70,7 +71,7 @@ export default function WithCards({ slice }: WithCardsProps) {
                   {necessities_heading}
                 </p>
               ) : null}
-              <InfoBox variant="outline" contentClassName={necessitiesContentClass}>
+              <InfoBox variant="outline" contentClassName={definitionRowsClass}>
                 <PrismicRichText field={necessities} components={richTextLabelComponents} />
               </InfoBox>
             </>
