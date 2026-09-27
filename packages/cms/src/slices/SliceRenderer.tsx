@@ -7,6 +7,7 @@ import FaqAccordion from "./FaqAccordion";
 import FaqAnswerSwap from "./FaqAnswerSwap";
 import FaqQuestionList from "./FaqQuestionList";
 import FileDownloadList from "./FileDownloadList";
+import FlexibleContent from "./FlexibleContent";
 import ImageBlock from "./ImageBlock";
 import InfoCardList from "./InfoCardList";
 import LinkList from "./LinkList";
@@ -47,6 +48,7 @@ const sliceRegistry: Record<string, SliceComponent> = {
   faq_answer_swap: FaqAnswerSwap,
   faq_question_list: FaqQuestionList,
   file_download_list: FileDownloadList,
+  flexible_content: FlexibleContent,
   image_block: ImageBlock,
   info_card_list: InfoCardList,
   link_list: LinkList,

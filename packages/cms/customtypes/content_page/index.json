@@ -90,10 +90,19 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "flexible_content": {
+              "type": "SharedSlice"
+            },
             "breadcrumbs": {
               "type": "SharedSlice"
             },
             "button_link": {
+              "type": "SharedSlice"
+            },
+            "callout": {
+              "type": "SharedSlice"
+            },
+            "disclosure_list": {
               "type": "SharedSlice"
             },
             "faq_answer_swap": {
@@ -133,10 +142,19 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "flexible_content": {
+              "type": "SharedSlice"
+            },
             "breadcrumbs": {
               "type": "SharedSlice"
             },
             "button_link": {
+              "type": "SharedSlice"
+            },
+            "callout": {
+              "type": "SharedSlice"
+            },
+            "disclosure_list": {
               "type": "SharedSlice"
             },
             "faq_question_list": {
@@ -173,10 +191,19 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "flexible_content": {
+              "type": "SharedSlice"
+            },
             "breadcrumbs": {
               "type": "SharedSlice"
             },
             "button_link": {
+              "type": "SharedSlice"
+            },
+            "callout": {
+              "type": "SharedSlice"
+            },
+            "disclosure_list": {
               "type": "SharedSlice"
             },
             "faq_question_list": {

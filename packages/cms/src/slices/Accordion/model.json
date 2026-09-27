@@ -76,67 +76,96 @@
         "link2": {
           "type": "Link",
           "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
+        }
+      }
+    },
+    {
+      "id": "with_cards",
+      "name": "Single topic with cards",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "One topic with any number of flexible cards (no numbering) — for a list of independent topics like Special Assistance, not a numbered step sequence",
+      "imageUrl": "",
+      "primary": {
+        "start_expanded": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start expanded",
+            "default_value": false,
+            "placeholder_false": "Collapsed",
+            "placeholder_true": "Expanded"
+          }
         },
-        "cards": {
+        "title": {
+          "type": "Text",
+          "config": { "label": "Title", "placeholder": "" }
+        },
+        "note": {
+          "type": "Text",
+          "config": { "label": "Highlighted Note", "placeholder": "" }
+        },
+        "body": {
           "type": "StructuredText",
           "config": {
-            "multi": "heading4,heading5,paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
             "labels": ["muted", "small", "roman"],
-            "label": "Cards (Heading 4 = new card; Heading 5 steps outside the card until the next Heading 4)",
+            "label": "Body",
             "placeholder": ""
           }
         },
-        "file_1_heading": {
-          "type": "Text",
-          "config": { "label": "File 1 Heading", "placeholder": "" }
-        },
-        "file_1_label": {
-          "type": "Text",
-          "config": { "label": "File 1 Button Label", "placeholder": "" }
-        },
-        "file_1": {
-          "type": "Link",
-          "config": { "label": "File 1", "placeholder": "", "allowTargetBlank": true }
-        },
-        "file_1_size": {
-          "type": "Text",
-          "config": { "label": "File 1 Size", "placeholder": "" }
-        },
-        "file_2_heading": {
-          "type": "Text",
-          "config": { "label": "File 2 Heading", "placeholder": "" }
-        },
-        "file_2_label": {
-          "type": "Text",
-          "config": { "label": "File 2 Button Label", "placeholder": "" }
-        },
-        "file_2": {
-          "type": "Link",
-          "config": { "label": "File 2", "placeholder": "", "allowTargetBlank": true }
-        },
-        "file_2_size": {
-          "type": "Text",
-          "config": { "label": "File 2 Size", "placeholder": "" }
-        },
-        "file_3_heading": {
-          "type": "Text",
-          "config": { "label": "File 3 Heading", "placeholder": "" }
-        },
-        "file_3_label": {
-          "type": "Text",
-          "config": { "label": "File 3 Button Label", "placeholder": "" }
-        },
-        "file_3": {
-          "type": "Link",
-          "config": { "label": "File 3", "placeholder": "", "allowTargetBlank": true }
-        },
-        "file_3_size": {
-          "type": "Text",
-          "config": { "label": "File 3 Size", "placeholder": "" }
-        },
-        "downloads_card": {
-          "type": "Number",
-          "config": { "label": "Downloads go in card # (blank = last card)", "placeholder": "" }
+        "blocks": {
+          "type": "Group",
+          "config": {
+            "label": "Blocks (any order, any count — fill in only the fields for that block's type)",
+            "fields": {
+              "text": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Text block",
+                  "placeholder": ""
+                }
+              },
+              "image": {
+                "type": "Image",
+                "config": { "label": "Image block", "constraint": {}, "thumbnails": [] }
+              },
+              "card_heading": {
+                "type": "Text",
+                "config": { "label": "Card heading", "placeholder": "" }
+              },
+              "card_body": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Card body",
+                  "placeholder": ""
+                }
+              },
+              "link_label": {
+                "type": "Text",
+                "config": { "label": "Link label", "placeholder": "" }
+              },
+              "link": {
+                "type": "Link",
+                "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_label": {
+                "type": "Text",
+                "config": { "label": "Button label", "placeholder": "" }
+              },
+              "button_link": {
+                "type": "Link",
+                "config": { "label": "Button link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_caption": {
+                "type": "Text",
+                "config": { "label": "Button caption (e.g. \"File Size: 504KB\")", "placeholder": "" }
+              }
+            }
+          }
         },
         "footnote": {
           "type": "StructuredText",
@@ -146,8 +175,37 @@
             "label": "Footnote",
             "placeholder": ""
           }
+        },
+        "necessities_heading": {
+          "type": "Text",
+          "config": { "label": "Necessities Heading", "placeholder": "" }
+        },
+        "necessities": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading4,paragraph,strong,em,hyperlink",
+            "label": "Necessities",
+            "placeholder": ""
+          }
+        },
+        "link_label": {
+          "type": "Text",
+          "config": { "label": "Link Label", "placeholder": "" }
+        },
+        "link": {
+          "type": "Link",
+          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        },
+        "link2_label": {
+          "type": "Text",
+          "config": { "label": "Second Link Label", "placeholder": "" }
+        },
+        "link2": {
+          "type": "Link",
+          "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
         }
-      }
+      },
+      "items": {}
     }
   ]
 }

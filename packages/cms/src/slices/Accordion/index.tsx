@@ -8,27 +8,37 @@ import {
   AccordionTrigger,
   ChevronLink,
 } from "ui";
+import { InfoBox } from "../../lib/content-blocks/InfoBox";
+import { listRichTextComponents } from "../../lib/content-blocks/lists";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
-import type { SliceContext } from "../types";
 import { getOpenValues, itemValue } from "./cards";
-import { InfoBox } from "./InfoBox";
-import { ItemBoxes } from "./ItemBoxes";
-import { listRichTextComponents } from "./lists";
-import {
-  contentClass,
-  iconClass,
-  necessitiesContentClass,
-  titleClass,
-  triggerClass,
-} from "./styles";
+import { contentClass, iconClass, necessitiesContentClass, titleClass, triggerClass } from "./styles";
+import WithCards from "./WithCards";
 
-export type AccordionProps = SliceComponentProps<Content.AccordionSlice, SliceContext>;
+export type AccordionProps = SliceComponentProps<Content.AccordionSlice>;
 
-const DEFAULT_FILE_SIZE_LABEL = "File Size";
+/**
+ * Two variations, two different jobs — see the README:
+ * - `default`: a numbered (or plain) step-by-step list — one slice instance,
+ *   many `items`, all sharing one number sequence and one divider style.
+ * - `with_cards`: one topic per slice instance, with a free-form `blocks`
+ *   stream (text/image/card/link/button, any order, any count — see
+ *   `Blocks.tsx`). Prismic can't nest a Group inside `items`, so a topic that
+ *   needs flexible blocks can't be an item of the numbered list; it's its
+ *   own instance instead, delegated to `WithCards.tsx`.
+ */
+export default function Accordion(props: AccordionProps) {
+  if (props.slice.variation === "with_cards") {
+    return <WithCards slice={props.slice} />;
+  }
 
-export default function Accordion({ slice, context }: AccordionProps) {
+  return <DefaultSteps slice={props.slice} />;
+}
+
+type DefaultStepsProps = { slice: Extract<Content.AccordionSlice, { variation: "default" }> };
+
+function DefaultSteps({ slice }: DefaultStepsProps) {
   const showNumber = !slice.primary.hide_number;
-  const fileSizeLabel = context?.labels?.fileSize ?? DEFAULT_FILE_SIZE_LABEL;
 
   return (
     <AccordionRoot
@@ -64,8 +74,6 @@ export default function Accordion({ slice, context }: AccordionProps) {
 
             <PrismicRichText field={item.body} components={listRichTextComponents} />
 
-            <ItemBoxes item={item} fileSizeLabel={fileSizeLabel} />
-
             {isFilled.richText(item.necessities) ? (
               <>
                 {item.necessities_heading ? (
@@ -80,12 +88,6 @@ export default function Accordion({ slice, context }: AccordionProps) {
                   />
                 </InfoBox>
               </>
-            ) : null}
-
-            {isFilled.richText(item.footnote) ? (
-              <div className="mt-6 text-xs leading-[18px] text-muted-foreground [&_p]:mt-2!">
-                <PrismicRichText field={item.footnote} components={richTextLabelComponents} />
-              </div>
             ) : null}
 
             {isFilled.link(item.link) ? (

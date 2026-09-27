@@ -20,13 +20,14 @@ Entries marked ⚠️ are ported reference copies from the real production proje
 
 | Slice                                            | One-line purpose                                                              | Variations                                                |
 | ------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------- |
-| [`Accordion`](Accordion/README.md)               | Numbered, individually collapsible step-by-step sections                      | `default`                                                 |
+| [`Accordion`](Accordion/README.md)               | Numbered/plain collapsible steps (`default`), or one collapsible topic with a free-form blocks stream (`with_cards`) | `default`, `with_cards` |
 | [`Breadcrumbs`](Breadcrumbs/README.md)           | Home › Level 1 › Level 2 › Level 3 trail                                      | `default`                                                 |
 | [`ButtonLink`](ButtonLink/README.md)             | A single centered outline CTA button                                          | `default`                                                 |
 | [`FaqAnswerSwap`](FaqAnswerSwap/README.md)       | Client-side Q&A card with a related-question switcher (no navigation)         | `default`                                                 |
 | [`FaqAccordion`](FaqAccordion/README.md)         | ⚠️ Ported reference copy — FAQ sidebar topic-switcher + generic Q&A accordion | `default`, `sidebar_nav`                                  |
 | [`FaqQuestionList`](FaqQuestionList/README.md)   | FAQ category/question lists — 5 different layouts                             | `default`, `grid`, `accordion`, `footer_grid`, `withicon` |
 | [`FileDownloadList`](FileDownloadList/README.md) | Outline download buttons with a file-size caption                             | `default`                                                 |
+| [`FlexibleContent`](FlexibleContent/README.md)   | The same free-form blocks stream as Accordion's `with_cards`, always visible (no trigger/collapse) | `default`                                                 |
 | [`ImageBlock`](ImageBlock/README.md)             | A single image with an optional caption                                       | `default`                                                 |
 | [`InfoCardList`](InfoCardList/README.md)         | Stacked bordered info cards (title + body)                                    | `default`                                                 |
 | [`LinkList`](LinkList/README.md)                 | An optional heading + a stacked list of chevron links                         | `default`                                                 |

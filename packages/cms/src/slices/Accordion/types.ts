@@ -1,3 +1,4 @@
 import type { Content } from "@prismicio/client";
 
-export type AccordionItem = Content.AccordionSlice["items"][number];
+/** One item of the numbered/plain step list (`default` variation). */
+export type AccordionItem = Content.AccordionSliceDefault["items"][number];

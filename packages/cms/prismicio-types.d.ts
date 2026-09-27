@@ -307,11 +307,11 @@ export type ContactPageDocument<Lang extends string = string> = prismic.PrismicD
 
 type ContentPageDocumentDataHeadingSlice = PageTitleSlice | BreadcrumbsSlice
 
-type ContentPageDocumentDataMainSlice = AccordionSlice | BreadcrumbsSlice | ButtonLinkSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataMainSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
-type ContentPageDocumentDataAsideSlice = AccordionSlice | BreadcrumbsSlice | ButtonLinkSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataAsideSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
-type ContentPageDocumentDataFooterSlice = AccordionSlice | BreadcrumbsSlice | ButtonLinkSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataFooterSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
 /**
  * Content for Content Page documents
@@ -838,6 +838,101 @@ export type LoginPageDocument<Lang extends string = string> = prismic.PrismicDoc
 export type AllDocumentTypes = AppLabelsDocument | AuthNavDocument | ContactPageDocument | ContentPageDocument | FeedbackPageDocument | FooterDocument | HeaderDocument | HomePageDocument | LoginFormDocument | LoginPageDocument;
 
 /**
+ * Item in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+ */
+export interface AccordionSliceWithCardsPrimaryBlocksItem {
+	/**
+	 * Text block field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].text
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	text: prismic.RichTextField;
+	
+	/**
+	 * Image block field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * Card heading field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].card_heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	card_heading: prismic.KeyTextField;
+	
+	/**
+	 * Card body field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].card_body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	card_body: prismic.RichTextField;
+	
+	/**
+	 * Link label field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].link_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link_label: prismic.KeyTextField;
+	
+	/**
+	 * Link field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Button label field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].button_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_label: prismic.KeyTextField;
+	
+	/**
+	 * Button link field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].button_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	button_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Button caption (e.g. "File Size: 504KB") field in *Accordion → Single topic with cards → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[].button_caption
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_caption: prismic.KeyTextField;
+}
+
+/**
  * Primary content in *Accordion → Default → Primary*
  */
 export interface AccordionSliceDefaultPrimary {
@@ -957,156 +1052,6 @@ export interface AccordionSliceDefaultItem {
 	 * - **Documentation**: https://prismic.io/docs/fields/link
 	 */
 	link2: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
-	
-	/**
-	 * Cards (Heading 4 = new card; Heading 5 steps outside the card until the next Heading 4) field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Rich Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].cards
-	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
-	 */
-	cards: prismic.RichTextField;
-	
-	/**
-	 * File 1 Heading field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_1_heading
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_1_heading: prismic.KeyTextField;
-	
-	/**
-	 * File 1 Button Label field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_1_label
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_1_label: prismic.KeyTextField;
-	
-	/**
-	 * File 1 field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Link
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_1
-	 * - **Documentation**: https://prismic.io/docs/fields/link
-	 */
-	file_1: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
-	
-	/**
-	 * File 1 Size field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_1_size
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_1_size: prismic.KeyTextField;
-	
-	/**
-	 * File 2 Heading field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_2_heading
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_2_heading: prismic.KeyTextField;
-	
-	/**
-	 * File 2 Button Label field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_2_label
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_2_label: prismic.KeyTextField;
-	
-	/**
-	 * File 2 field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Link
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_2
-	 * - **Documentation**: https://prismic.io/docs/fields/link
-	 */
-	file_2: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
-	
-	/**
-	 * File 2 Size field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_2_size
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_2_size: prismic.KeyTextField;
-	
-	/**
-	 * File 3 Heading field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_3_heading
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_3_heading: prismic.KeyTextField;
-	
-	/**
-	 * File 3 Button Label field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_3_label
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_3_label: prismic.KeyTextField;
-	
-	/**
-	 * File 3 field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Link
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_3
-	 * - **Documentation**: https://prismic.io/docs/fields/link
-	 */
-	file_3: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
-	
-	/**
-	 * File 3 Size field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].file_3_size
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	file_3_size: prismic.KeyTextField;
-	
-	/**
-	 * Downloads go in card # (blank = last card) field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Number
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].downloads_card
-	 * - **Documentation**: https://prismic.io/docs/fields/number
-	 */
-	downloads_card: prismic.NumberField;
-	
-	/**
-	 * Footnote field in *Accordion → Items*
-	 *
-	 * - **Field Type**: Rich Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: accordion.items[].footnote
-	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
-	 */
-	footnote: prismic.RichTextField;
 }
 
 /**
@@ -1119,9 +1064,144 @@ export interface AccordionSliceDefaultItem {
 export type AccordionSliceDefault = prismic.SharedSliceVariation<"default", Simplify<AccordionSliceDefaultPrimary>, Simplify<AccordionSliceDefaultItem>>;
 
 /**
+ * Primary content in *Accordion → Single topic with cards → Primary*
+ */
+export interface AccordionSliceWithCardsPrimary {
+	/**
+	 * Start expanded field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.with_cards.primary.start_expanded
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	start_expanded: prismic.BooleanField;
+	
+	/**
+	 * Title field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * Highlighted Note field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.note
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	note: prismic.KeyTextField;
+	
+	/**
+	 * Body field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * Blocks (any order, any count — fill in only the fields for that block's type) field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.blocks[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	blocks: prismic.GroupField<Simplify<AccordionSliceWithCardsPrimaryBlocksItem>>;
+	
+	/**
+	 * Footnote field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.footnote
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	footnote: prismic.RichTextField;
+	
+	/**
+	 * Necessities Heading field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.necessities_heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	necessities_heading: prismic.KeyTextField;
+	
+	/**
+	 * Necessities field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.necessities
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	necessities: prismic.RichTextField;
+	
+	/**
+	 * Link Label field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.link_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link_label: prismic.KeyTextField;
+	
+	/**
+	 * Link field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Second Link Label field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.link2_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link2_label: prismic.KeyTextField;
+	
+	/**
+	 * Second Link field in *Accordion → Single topic with cards → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.with_cards.primary.link2
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link2: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Single topic with cards variation for Accordion Slice
+ *
+ * - **API ID**: `with_cards`
+ * - **Description**: One topic with any number of flexible cards (no numbering) — for a list of independent topics like Special Assistance, not a numbered step sequence
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSliceWithCards = prismic.SharedSliceVariation<"with_cards", Simplify<AccordionSliceWithCardsPrimary>, never>;
+
+/**
  * Slice variation for *Accordion*
  */
-type AccordionSliceVariation = AccordionSliceDefault
+type AccordionSliceVariation = AccordionSliceDefault | AccordionSliceWithCards
 
 /**
  * Accordion Shared Slice
@@ -1832,6 +1912,159 @@ type FileDownloadListSliceVariation = FileDownloadListSliceDefault
 export type FileDownloadListSlice = prismic.SharedSlice<"file_download_list", FileDownloadListSliceVariation>;
 
 /**
+ * Item in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+ */
+export interface FlexibleContentSliceDefaultPrimaryBlocksItem {
+	/**
+	 * Text block field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].text
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	text: prismic.RichTextField;
+	
+	/**
+	 * Image block field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * Card heading field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].card_heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	card_heading: prismic.KeyTextField;
+	
+	/**
+	 * Card body field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].card_body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	card_body: prismic.RichTextField;
+	
+	/**
+	 * Link label field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].link_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link_label: prismic.KeyTextField;
+	
+	/**
+	 * Link field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Button label field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].button_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_label: prismic.KeyTextField;
+	
+	/**
+	 * Button link field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].button_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	button_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Button caption (e.g. "File Size: 504KB") field in *FlexibleContent → Default → Primary → Blocks (any order, any count — fill in only the fields for that block's type)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[].button_caption
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_caption: prismic.KeyTextField;
+}
+
+/**
+ * Primary content in *FlexibleContent → Default → Primary*
+ */
+export interface FlexibleContentSliceDefaultPrimary {
+	/**
+	 * Title field in *FlexibleContent → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * Body field in *FlexibleContent → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * Blocks (any order, any count — fill in only the fields for that block's type) field in *FlexibleContent → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: flexible_content.default.primary.blocks[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	blocks: prismic.GroupField<Simplify<FlexibleContentSliceDefaultPrimaryBlocksItem>>;
+}
+
+/**
+ * Default variation for FlexibleContent Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Optional title/body, then the blocks stream
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FlexibleContentSliceDefault = prismic.SharedSliceVariation<"default", Simplify<FlexibleContentSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *FlexibleContent*
+ */
+type FlexibleContentSliceVariation = FlexibleContentSliceDefault
+
+/**
+ * FlexibleContent Shared Slice
+ *
+ * - **API ID**: `flexible_content`
+ * - **Description**: An always-visible (non-collapsible) free-form stream of blocks — text, images, cards, links and buttons in any order, any count
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FlexibleContentSlice = prismic.SharedSlice<"flexible_content", FlexibleContentSliceVariation>;
+
+/**
  * Primary content in *ImageBlock → Default → Primary*
  */
 export interface ImageBlockSliceDefaultPrimary {
@@ -2384,8 +2617,11 @@ declare module "@prismicio/client" {
 			AccordionSlice,
 			AccordionSliceDefaultPrimary,
 			AccordionSliceDefaultItem,
+			AccordionSliceWithCardsPrimaryBlocksItem,
+			AccordionSliceWithCardsPrimary,
 			AccordionSliceVariation,
 			AccordionSliceDefault,
+			AccordionSliceWithCards,
 			BreadcrumbsSlice,
 			BreadcrumbsSliceDefaultPrimary,
 			BreadcrumbsSliceVariation,
@@ -2428,6 +2664,11 @@ declare module "@prismicio/client" {
 			FileDownloadListSliceDefaultItem,
 			FileDownloadListSliceVariation,
 			FileDownloadListSliceDefault,
+			FlexibleContentSlice,
+			FlexibleContentSliceDefaultPrimaryBlocksItem,
+			FlexibleContentSliceDefaultPrimary,
+			FlexibleContentSliceVariation,
+			FlexibleContentSliceDefault,
 			ImageBlockSlice,
 			ImageBlockSliceDefaultPrimary,
 			ImageBlockSliceVariation,

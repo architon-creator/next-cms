@@ -1,0 +1,86 @@
+{
+  "id": "flexible_content",
+  "type": "SharedSlice",
+  "name": "FlexibleContent",
+  "description": "An always-visible (non-collapsible) free-form stream of blocks — text, images, cards, links and buttons in any order, any count",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "Optional title/body, then the blocks stream",
+      "imageUrl": "",
+      "primary": {
+        "title": {
+          "type": "Text",
+          "config": { "label": "Title", "placeholder": "" }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "labels": ["muted", "small", "roman"],
+            "label": "Body",
+            "placeholder": ""
+          }
+        },
+        "blocks": {
+          "type": "Group",
+          "config": {
+            "label": "Blocks (any order, any count — fill in only the fields for that block's type)",
+            "fields": {
+              "text": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Text block",
+                  "placeholder": ""
+                }
+              },
+              "image": {
+                "type": "Image",
+                "config": { "label": "Image block", "constraint": {}, "thumbnails": [] }
+              },
+              "card_heading": {
+                "type": "Text",
+                "config": { "label": "Card heading", "placeholder": "" }
+              },
+              "card_body": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Card body",
+                  "placeholder": ""
+                }
+              },
+              "link_label": {
+                "type": "Text",
+                "config": { "label": "Link label", "placeholder": "" }
+              },
+              "link": {
+                "type": "Link",
+                "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_label": {
+                "type": "Text",
+                "config": { "label": "Button label", "placeholder": "" }
+              },
+              "button_link": {
+                "type": "Link",
+                "config": { "label": "Button link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_caption": {
+                "type": "Text",
+                "config": { "label": "Button caption (e.g. \"File Size: 504KB\")", "placeholder": "" }
+              }
+            }
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

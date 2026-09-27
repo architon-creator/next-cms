@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Card, CardContent } from "ui";
-import { cn } from "../../lib/utils";
+import { cn } from "../utils";
 
 type InfoBoxProps = {
   /** `fill`: grey surface (notes, cards). `outline`: white with a border (necessities). */
@@ -17,8 +17,9 @@ const variants = {
 } as const;
 
 /**
- * The flat, square-cornered box used throughout the Accordion — `Card` from
- * `ui` with the source design's 28px / 32px padding. One place to change it.
+ * The flat, square-cornered box used by any slice with grey/outlined content
+ * boxes (Accordion, FlexibleContent, …) — `Card` from `ui` with the source
+ * design's 28px / 32px padding. One place to change it.
  */
 export function InfoBox({
   variant = "fill",
