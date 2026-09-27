@@ -959,7 +959,7 @@ export interface AccordionSliceDefaultItem {
 	link2: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 	
 	/**
-	 * Cards (each Heading 4 starts a new grey card) field in *Accordion → Items*
+	 * Cards (Heading 4 = new card; Heading 5 steps outside the card until the next Heading 4) field in *Accordion → Items*
 	 *
 	 * - **Field Type**: Rich Text
 	 * - **Placeholder**: *None*

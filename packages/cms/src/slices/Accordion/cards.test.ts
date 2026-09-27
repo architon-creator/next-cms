@@ -3,14 +3,14 @@ import { describe, it } from "node:test";
 
 import type { RichTextField } from "@prismicio/client";
 
-import { getOpenValues, hasRomanLabel, itemValue, resolveDownloadsIndex, splitCards } from "./cards";
+import { getOpenValues, hasRomanLabel, itemValue, resolveDownloadsIndex, splitSegments } from "./cards";
 
 const node = (type: string, text: string) =>
   ({ type, text, spans: [], direction: "ltr" }) as unknown as RichTextField[number];
 
-describe("splitCards", () => {
-  it("starts a new card at every heading4", () => {
-    const cards = splitCards([
+describe("splitSegments", () => {
+  it("starts a new boxed card at every heading4", () => {
+    const segments = splitSegments([
       node("heading4", "A"),
       node("paragraph", "a1"),
       node("heading4", "B"),
@@ -18,23 +18,50 @@ describe("splitCards", () => {
       node("list-item", "b2"),
     ] as RichTextField);
 
-    assert.equal(cards.length, 2);
-    assert.equal(cards[0]?.length, 2);
-    assert.equal(cards[1]?.length, 3);
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.boxed, true);
+    assert.equal(segments[0]?.nodes.length, 2);
+    assert.equal(segments[1]?.boxed, true);
+    assert.equal(segments[1]?.nodes.length, 3);
   });
 
-  it("keeps content before the first heading4 as its own card", () => {
-    const cards = splitCards([
+  it("keeps content before the first heading4 as its own boxed card", () => {
+    const segments = splitSegments([
       node("paragraph", "intro"),
       node("heading4", "A"),
     ] as RichTextField);
 
-    assert.equal(cards.length, 2);
-    assert.equal(cards[0]?.length, 1);
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.boxed, true);
+    assert.equal(segments[0]?.nodes.length, 1);
   });
 
-  it("returns no cards for an empty field", () => {
-    assert.deepEqual(splitCards([] as RichTextField), []);
+  it("drops out of the box after a heading5, until the next heading4", () => {
+    const segments = splitSegments([
+      node("heading4", "A"),
+      node("paragraph", "a1"),
+      node("heading5", "Loose section"),
+      node("paragraph", "loose"),
+      node("heading4", "B"),
+      node("paragraph", "b1"),
+    ] as RichTextField);
+
+    assert.deepEqual(
+      segments.map((s) => s.boxed),
+      [true, false, true],
+    );
+    assert.equal(segments[1]?.nodes.length, 2);
+  });
+
+  it("drops empty segments (a heading4/heading5 with nothing else after it)", () => {
+    const segments = splitSegments([node("heading5", "Loose")] as RichTextField);
+    assert.equal(segments.length, 1);
+    assert.equal(segments[0]?.boxed, false);
+    assert.equal(segments[0]?.nodes.length, 1);
+  });
+
+  it("returns no segments for an empty field", () => {
+    assert.deepEqual(splitSegments([] as RichTextField), []);
   });
 });
 

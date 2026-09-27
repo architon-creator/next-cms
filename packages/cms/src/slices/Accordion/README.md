@@ -44,7 +44,7 @@ All item fields are flat — Prismic can't nest a Group inside an `items` zone (
 
 | Field                                                | Type                                                                            | Notes                                                                                                                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cards`                                              | Rich Text (`heading4`, paragraph, strong, em, hyperlink, lists, **image**; labels `muted`, `small`, `roman`) | Grey cards. **Every `heading4` starts a new card**; everything until the next `heading4` (paragraphs, lists, an image) goes inside it. Any number of cards.       |
+| `cards`                                              | Rich Text (`heading4`, `heading5`, paragraph, strong, em, hyperlink, lists, **image**; labels `muted`, `small`, `roman`) | Grey cards. **Every `heading4` starts a new card**; everything until the next `heading4`/`heading5` (paragraphs, lists, an image) goes inside it. A **`heading5`** steps *outside* the box — everything after it renders as plain text (any text on the `heading5` itself shows as an unboxed sub-heading), until the next `heading4` opens a card again. Any number of cards and plain sections. |
 | `downloads_card`                                     | Number                                                                          | Which card (1-based) holds the download buttons. Blank or out of range → the last card. With no cards, the downloads get a card of their own.                              |
 | `file_1_heading` … `file_3_heading`                  | Text                                                                            | Optional bold sub-heading above that download button (e.g. "Canada-bound Service").                                                                                         |
 | `file_N_label`, `file_N`, `file_N_size`              | Text, Link, Text                                                                | Outline button + "File Size: …" caption (left-aligned). Up to 3 slots. The button is disabled (greyed) if `file_N` has no link.                                             |
@@ -65,6 +65,7 @@ All item fields are flat — Prismic can't nest a Group inside an `items` zone (
 
 - **Line breaks:** in a rich-text paragraph, Shift+Enter inserts a line break (rendered as `<br>`), so two lines can sit together without the paragraph gap.
 - **Cards:** start each card with a **Heading 4**. Content placed before the first Heading 4 becomes a card with no heading.
+- **A card, then a loose paragraph, then another card:** insert a **Heading 5** where you want to step outside the box (leave it blank, or give it text to show as a plain sub-heading); the next **Heading 4** opens a new card. `downloads_card` counts boxed cards only.
 - **Downloads in a specific card:** set `downloads_card` to the card's position. If you later insert a card above it, update the number — it is a position, not a link to the card.
 - **Roman-numeral lists:** Prismic rich text only has bullet and numbered lists. To get `i, ii, iii`, make it a **numbered** list and apply the **`roman`** label (toolbar text style, like `muted`/`small`) to any one item in that list — the whole list then uses Roman numerals. Available in `body` and `cards`.
 - **Placeholder links:** use `#` until the real destination exists (project convention).
@@ -123,7 +124,7 @@ All item fields are flat — Prismic can't nest a Group inside an `items` zone (
 | `ItemBoxes.tsx` | The grey cards from `cards`, with the downloads inside the card chosen by `downloads_card`.           |
 | `Downloads.tsx` | Download buttons with optional sub-headings and the "File Size" caption.                               |
 | `InfoBox.tsx`   | The flat box (`fill` / `outline` variants) — the one place the box padding and colour are defined.    |
-| `cards.ts`      | Pure logic: `splitCards`, `resolveDownloadsIndex`. Unit-tested in `cards.test.ts` (`pnpm test` in `packages/cms`). |
+| `cards.ts`      | Pure logic: `splitSegments`, `resolveDownloadsIndex`. Unit-tested in `cards.test.ts` (`pnpm test` in `packages/cms`). |
 | `styles.ts`     | The long Tailwind class constants, each with the design measurement it came from.                     |
 | `types.ts`      | The `AccordionItem` type.                                                                             |
 

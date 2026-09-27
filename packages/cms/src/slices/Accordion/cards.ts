@@ -2,19 +2,32 @@ import type { RichTextField } from "@prismicio/client";
 
 type RichTextNode = RichTextField[number];
 
+export type CardSegment = { boxed: boolean; nodes: RichTextField };
+
 /**
- * Splits a rich-text field into cards: every `heading4` starts a new card.
- * Content before the first `heading4` forms a heading-less card of its own.
+ * Splits a rich-text field into segments: every `heading4` starts a new
+ * boxed card; a `heading5` steps outside the box and starts a plain segment
+ * (its own text, if any, still renders — just not boxed), until the next
+ * `heading4` opens a box again. Content before the first heading is boxed by
+ * default, matching the old behaviour where there was no way to step outside
+ * a card. Empty segments are dropped.
  */
-export function splitCards(field: RichTextField): RichTextField[] {
-  const groups: RichTextNode[][] = [];
+export function splitSegments(field: RichTextField): CardSegment[] {
+  const segments: { boxed: boolean; nodes: RichTextNode[] }[] = [];
+  let boxed = true;
 
   for (const node of field) {
-    if (node.type === "heading4" || groups.length === 0) groups.push([]);
-    groups.at(-1)?.push(node);
+    if (node.type === "heading4" || node.type === "heading5") {
+      boxed = node.type === "heading4";
+      segments.push({ boxed, nodes: [] });
+    } else if (segments.length === 0) {
+      segments.push({ boxed, nodes: [] });
+    }
+
+    segments.at(-1)?.nodes.push(node);
   }
 
-  return groups as RichTextField[];
+  return (segments as CardSegment[]).filter((segment) => segment.nodes.length > 0);
 }
 
 /**

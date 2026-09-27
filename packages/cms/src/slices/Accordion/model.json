@@ -80,9 +80,9 @@
         "cards": {
           "type": "StructuredText",
           "config": {
-            "multi": "heading4,paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+            "multi": "heading4,heading5,paragraph,strong,em,hyperlink,list-item,o-list-item,image",
             "labels": ["muted", "small", "roman"],
-            "label": "Cards (each Heading 4 starts a new grey card)",
+            "label": "Cards (Heading 4 = new card; Heading 5 steps outside the card until the next Heading 4)",
             "placeholder": ""
           }
         },
