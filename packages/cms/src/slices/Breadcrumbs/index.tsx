@@ -54,6 +54,7 @@ export default function Breadcrumbs({ slice }: BreadcrumbsProps) {
   return (
     <nav
       aria-label="Breadcrumb"
+      className="pt-10 text-[13px] leading-[18px]"
       data-slice-type={slice.slice_type}
       data-slice-variation={slice.variation}
     >

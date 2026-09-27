@@ -47,7 +47,7 @@ This project has the Prismic MCP server connected (configured in [.mcp.json](../
 ## How this maps to the codebase
 
 - [customtypes/](../customtypes) and [prismicio-types.d.ts](../prismicio-types.d.ts) are the local generated mirrors of what `list_custom_types` / `get_custom_type` return from Prismic. If they drift (e.g. after a schema change in the Prismic dashboard), regenerate types as usual (`prismicCodegen.config.ts`) rather than hand-editing the `.d.ts` file.
-- [slices/](../slices) holds this project's React implementations of shared slices (`Accordion`, `Callout`, `RichTextSection`, `HeroBanner`, etc.), each with a `model.json`. `get_shared_slice` / `list_shared_slices` let Claude check the live Prismic model matches `model.json` before or after editing a slice.
+- [slices/](../slices) holds this project's React implementations of shared slices (`Accordion`, `RichTextSection`, `HeroBanner`, etc.), each with a `model.json`. `get_shared_slice` / `list_shared_slices` let Claude check the live Prismic model matches `model.json` before or after editing a slice.
 - When adding a new slice type or field, the usual flow is: update the model in Prismic (via MCP `get_custom_type`/schema tools or the dashboard) → make sure `model.json` and the component in `slices/` match → regenerate `prismicio-types.d.ts`.
 
 ## Practical workflows

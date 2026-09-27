@@ -3,9 +3,11 @@
 @import "shadcn/tailwind.css";
 /* Tailwind's automatic content detection doesn't reach outside this app
    into sibling pnpm workspace packages — without this, every class that
-   only appears in packages/ui/src (e.g. Button's bg-primary,
-   text-primary-foreground) is silently never generated. */
+   only appears in packages/ui/src or packages/cms/src (e.g. Button's
+   bg-primary, the Accordion's bg-muted note box) is silently never
+   generated. */
 @source "../../../packages/ui/src";
+@source "../../../packages/cms/src";
 /*
  ---break---
  */
@@ -64,6 +66,9 @@ body {
  ---break---
  */
 @theme inline {
+  /* Off-palette colours taken from the source design (not part of the shadcn set). */
+  --color-surface-muted: #f4f7f6;
+  --color-ink: #100d0d;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

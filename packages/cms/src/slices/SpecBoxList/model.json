@@ -1,0 +1,38 @@
+{
+  "id": "spec_box_list",
+  "type": "SharedSlice",
+  "name": "SpecBoxList",
+  "description": "A list of bordered definition-list boxes (label/value rows) — e.g. a fare rule table",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "One box per item, each with label/value rows",
+      "imageUrl": "",
+      "primary": {},
+      "items": {
+        "label": {
+          "type": "Text",
+          "config": { "label": "Label (shown above the box)", "placeholder": "" }
+        },
+        "anchor_id": {
+          "type": "Text",
+          "config": {
+            "label": "Anchor ID (optional, for in-page jump links, e.g. from a LinkList slice's href \"#this-value\")",
+            "placeholder": ""
+          }
+        },
+        "rows": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading4,paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "label": "Rows (each Heading 4 is a row label; the paragraphs/bullets after it, until the next Heading 4, are its value)",
+            "placeholder": ""
+          }
+        }
+      }
+    }
+  ]
+}

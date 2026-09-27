@@ -2,7 +2,7 @@
 
 The `Home › Level 1 › Level 2 › Level 3` trail at the top of a page.
 
-**Live examples**: every page (`special-assistance`, `boarding-process`, `faq`, `network-and-timetable`, `payment`, `where-does-zipair-fly-to`) — always the second slice in the Heading zone, after `PageTitle`... actually before it in document order (`PageTitle` then `Breadcrumbs`, or vice versa — order in the Heading zone controls stacking order on the page).
+**Live examples**: every page (`special-assistance`, `boarding-process`, `faq`, `network-and-timetable`, `payment`, `where-does-zipair-fly-to`) — always rendered **above** `PageTitle`: the page (`apps/frontend/app/[locale]/[uid]/page.tsx`) sorts breadcrumbs first in the Heading zone, so the order editors leave them in doesn't matter. Styling: `pt-10` (40px), 13px text on an 18px line.
 
 ## ⚠️ Important: this slice does not hold the breadcrumb text
 

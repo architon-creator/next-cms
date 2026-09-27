@@ -1,6 +1,6 @@
 # InfoCardList
 
-A stack of bordered info cards, each with a title and rich-text body — the repeating-list sibling of [`Callout`](../Callout/README.md).
+A stack of bordered info cards, each with a title and rich-text body.
 
 **Live examples**: `special-assistance` (Chat and Email Inquiries / Phone Inquiries cards).
 
@@ -11,7 +11,6 @@ A stack of bordered info cards, each with a title and rich-text body — the rep
 
 ## When NOT to use
 
-- Exactly one box, with a style variant (Info/Warning/Success/Neutral tint) → [`Callout`](../Callout/README.md).
 
 ## Variation: `default`
 
@@ -65,15 +64,14 @@ No primary fields.
 
 ## Styling conventions
 
-- `bg-muted` on every card (no style-variant system, unlike `Callout`).
+- `bg-muted` on every card (no style-variant system).
 - Body: `[&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:mb-2 [&_ul]:pl-5 [&_ul]:leading-relaxed [&_ol]:mb-2 [&_ol]:pl-5 [&_ol]:leading-relaxed`.
 - Container: `flex flex-col gap-4 mt-6`.
 
 ## Known limitations
 
-- No style-variant support (every card looks the same) — if a design needs, e.g., one card visually flagged as "most popular," this slice would need a per-item style field like `Callout`'s.
+- No style-variant support (every card looks the same) — if a design needs, e.g., one card visually flagged as "most popular," this slice would need a per-item style field.
 - No two-column/grid layout option — always a vertical stack.
 
 ## Related slices
 
-- [`Callout`](../Callout/README.md) — same `Card` primitive, single box with style variants instead of a repeating list.

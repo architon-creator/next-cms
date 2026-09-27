@@ -90,6 +90,9 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "flexible_content": {
+              "type": "SharedSlice"
+            },
             "breadcrumbs": {
               "type": "SharedSlice"
             },
@@ -117,6 +120,9 @@
             "info_card_list": {
               "type": "SharedSlice"
             },
+            "spec_box_list": {
+              "type": "SharedSlice"
+            },
             "link_list": {
               "type": "SharedSlice"
             },
@@ -137,6 +143,9 @@
         "config": {
           "choices": {
             "accordion": {
+              "type": "SharedSlice"
+            },
+            "flexible_content": {
               "type": "SharedSlice"
             },
             "breadcrumbs": {
@@ -161,6 +170,9 @@
               "type": "SharedSlice"
             },
             "info_card_list": {
+              "type": "SharedSlice"
+            },
+            "spec_box_list": {
               "type": "SharedSlice"
             },
             "link_list": {
@@ -185,6 +197,9 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "flexible_content": {
+              "type": "SharedSlice"
+            },
             "breadcrumbs": {
               "type": "SharedSlice"
             },
@@ -207,6 +222,9 @@
               "type": "SharedSlice"
             },
             "info_card_list": {
+              "type": "SharedSlice"
+            },
+            "spec_box_list": {
               "type": "SharedSlice"
             },
             "link_list": {

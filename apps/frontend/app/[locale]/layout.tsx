@@ -55,6 +55,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale}>
+      <head>
+        {/* Material Symbols, subset to the icons we use (Accordion trigger). Must be a <link>,
+            not a CSS @import: Tailwind expands globals.css so an @import can't precede its rules. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=expand_circle_down&display=block"
+        />
+      </head>
       {/* Column layout so Footer's `mt-auto` pins it to the bottom on short pages. */}
       <body className="flex min-h-screen flex-col bg-background text-foreground">
         <NextIntlClientProvider>

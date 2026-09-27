@@ -2,15 +2,15 @@
 
 A standalone stack of outline download buttons, each with a label and a "File Size: ..." caption underneath.
 
-**Live examples**: none currently — `special-assistance`'s three download groups (previously this slice) were migrated into [`DisclosureList`](../DisclosureList/README.md)'s `files` field, so they render inside the relevant topic's collapsible panel instead of as a separate, always-visible block below it. See [When NOT to use](#when-not-to-use).
+**Live examples**: none currently — `special-assistance`'s three download groups (previously this slice) were migrated into [`Accordion`](../Accordion/README.md)'s `file_1..3` fields, so they render inside the relevant topic's collapsible panel instead of as a separate, always-visible block below it. See [When NOT to use](#when-not-to-use).
 
 ## When to use
 
-- A prominent group of downloadable files (forms, PDFs) that stands on its own — **not** tied to a specific `DisclosureList` topic's collapsible content.
+- A prominent group of downloadable files (forms, PDFs) that stands on its own — **not** tied to a specific `Accordion` section's collapsible content.
 
 ## When NOT to use
 
-- **Download buttons belong inside a `DisclosureList` topic's box** (the common case — e.g. "submit this form for X topic") → use `DisclosureList`'s own `files` field instead of this slice. A separate `FileDownloadList` instance placed after a `DisclosureList` item is a **different slice, not inside the accordion** — collapsing that topic won't hide the buttons, and no CSS trick changes that (this was tried: matching backgrounds/rounded corners can make two adjacent slices _look_ like one box, but they still don't collapse together). This is exactly the mistake that was corrected on `special-assistance`.
+- **Download buttons belong inside an `Accordion` section** (the common case — e.g. "submit this form for X topic") → use `Accordion`'s own `file_1..3` fields instead of this slice. A separate `FileDownloadList` instance placed after an `Accordion` is a **different slice, not inside the accordion** — collapsing that topic won't hide the buttons, and no CSS trick changes that (this was tried: matching backgrounds/rounded corners can make two adjacent slices _look_ like one box, but they still don't collapse together). This is exactly the mistake that was corrected on `special-assistance`.
 
 ## Variation: `default`
 
@@ -55,9 +55,9 @@ No primary fields.
 
 - No progress/loading state — purely a static link/button (file downloads are native browser behavior, not client-side JS).
 - All files in one instance render as a single flat list — if a design needs, say, a 2-column grid of download buttons, this slice would need a new variation.
-- No grouping/sub-heading support for stacking several buttons under one label within a single instance. `DisclosureList`'s `files` field has the same limitation.
+- No grouping/sub-heading support for stacking several buttons under one label within a single instance (`Accordion`'s `file_N_heading` fields cover that case).
 
 ## Related slices
 
 - [`ButtonLink`](../ButtonLink/README.md) — single centered button, for a non-file CTA.
-- [`DisclosureList`](../DisclosureList/README.md) — has its own `files` field for the "downloads tied to one collapsible topic" case; prefer that over this slice whenever that's the situation.
+- [`Accordion`](../Accordion/README.md) — has its own `file_1..3` fields for the "downloads tied to one collapsible topic" case; prefer that over this slice whenever that's the situation.

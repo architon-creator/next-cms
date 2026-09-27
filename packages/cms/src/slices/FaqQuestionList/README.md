@@ -187,5 +187,5 @@ Every variation's `question`/`href` rows render via `next/link`'s `Link` compone
 
 ## Related slices
 
-- [`Accordion`](../Accordion/README.md) / [`DisclosureList`](../DisclosureList/README.md) — the general-purpose (non-FAQ-specific) collapsible-section slices, for comparison.
+- [`Accordion`](../Accordion/README.md) — the general-purpose (non-FAQ-specific) collapsible-section slice, for comparison.
 - [`LinkList`](../LinkList/README.md) — simpler stacked-chevron-links slice, unrelated to the category/question data model here but visually similar to `default`'s rows in spirit.

@@ -2,7 +2,7 @@
   "id": "accordion",
   "type": "SharedSlice",
   "name": "Accordion",
-  "description": "Numbered, individually collapsible sections (e.g. a step-by-step process)",
+  "description": "Individually collapsible sections (numbered by default) with optional cards, download buttons and links",
   "variations": [
     {
       "id": "default",
@@ -11,8 +11,27 @@
       "version": "initial",
       "description": "Numbered accordion items",
       "imageUrl": "",
-      "primary": {},
+      "primary": {
+        "hide_number": {
+          "type": "Boolean",
+          "config": {
+            "label": "Hide numbers",
+            "default_value": false,
+            "placeholder_false": "Numbered",
+            "placeholder_true": "Unnumbered"
+          }
+        }
+      },
       "items": {
+        "start_expanded": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start expanded",
+            "default_value": false,
+            "placeholder_false": "Collapsed",
+            "placeholder_true": "Expanded"
+          }
+        },
         "title": {
           "type": "Text",
           "config": { "label": "Title", "placeholder": "" }
@@ -25,7 +44,7 @@
           "type": "StructuredText",
           "config": {
             "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
-            "labels": ["muted", "small"],
+            "labels": ["muted", "small", "roman"],
             "label": "Body",
             "placeholder": ""
           }
@@ -59,6 +78,134 @@
           "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
         }
       }
+    },
+    {
+      "id": "with_cards",
+      "name": "Single topic with cards",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "One topic with any number of flexible cards (no numbering) — for a list of independent topics like Special Assistance, not a numbered step sequence",
+      "imageUrl": "",
+      "primary": {
+        "start_expanded": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start expanded",
+            "default_value": false,
+            "placeholder_false": "Collapsed",
+            "placeholder_true": "Expanded"
+          }
+        },
+        "title": {
+          "type": "Text",
+          "config": { "label": "Title", "placeholder": "" }
+        },
+        "note": {
+          "type": "Text",
+          "config": { "label": "Highlighted Note", "placeholder": "" }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "labels": ["muted", "small", "roman"],
+            "label": "Body",
+            "placeholder": ""
+          }
+        },
+        "blocks": {
+          "type": "Group",
+          "config": {
+            "label": "Blocks (any order, any count — fill in only the fields for that block's type)",
+            "fields": {
+              "text": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Text block",
+                  "placeholder": ""
+                }
+              },
+              "image": {
+                "type": "Image",
+                "config": { "label": "Image block", "constraint": {}, "thumbnails": [] }
+              },
+              "card_heading": {
+                "type": "Text",
+                "config": { "label": "Card heading", "placeholder": "" }
+              },
+              "card_body": {
+                "type": "StructuredText",
+                "config": {
+                  "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item,image",
+                  "labels": ["muted", "small", "roman"],
+                  "label": "Card body",
+                  "placeholder": ""
+                }
+              },
+              "link_label": {
+                "type": "Text",
+                "config": { "label": "Link label", "placeholder": "" }
+              },
+              "link": {
+                "type": "Link",
+                "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_label": {
+                "type": "Text",
+                "config": { "label": "Button label", "placeholder": "" }
+              },
+              "button_link": {
+                "type": "Link",
+                "config": { "label": "Button link", "placeholder": "", "allowTargetBlank": true }
+              },
+              "button_caption": {
+                "type": "Text",
+                "config": { "label": "Button caption (e.g. \"File Size: 504KB\")", "placeholder": "" }
+              }
+            }
+          }
+        },
+        "footnote": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink",
+            "labels": ["muted", "small"],
+            "label": "Footnote",
+            "placeholder": ""
+          }
+        },
+        "necessities_heading": {
+          "type": "Text",
+          "config": { "label": "Necessities Heading", "placeholder": "" }
+        },
+        "necessities": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading4,paragraph,strong,em,hyperlink",
+            "label": "Necessities",
+            "placeholder": ""
+          }
+        },
+        "link_label": {
+          "type": "Text",
+          "config": { "label": "Link Label", "placeholder": "" }
+        },
+        "link": {
+          "type": "Link",
+          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        },
+        "link2_label": {
+          "type": "Text",
+          "config": { "label": "Second Link Label", "placeholder": "" }
+        },
+        "link2": {
+          "type": "Link",
+          "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
+        }
+      },
+      "items": {}
     }
   ]
 }

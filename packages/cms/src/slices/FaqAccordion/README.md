@@ -8,7 +8,7 @@ Two unrelated variations sharing one slice id: a generic Q&A accordion, and the 
 
 ## Variation: `default`
 
-A plain, topic-unrelated FAQ block — `title` + repeatable `qa` (question/answer) pairs, rendered as a single-select accordion. Comparable to a simpler `DisclosureList`/`Accordion`.
+A plain, topic-unrelated FAQ block — `title` + repeatable `qa` (question/answer) pairs, rendered as a single-select accordion. Comparable to a simpler `Accordion`.
 
 ## Variation: `sidebar_nav`
 
