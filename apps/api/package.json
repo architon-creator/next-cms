@@ -23,7 +23,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "otel": "workspace:*",
-    "tsx": "^4.19.2"
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
