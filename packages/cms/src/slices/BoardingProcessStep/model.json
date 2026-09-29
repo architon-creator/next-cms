@@ -1,0 +1,122 @@
+{
+  "id": "boarding_process_step",
+  "type": "SharedSlice",
+  "name": "BoardingProcessStep",
+  "description": "One numbered boarding-process step, with a free-form ordered content stream (heading/paragraph/callout/card/link/button) instead of fixed fields",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "https://prismic.io/docs/slices",
+      "version": "initial",
+      "description": "One step, numbered, with a flexible content stream",
+      "imageUrl": "",
+      "primary": {
+        "step_number": {
+          "type": "Number",
+          "config": { "label": "Step number", "placeholder": "" }
+        },
+        "step_title": {
+          "type": "Text",
+          "config": { "label": "Step title", "placeholder": "" }
+        },
+        "display_mode": {
+          "type": "Select",
+          "config": {
+            "label": "Display mode",
+            "default_value": "accordion",
+            "options": ["accordion", "static"],
+            "placeholder": ""
+          }
+        },
+        "start_expanded": {
+          "type": "Boolean",
+          "config": {
+            "label": "Start expanded",
+            "default_value": false,
+            "placeholder_false": "Collapsed",
+            "placeholder_true": "Expanded"
+          }
+        },
+        "note": {
+          "type": "Text",
+          "config": { "label": "Highlighted Note", "placeholder": "" }
+        },
+        "necessities_heading": {
+          "type": "Text",
+          "config": { "label": "Necessities Heading", "placeholder": "" }
+        },
+        "necessities": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading4,paragraph,strong,em,hyperlink",
+            "label": "Necessities",
+            "placeholder": ""
+          }
+        },
+        "footnote": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "paragraph,strong,em,hyperlink",
+            "labels": ["muted", "small"],
+            "label": "Footnote",
+            "placeholder": ""
+          }
+        },
+        "link_label": {
+          "type": "Text",
+          "config": { "label": "Link Label", "placeholder": "" }
+        },
+        "link": {
+          "type": "Link",
+          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+        },
+        "link2_label": {
+          "type": "Text",
+          "config": { "label": "Second Link Label", "placeholder": "" }
+        },
+        "link2": {
+          "type": "Link",
+          "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
+        }
+      },
+      "items": {
+        "block_type": {
+          "type": "Select",
+          "config": {
+            "label": "Content block type",
+            "default_value": "paragraph",
+            "options": [
+              "subheading",
+              "section_heading",
+              "paragraph",
+              "callout",
+              "note",
+              "info_card",
+              "link_note",
+              "button"
+            ],
+            "placeholder": ""
+          }
+        },
+        "content": {
+          "type": "StructuredText",
+          "config": {
+            "multi": "heading3,heading4,paragraph,strong,em,hyperlink,list-item,o-list-item",
+            "labels": ["muted", "small", "roman"],
+            "label": "Content",
+            "placeholder": ""
+          }
+        },
+        "button_label": {
+          "type": "Text",
+          "config": { "label": "Button label", "placeholder": "" }
+        },
+        "button_link": {
+          "type": "Link",
+          "config": { "label": "Button link", "placeholder": "", "allowTargetBlank": true }
+        }
+      }
+    }
+  ]
+}

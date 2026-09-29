@@ -90,6 +90,9 @@
             "accordion": {
               "type": "SharedSlice"
             },
+            "boarding_process_step": {
+              "type": "SharedSlice"
+            },
             "flexible_content": {
               "type": "SharedSlice"
             },
