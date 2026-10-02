@@ -1,122 +1,155 @@
 {
   "id": "boarding_process_step",
-  "type": "SharedSlice",
   "name": "BoardingProcessStep",
-  "description": "One numbered boarding-process step, with a free-form ordered content stream (heading/paragraph/callout/card/link/button) instead of fixed fields",
+  "type": "SharedSlice",
   "variations": [
     {
+      "description": "Default",
+      "docURL": "",
       "id": "default",
-      "name": "Default",
-      "docURL": "https://prismic.io/docs/slices",
-      "version": "initial",
-      "description": "One step, numbered, with a flexible content stream",
       "imageUrl": "",
+      "name": "Default",
       "primary": {
         "step_number": {
-          "type": "Number",
-          "config": { "label": "Step number", "placeholder": "" }
+          "config": {
+            "label": "Step number"
+          },
+          "type": "Number"
         },
         "step_title": {
-          "type": "Text",
-          "config": { "label": "Step title", "placeholder": "" }
+          "config": {
+            "label": "Step title"
+          },
+          "type": "Text"
         },
         "display_mode": {
-          "type": "Select",
           "config": {
-            "label": "Display mode",
             "default_value": "accordion",
-            "options": ["accordion", "static"],
-            "placeholder": ""
-          }
+            "label": "Display mode",
+            "options": [
+              "accordion",
+              "static"
+            ]
+          },
+          "type": "Select"
         },
         "start_expanded": {
-          "type": "Boolean",
           "config": {
             "label": "Start expanded",
-            "default_value": false,
             "placeholder_false": "Collapsed",
             "placeholder_true": "Expanded"
-          }
+          },
+          "type": "Boolean"
         },
         "note": {
-          "type": "Text",
-          "config": { "label": "Highlighted Note", "placeholder": "" }
+          "config": {
+            "label": "Highlighted Note"
+          },
+          "type": "Text"
         },
         "necessities_heading": {
-          "type": "Text",
-          "config": { "label": "Necessities Heading", "placeholder": "" }
+          "config": {
+            "label": "Necessities Heading"
+          },
+          "type": "Text"
         },
         "necessities": {
-          "type": "StructuredText",
           "config": {
-            "multi": "heading4,paragraph,strong,em,hyperlink",
             "label": "Necessities",
-            "placeholder": ""
-          }
+            "multi": "heading4,paragraph,strong,em,hyperlink"
+          },
+          "type": "StructuredText"
         },
         "footnote": {
-          "type": "StructuredText",
           "config": {
-            "multi": "paragraph,strong,em,hyperlink",
-            "labels": ["muted", "small"],
             "label": "Footnote",
-            "placeholder": ""
-          }
+            "labels": [
+              "muted",
+              "small"
+            ],
+            "multi": "paragraph,strong,em,hyperlink"
+          },
+          "type": "StructuredText"
         },
         "link_label": {
-          "type": "Text",
-          "config": { "label": "Link Label", "placeholder": "" }
+          "config": {
+            "label": "Link Label"
+          },
+          "type": "Text"
         },
         "link": {
-          "type": "Link",
-          "config": { "label": "Link", "placeholder": "", "allowTargetBlank": true }
+          "config": {
+            "allowTargetBlank": true,
+            "label": "Link"
+          },
+          "type": "Link"
         },
         "link2_label": {
-          "type": "Text",
-          "config": { "label": "Second Link Label", "placeholder": "" }
+          "config": {
+            "label": "Second Link Label"
+          },
+          "type": "Text"
         },
         "link2": {
-          "type": "Link",
-          "config": { "label": "Second Link", "placeholder": "", "allowTargetBlank": true }
+          "config": {
+            "allowTargetBlank": true,
+            "label": "Second Link"
+          },
+          "type": "Link"
+        },
+        "content_blocks": {
+          "config": {
+            "fields": {
+              "block_type": {
+                "config": {
+                  "default_value": "paragraph",
+                  "label": "Content block type",
+                  "options": [
+                    "subheading",
+                    "section_heading",
+                    "paragraph",
+                    "callout",
+                    "note",
+                    "info_card",
+                    "link_note",
+                    "button"
+                  ]
+                },
+                "type": "Select"
+              },
+              "content": {
+                "config": {
+                  "label": "Content",
+                  "labels": [
+                    "muted",
+                    "small",
+                    "roman"
+                  ],
+                  "multi": "heading3,heading4,paragraph,strong,em,hyperlink,list-item,o-list-item"
+                },
+                "type": "StructuredText"
+              },
+              "button_label": {
+                "config": {
+                  "label": "Button label"
+                },
+                "type": "Text"
+              },
+              "button_link": {
+                "config": {
+                  "allowTargetBlank": true,
+                  "label": "Button link"
+                },
+                "type": "Link"
+              }
+            },
+            "label": "Content blocks (any order, any count)"
+          },
+          "type": "Group"
         }
       },
-      "items": {
-        "block_type": {
-          "type": "Select",
-          "config": {
-            "label": "Content block type",
-            "default_value": "paragraph",
-            "options": [
-              "subheading",
-              "section_heading",
-              "paragraph",
-              "callout",
-              "note",
-              "info_card",
-              "link_note",
-              "button"
-            ],
-            "placeholder": ""
-          }
-        },
-        "content": {
-          "type": "StructuredText",
-          "config": {
-            "multi": "heading3,heading4,paragraph,strong,em,hyperlink,list-item,o-list-item",
-            "labels": ["muted", "small", "roman"],
-            "label": "Content",
-            "placeholder": ""
-          }
-        },
-        "button_label": {
-          "type": "Text",
-          "config": { "label": "Button label", "placeholder": "" }
-        },
-        "button_link": {
-          "type": "Link",
-          "config": { "label": "Button link", "placeholder": "", "allowTargetBlank": true }
-        }
-      }
+      "items": {},
+      "version": ""
     }
   ]
 }

@@ -307,7 +307,7 @@ export type ContactPageDocument<Lang extends string = string> = prismic.PrismicD
 
 type ContentPageDocumentDataHeadingSlice = PageTitleSlice | BreadcrumbsSlice
 
-type ContentPageDocumentDataMainSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
+type ContentPageDocumentDataMainSlice = AccordionSlice | BoardingProcessStepSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqAnswerSwapSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
 type ContentPageDocumentDataAsideSlice = AccordionSlice | FlexibleContentSlice | BreadcrumbsSlice | ButtonLinkSlice | CalloutSlice | DisclosureListSlice | FaqQuestionListSlice | FileDownloadListSlice | ImageBlockSlice | InfoCardListSlice | SpecBoxListSlice | LinkListSlice | PageTitleSlice | RichTextSectionSlice
 
@@ -1211,6 +1211,211 @@ type AccordionSliceVariation = AccordionSliceDefault | AccordionSliceWithCards
  * - **Documentation**: https://prismic.io/docs/slices
  */
 export type AccordionSlice = prismic.SharedSlice<"accordion", AccordionSliceVariation>;
+
+/**
+ * Item in *BoardingProcessStep → Default → Primary → Content blocks (any order, any count)*
+ */
+export interface BoardingProcessStepSliceDefaultPrimaryContentBlocksItem {
+	/**
+	 * Content block type field in *BoardingProcessStep → Default → Primary → Content blocks (any order, any count)*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: paragraph
+	 * - **API ID Path**: boarding_process_step.default.primary.content_blocks[].block_type
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	block_type: prismic.SelectField<"subheading" | "section_heading" | "paragraph" | "callout" | "note" | "info_card" | "link_note" | "button", "filled">;
+	
+	/**
+	 * Content field in *BoardingProcessStep → Default → Primary → Content blocks (any order, any count)*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.content_blocks[].content
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	content: prismic.RichTextField;
+	
+	/**
+	 * Button label field in *BoardingProcessStep → Default → Primary → Content blocks (any order, any count)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.content_blocks[].button_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_label: prismic.KeyTextField;
+	
+	/**
+	 * Button link field in *BoardingProcessStep → Default → Primary → Content blocks (any order, any count)*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.content_blocks[].button_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	button_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Primary content in *BoardingProcessStep → Default → Primary*
+ */
+export interface BoardingProcessStepSliceDefaultPrimary {
+	/**
+	 * Step number field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.step_number
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	step_number: prismic.NumberField;
+	
+	/**
+	 * Step title field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.step_title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	step_title: prismic.KeyTextField;
+	
+	/**
+	 * Display mode field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: accordion
+	 * - **API ID Path**: boarding_process_step.default.primary.display_mode
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	display_mode: prismic.SelectField<"accordion" | "static", "filled">;
+	
+	/**
+	 * Start expanded field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.start_expanded
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	start_expanded: prismic.BooleanField;
+	
+	/**
+	 * Highlighted Note field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.note
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	note: prismic.KeyTextField;
+	
+	/**
+	 * Necessities Heading field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.necessities_heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	necessities_heading: prismic.KeyTextField;
+	
+	/**
+	 * Necessities field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.necessities
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	necessities: prismic.RichTextField;
+	
+	/**
+	 * Footnote field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.footnote
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	footnote: prismic.RichTextField;
+	
+	/**
+	 * Link Label field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.link_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link_label: prismic.KeyTextField;
+	
+	/**
+	 * Link field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Second Link Label field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.link2_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	link2_label: prismic.KeyTextField;
+	
+	/**
+	 * Second Link field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.link2
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link2: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * Content blocks (any order, any count) field in *BoardingProcessStep → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: boarding_process_step.default.primary.content_blocks[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	content_blocks: prismic.GroupField<Simplify<BoardingProcessStepSliceDefaultPrimaryContentBlocksItem>>;
+}
+
+/**
+ * Default variation for BoardingProcessStep Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type BoardingProcessStepSliceDefault = prismic.SharedSliceVariation<"default", Simplify<BoardingProcessStepSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *BoardingProcessStep*
+ */
+type BoardingProcessStepSliceVariation = BoardingProcessStepSliceDefault
+
+/**
+ * BoardingProcessStep Shared Slice
+ *
+ * - **API ID**: `boarding_process_step`
+ * - **Description**: *None*
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type BoardingProcessStepSlice = prismic.SharedSlice<"boarding_process_step", BoardingProcessStepSliceVariation>;
 
 /**
  * Primary content in *Breadcrumbs → Default → Primary*
@@ -2680,6 +2885,11 @@ declare module "@prismicio/client" {
 			AccordionSliceVariation,
 			AccordionSliceDefault,
 			AccordionSliceWithCards,
+			BoardingProcessStepSlice,
+			BoardingProcessStepSliceDefaultPrimaryContentBlocksItem,
+			BoardingProcessStepSliceDefaultPrimary,
+			BoardingProcessStepSliceVariation,
+			BoardingProcessStepSliceDefault,
 			BreadcrumbsSlice,
 			BreadcrumbsSliceDefaultPrimary,
 			BreadcrumbsSliceVariation,

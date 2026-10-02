@@ -1,6 +1,7 @@
 import type { FC } from "react";
 
 import Accordion from "./Accordion";
+import BoardingProcessStep from "./BoardingProcessStep";
 import Breadcrumbs from "./Breadcrumbs";
 import ButtonLink from "./ButtonLink";
 import FaqAccordion from "./FaqAccordion";
@@ -43,6 +44,7 @@ export interface SliceRendererProps {
  */
 const sliceRegistry: Record<string, SliceComponent> = {
   accordion: Accordion,
+  boarding_process_step: BoardingProcessStep,
   breadcrumbs: Breadcrumbs,
   button_link: ButtonLink,
   faq_accordion: FaqAccordion,
