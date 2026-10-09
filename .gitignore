@@ -3,6 +3,7 @@ node_modules
 
 # next.js
 .next/
+.next-*/
 out/
 
 # production
@@ -34,3 +35,6 @@ next-env.d.ts
 # build output (apps/*)
 apps/*/dist
 apps/api/uploads
+apps/java-api/target
+apps/java-api/uploads
+apps/java-api/data

@@ -36,5 +36,35 @@ services:
       jaeger:
         condition: service_healthy
 
+  # --- Login (see docs/ibe-login.md) -------------------------------------
+  # Session store for the Next.js OIDC login. Without REDIS_URL the app falls
+  # back to in-memory sessions in development (never in production).
+  redis:
+    image: redis:7-alpine
+    container_name: ibe-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # A local OpenID Connect identity provider that stands in for the vendor
+  # until their login page is ready. The realm in docker/keycloak/ibe-realm.json
+  # has the client, a test user and the audience/scope the Java API expects.
+  # Start it with: docker compose up -d keycloak   (UI: http://localhost:8081)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: ibe-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8081:8080" # 8080 is left free for other tools
+
 volumes:
   jaeger-storage:

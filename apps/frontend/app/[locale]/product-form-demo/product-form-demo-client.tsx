@@ -81,10 +81,34 @@ const toApiDate = (value: string) => {
   return `${date} ${time.length === 5 ? `${time}:00` : time}`;
 };
 
-// Builds the exact JSON shape the backend expects. `productImage` holds the
-// selected files' names, in the same order as the `productImage` multipart
-// file parts; the backend swaps each name for the stored image URL.
-function buildPayload(s: FormState, files: File[]) {
+// One item of the repeatable "Product image" group: an image plus its
+// description. `id` is only an internal React key / bookkeeping id; it never
+// leaves the browser. An item is either NEW (`file` set, uploaded on submit)
+// or already STORED (`url` set after a save: kept as is on update, no
+// re-upload). Picking a new file for a stored item replaces it.
+type ImageItem = { id: string; file: File | null; url?: string; description: string };
+
+const newItemId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `item-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+// The id sent to the backend: product-image-1, product-image-2, ... It goes
+// into the payload AND is used as the multipart part's filename, so the
+// backend matches file <-> payload item by id instead of by position. It is
+// derived from the item's position at submit time, so it stays sequential
+// after items are removed. Even the same picture in two items gets two ids.
+const imageWireId = (index: number) => `product-image-${index + 1}`;
+
+// Builds the exact JSON shape the backend expects. Each `productImage` item
+// holds an image id and a description; the backend swaps the id for the
+// stored image URL.
+function buildPayload(
+  s: FormState,
+  images: ImageItem[],
+  pdf: File | null,
+  pdfUrl: string | null,
+) {
   return {
     category: "InflightMeal",
     product: {
@@ -109,7 +133,15 @@ function buildPayload(s: FormState, files: File[]) {
       recommend: s.recommend,
       akibaZip: s.akibaZip,
       pickupLocation: s.pickupLocation,
-      productImage: files.map((file) => file.name),
+      productImage: images.map((image, index) => ({
+        // Stored items send their current URL (keep); new ones send a new id.
+        image: image.url ?? imageWireId(index),
+        description: image.description,
+      })),
+      // New PDF: an id here, and the same id as the PDF part's filename.
+      // Stored PDF: its current URL (keep). Neither: left out (undefined is
+      // dropped by JSON.stringify), which removes the PDF on update.
+      productPdf: pdf ? PDF_WIRE_ID : (pdfUrl ?? undefined),
       presetHealthInformation: s.presetHealthInformation,
       allergyInformation: splitList(s.allergyInformation),
       displayOrder: Number(s.displayOrder),
@@ -124,7 +156,21 @@ function buildPayload(s: FormState, files: File[]) {
   };
 }
 
-type ApiResponse = { success: boolean; error?: string; [key: string]: unknown };
+const MAX_IMAGES = 10; // matches the API's multer limit
+const PDF_WIRE_ID = "product-pdf";
+
+type SavedProduct = {
+  productImage?: { image: string; description?: string }[];
+  productPdf?: string;
+};
+
+type ApiResponse = {
+  success: boolean;
+  error?: string;
+  id?: string;
+  data?: { product?: SavedProduct };
+  [key: string]: unknown;
+};
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -138,17 +184,52 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function ProductFormDemoClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<FormState>(initialState);
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [pdf, setPdf] = useState<File | null>(null);
+  // Set once a product has been saved: from then on Submit updates it.
+  const [productId, setProductId] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  // Which group item the shared hidden file input is currently picking for.
+  const pickingFor = useRef<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ApiResponse | null>(null);
 
-  // Object URLs hold the files in memory until revoked.
+  // One blob: preview URL per File, created once and reused across renders.
+  // Re-creating URLs on every change (e.g. each keystroke in a description)
+  // gives the <img> a new src and makes the browser re-load every image.
+  const previewUrls = useRef(new Map<File, string>());
+  const previewFor = (file: File | null) => {
+    if (!file) return null;
+    let url = previewUrls.current.get(file);
+    if (!url) {
+      url = URL.createObjectURL(file);
+      previewUrls.current.set(file, url);
+    }
+    return url;
+  };
+
+  // Free the URL of any file that is no longer in the list (item removed or
+  // its image replaced).
   useEffect(() => {
-    const urls = files.map((f) => URL.createObjectURL(f));
-    setPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
-  }, [files]);
+    const live = new Set(images.map((image) => image.file));
+    for (const [file, url] of previewUrls.current) {
+      if (!live.has(file)) {
+        URL.revokeObjectURL(url);
+        previewUrls.current.delete(file);
+      }
+    }
+  }, [images]);
+
+  // Free everything on unmount. The map is cleared too so a re-mount
+  // (StrictMode in dev) never reuses a revoked URL.
+  useEffect(() => {
+    const cache = previewUrls.current;
+    return () => {
+      cache.forEach((url) => URL.revokeObjectURL(url));
+      cache.clear();
+    };
+  }, []);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setState((prev) => ({ ...prev, [key]: value }));
@@ -181,24 +262,62 @@ export function ProductFormDemoClient() {
     );
   }
 
+  // After a save, show what the server stored: every image becomes a STORED
+  // item (url set, no file) and the PDF becomes a stored URL. Further edits
+  // then keep, replace or remove them on the next submit.
+  function showSaved(id: string, product: SavedProduct | undefined) {
+    setProductId(id);
+    setImages(
+      (product?.productImage ?? []).map((item) => ({
+        id: newItemId(),
+        file: null,
+        url: item.image,
+        description: item.description ?? "",
+      })),
+    );
+    setPdf(null);
+    setPdfUrl(product?.productPdf ?? null);
+  }
+
+  function startNewProduct() {
+    setProductId(null);
+    setImages([]);
+    setPdf(null);
+    setPdfUrl(null);
+    setResult(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (files.length === 0) {
-      setResult({ success: false, error: "Please choose at least one product image" });
+    if (images.length === 0 || images.some((image) => !image.file && !image.url)) {
+      setResult({
+        success: false,
+        error: "Add at least one product image item, and choose an image for every item",
+      });
       return;
     }
 
     const formData = new FormData();
-    formData.set("payload", JSON.stringify(buildPayload(state, files)));
-    files.forEach((file) => formData.append("productImage", file));
+    formData.set("payload", JSON.stringify(buildPayload(state, images, pdf, pdfUrl)));
+    // Only NEW images are uploaded. Third argument = filename on the wire = the
+    // image id used in the payload. Stored items travel as their URL only.
+    images.forEach(({ file, url }, index) => {
+      if (file && !url) formData.append("productImage", file, imageWireId(index));
+    });
+    if (pdf) formData.append("productPdf", pdf, PDF_WIRE_ID);
 
     setSubmitting(true);
     setResult(null);
     try {
       // No Content-Type header: the browser adds multipart/form-data with the
       // correct boundary itself.
-      const response = await fetch("/api/product-demo", { method: "POST", body: formData });
-      setResult((await response.json()) as ApiResponse);
+      const response = await fetch(
+        productId ? `/api/product-demo/${encodeURIComponent(productId)}` : "/api/product-demo",
+        { method: productId ? "PUT" : "POST", body: formData },
+      );
+      const body = (await response.json()) as ApiResponse;
+      setResult(body);
+      if (body.success && body.id) showSaved(body.id, body.data?.product);
     } catch (err) {
       setResult({ success: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -208,6 +327,18 @@ export function ProductFormDemoClient() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {productId && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+          <span className="min-w-0 truncate">
+            Editing saved product <code className="font-mono text-xs">{productId}</code> — Submit
+            will update it.
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={startNewProduct}>
+            New product
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="SSR code">{text("ssrCode")}</Field>
         <Field label="Price model">{text("priceModel")}</Field>
@@ -287,36 +418,151 @@ export function ProductFormDemoClient() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Product images</Label>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="flex min-h-40 w-full flex-wrap items-center justify-center gap-2 overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 p-2 text-sm text-muted-foreground hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          {previews.length > 0
-            ? previews.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, next/image can't optimize it
-                <img key={src} src={src} alt={files[i]?.name ?? "Product"} className="h-32 object-contain" />
-              ))
-            : "Click to upload images"}
-        </button>
+        <div className="flex items-center justify-between">
+          <Label>
+            Product image ({images.length}/{MAX_IMAGES})
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={images.length >= MAX_IMAGES}
+            onClick={() =>
+              setImages((prev) => [...prev, { id: newItemId(), file: null, description: "" }])
+            }
+          >
+            Add item
+          </Button>
+        </div>
+
+        {/* One hidden input shared by every item; pickingFor says whose it is. */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          multiple
           className="hidden"
-          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            const target = pickingFor.current;
+            if (file && target) {
+              setImages((prev) =>
+                prev.map((item) =>
+                  item.id === target ? { ...item, file, url: undefined } : item,
+                ),
+              );
+            }
+            // Reset so picking the same file again still fires onChange.
+            e.target.value = "";
+          }}
         />
-        {files.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {files.map((f) => `${f.name} (${(f.size / 1024).toFixed(1)} KB)`).join(", ")}
+
+        {images.length === 0 && (
+          <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+            No items yet. Click &quot;Add item&quot; to add a product image with a description.
           </p>
         )}
+
+        {images.map((image, i) => (
+          <div key={image.id} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Item {i + 1}</span>
+              <Button
+                type="button"
+                variant="destructive"
+                size="xs"
+                onClick={() => setImages((prev) => prev.filter((item) => item.id !== image.id))}
+              >
+                Remove item
+              </Button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                pickingFor.current = image.id;
+                fileInputRef.current?.click();
+              }}
+              className="flex h-32 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {image.url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- stored image served by the API (another origin)
+                <img src={image.url} alt={`Item ${i + 1}`} className="h-full w-full object-contain" />
+              ) : image.file ? (
+                // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, next/image can't optimize it
+                <img src={previewFor(image.file)!} alt={image.file.name} className="h-full w-full object-contain" />
+              ) : (
+                "Click to choose an image"
+              )}
+            </button>
+            <p className="font-mono text-[10px] text-muted-foreground">
+              {image.url
+                ? "stored image (click to replace)"
+                : `${image.file ? `${image.file.name} · ` : ""}new, id: ${imageWireId(i)}`}
+            </p>
+
+            <textarea
+              aria-label={`Description for item ${i + 1}`}
+              placeholder="Description"
+              rows={2}
+              value={image.description}
+              onChange={(e) =>
+                setImages((prev) =>
+                  prev.map((item) =>
+                    item.id === image.id ? { ...item, description: e.target.value } : item,
+                  ),
+                )
+              }
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Product PDF (optional)</Label>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            setPdf(e.target.files?.[0] ?? null);
+            // Reset so picking the same file again still fires onChange.
+            e.target.value = "";
+          }}
+        />
+        <div className="flex items-center gap-2 rounded-lg border border-border p-3">
+          <Button type="button" variant="outline" onClick={() => pdfInputRef.current?.click()}>
+            {pdf || pdfUrl ? "Change PDF" : "Choose PDF"}
+          </Button>
+          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {pdf ? (
+              `${pdf.name} · ${(pdf.size / 1024).toFixed(1)} KB (new)`
+            ) : pdfUrl ? (
+              <a href={pdfUrl} target="_blank" rel="noreferrer" className="underline">
+                Stored PDF (open)
+              </a>
+            ) : (
+              "No PDF chosen"
+            )}
+          </span>
+          {(pdf || pdfUrl) && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="xs"
+              onClick={() => {
+                setPdf(null);
+                setPdfUrl(null);
+              }}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
       </div>
 
       <Button type="submit" disabled={submitting}>
-        {submitting ? "Submitting…" : "Submit"}
+        {submitting ? "Submitting…" : productId ? "Update product" : "Submit"}
       </Button>
 
       {result && (

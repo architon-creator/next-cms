@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Project-local Maven settings: resolve dependencies from public Maven Central.
+  Used with `mvn -s apps/java-api/settings-central.xml ...` (see the java:dev /
+  java:build scripts in the root package.json). Passing -s makes Maven ignore
+  ~/.m2/settings.xml for that run, so a corporate mirror configured there is
+  neither used nor modified. If your network requires that mirror, drop the
+  -s flag from the scripts instead.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>maven-central</id>
+      <mirrorOf>*</mirrorOf>
+      <name>Maven Central</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </mirror>
+  </mirrors>
+</settings>

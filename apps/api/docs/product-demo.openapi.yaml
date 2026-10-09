@@ -4,9 +4,11 @@ info:
   version: 0.1.0
   description: |
     Multipart upload demo. The product JSON travels in a `payload` part and the
-    images in `productImage` file parts. `product.productImage` in the payload
-    lists the file names in upload order; the response replaces them with the
-    stored image URLs.
+    images in `productImage` file parts. Every image has a client-generated
+    **image id**. `product.productImage` in the payload is a repeatable group of
+    `{ image, description }` items, where `image` is that id. Each file part is
+    sent with the same id as its filename; the response replaces every id with
+    the stored image URL and keeps the description.
 
     ## Why the image files are not inside the JSON payload
 
@@ -23,25 +25,56 @@ info:
        raw file bytes in one request with no encoding overhead, and the server
        (multer) can enforce per-file size and type limits as the upload arrives.
     4. **The structure is kept.** `payload` keeps the full object shape, including
-       `product.productImage`, which lists the image file names in upload order.
-       The backend swaps each name for the stored image URL, and the response
+       `product.productImage`, a group of `{ image, description }` items. The
+       backend swaps each image id for the stored image URL, and the response
        returns the same object with URLs filled in.
     5. **Tooling works.** Swagger UI, Postman and curl give a file picker for a
        top-level file part, but not for a field inside a JSON object.
 
-    **Trade-off:** the client must keep `product.productImage` in the same order
-    and count as the uploaded `productImage` files, otherwise the API returns 400.
+    ## How images are matched to the payload
 
-    ## Limitation: file names in the payload are not verified
+    Each image gets an id that is unique within the request, for example
+    `product-image-1`, `product-image-2`. The id
+    appears twice in the request:
 
-    The `productImage` names in the payload exist only to keep the JSON in its
-    final shape. The API checks that their **count** equals the number of
-    uploaded files and then matches them to the files **by position**. It never
-    reads the name values, so they do not have to equal the real file names, and
-    a wrong order is not detected. The client must keep the order in sync.
+    1. in the payload: `product.productImage: [{ "image": "product-image-1", "description": "Front view" }, ...]`;
+    2. as the **filename** of the matching file part (`filename="product-image-1"`).
+
+    The API pairs them by id, never by position, so the same picture uploaded
+    ten times is ten different items with ten ids, ten descriptions and ten
+    URLs. The response lists the items in the same order as the payload, each
+    with its description, and each stored URL contains the id it came from.
+
+    Ids must be unique, 1-64 characters from `A-Z a-z 0-9 - _`. The request
+    fails with 400 if an id has no file, a file has no id, an id is repeated, or
+    an id is invalid.
+
+    ## Updating a product
+
+    `POST /demo/products` stores the product and returns its `id`.
+    `PUT /demo/products/{id}` then **replaces** it. Send the same multipart request
+    as create; only the meaning of `productImage` and `productPdf` differs:
+
+    - Each `productImage[].image` is either a **new image id** (with a file part
+      of the same filename: adds a new image) or the **URL of one of the
+      product's current images** (keeps it unchanged: no file part, no
+      re-upload). Edit its `description` freely.
+    - Current images that are not listed are **removed**, and their files are
+      deleted. The order of the list is the new order.
+    - `productPdf`: leave it out to **remove** the current PDF; send the current
+      PDF URL to **keep** it; or send a new id plus a `productPdf` file part to
+      **replace** it.
+    - Everything else in the payload replaces the stored values.
+    - An update that is rejected (400) changes nothing, and an unknown id
+      returns 404.
+
+    Products are kept in memory, so they are lost when the server restarts.
+
 servers:
   - url: http://localhost:4000
     description: Express API (apps/api)
+  - url: http://localhost:4001
+    description: Java API (apps/java-api), same endpoint
 paths:
   /demo/products:
     post:
@@ -49,89 +82,184 @@ paths:
       operationId: createProduct
       tags: [Product demo]
       requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [payload, productImage]
-              properties:
-                payload:
-                  allOf:
-                    - $ref: "#/components/schemas/ProductPayload"
-                  description: |
-                    Product JSON, sent as a form part with content type
-                    application/json (see `encoding` below). Click "Try it out"
-                    to get this field pre-filled with a dummy object.
-                  example:
-                    category: SampleCategory
-                    product:
-                      itemCode: SAMPLE
-                      pricingModel: SAMPLE_A
-                      tags: [1, 2]
-                      saleStartDate: "2026-08-01 00:00:00"
-                      saleEndDate: "2026-08-31 23:59:59"
-                      applicationStartDate: "2026-08-01 00:00:00"
-                      applicationEndDate: "2026-12-31 23:59:59"
-                      price: 500
-                      currency: USD
-                      visibleOnWeb: true
-                      discountRate: 10
-                      memberDiscountNote: sample content
-                      secondaryDiscountRate: 10
-                      itemType: SampleType
-                      capacity: 2
-                      capacityUnit: g
-                      weight: 5
-                      weightUnit: g
-                      recommend: false
-                      featuredFlag: false
-                      pickupPoint: Sample location
-                      productImage: [image1.jpg, image2.jpg]
-                      infoText: "key1:1,key2:2,key3:3"
-                      noteList: [note1, note2, note3]
-                      displayOrder: 1
-                      altSortOrder: 10
-                      altPrice: 500
-                      altCurrency: USD
-                      limitRules:
-                        - withinHours: 24
-                          targetRoutes: [AAA-BBB, BBB-AAA, AAA-CCC]
-                productImage:
-                  type: array
-                  minItems: 1
-                  maxItems: 10
-                  description: >
-                    Image files (image/*, max 5 MB each). Must be in the same
-                    order, and the same count, as `product.productImage` in the
-                    payload.
-                  items:
-                    type: string
-                    format: binary
-            encoding:
-              payload:
-                contentType: application/json
-              productImage:
-                contentType: image/*
+        $ref: "#/components/requestBodies/ProductForm"
       responses:
         "201":
-          description: Product accepted; image names replaced with stored URLs.
+          description: Product created and stored. The body is `{ success, id, data }` where `id` identifies the product for GET and PUT; each productImage item keeps its description and its image id is replaced by the stored URL.
         "400":
           description: >
             Invalid request: payload not valid JSON, missing category /
-            product.itemCode, price not a non-negative number, no image,
-            image count differs from product.productImage, non-image file, or
-            file over 5 MB.
+            product.itemCode, price not a non-negative number, no image, an
+            image id without a file (or a file without an id), a repeated or
+            invalid image id, a PDF id without a PDF file (or the reverse), a
+            non-PDF `productPdf`, a non-image file, or a file over 5 MB.
           content:
             application/json:
               examples:
                 missingImage:
                   value: { success: false, error: At least one productImage is required }
-                nameMismatch:
+                idMismatch:
                   value:
                     success: false
-                    error: product.productImage must list one file name per uploaded image
+                    error: product.productImage ids and uploaded files do not match
+                    missingFiles: [product-image-2]
+                    unreferencedFiles: []
+                pdfMismatch:
+                  value:
+                    success: false
+                    error: product.productPdf id and the uploaded productPdf file do not match
+                tooManyImages:
+                  value:
+                    success: false
+                    error: Too many images (max 10 per product)
+                duplicateId:
+                  value:
+                    success: false
+                    error: product.productImage contains duplicate image ids
+  /demo/products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Product id returned by create.
+        schema:
+          type: string
+    get:
+      summary: Get a stored product
+      operationId: getProduct
+      tags: [Product demo]
+      responses:
+        "200":
+          description: The stored product, in the same shape as the create response (`{ success, id, data }`).
+        "404":
+          description: No product with that id.
+          content:
+            application/json:
+              examples:
+                notFound:
+                  value: { success: false, error: Product not found }
+    put:
+      summary: Update a product (replaces it)
+      operationId: updateProduct
+      tags: [Product demo]
+      description: |
+        Replaces the stored product. Same multipart request as create. Each
+        `productImage[].image` is a new image id (with a file part) or the URL of
+        a current image to keep; current images not listed are removed.
+        `productPdf` is a new id (with a file part), the current PDF URL (keep),
+        or omitted (remove). See "Updating a product" at the top.
+      requestBody:
+        $ref: "#/components/requestBodies/ProductForm"
+      responses:
+        "200":
+          description: Product updated. Same body as create (`{ success, id, data }`); new images and the new PDF have their stored URLs, kept ones are unchanged.
+        "400":
+          description: >
+            Invalid request. Same validation as create, plus: an `image` that is
+            neither a new id nor one of this product's current image URLs, a
+            `productPdf` that is neither a new id nor the current PDF URL, or no
+            images left. A rejected update changes nothing.
+          content:
+            application/json:
+              examples:
+                foreignImageUrl:
+                  value:
+                    success: false
+                    error: product.productImage must be a list of { image, description } where image is a new id (letters, digits, - and _) or one of the product's current image URLs
+                missingFile:
+                  value:
+                    success: false
+                    error: product.productImage ids and uploaded files do not match
+                    missingFiles: [product-image-2]
+                    unreferencedFiles: []
+        "404":
+          description: No product with that id.
+          content:
+            application/json:
+              examples:
+                notFound:
+                  value: { success: false, error: Product not found }
 components:
+  requestBodies:
+    ProductForm:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [payload, productImage]
+            properties:
+              payload:
+                allOf:
+                  - $ref: "#/components/schemas/ProductPayload"
+                description: |
+                  Product JSON, sent as a form part with content type
+                  application/json (see `encoding` below). Click "Try it out"
+                  to get this field pre-filled with a dummy object.
+                example:
+                  category: SampleCategory
+                  product:
+                    itemCode: SAMPLE
+                    pricingModel: SAMPLE_A
+                    tags: [1, 2]
+                    saleStartDate: "2026-08-01 00:00:00"
+                    saleEndDate: "2026-08-31 23:59:59"
+                    applicationStartDate: "2026-08-01 00:00:00"
+                    applicationEndDate: "2026-12-31 23:59:59"
+                    price: 500
+                    currency: USD
+                    visibleOnWeb: true
+                    discountRate: 10
+                    memberDiscountNote: sample content
+                    secondaryDiscountRate: 10
+                    itemType: SampleType
+                    capacity: 2
+                    capacityUnit: g
+                    weight: 5
+                    weightUnit: g
+                    recommend: false
+                    featuredFlag: false
+                    pickupPoint: Sample location
+                    productImage:
+                      - image: product-image-1
+                        description: Front view
+                      - image: product-image-2
+                        description: Side view
+                    productPdf: product-pdf
+                    infoText: "key1:1,key2:2,key3:3"
+                    noteList: [note1, note2, note3]
+                    displayOrder: 1
+                    altSortOrder: 10
+                    altPrice: 500
+                    altCurrency: USD
+                    limitRules:
+                      - withinHours: 24
+                        targetRoutes: [AAA-BBB, BBB-AAA, AAA-CCC]
+              productPdf:
+                type: string
+                format: binary
+                description: >
+                  Optional single PDF (application/pdf, max 5 MB). Send it with a
+                  filename equal to `product.productPdf` from the payload (for
+                  example `filename="product-pdf"`). Send both or neither.
+              productImage:
+                type: array
+                minItems: 1
+                maxItems: 10
+                description: >
+                  Image files (image/*, max 5 MB each, up to 10). Send each
+                  file with a filename equal to its image id from
+                  `product.productImage[].image` (for example `filename="product-image-1"`).
+                items:
+                  type: string
+                  format: binary
+          encoding:
+            payload:
+              contentType: application/json
+            productPdf:
+              contentType: application/pdf
+            productImage:
+              contentType: image/*
   schemas:
     LimitRule:
       type: object
@@ -215,15 +343,24 @@ components:
         productImage:
           type: array
           description: >
-            Request: file names, in the same order as the uploaded
-            `productImage` file parts. Response: the stored image URLs.
-            The files themselves are not part of the JSON, because JSON cannot
-            carry binary data; see the API description at the top.
-            Limitation: only the count is validated and names are matched to
-            files by position; the name values themselves are not checked.
+            Repeatable group of product images with a description each.
+            Request: `image` is a client-generated id, unique within the
+            request, that must match the filename of exactly one uploaded
+            `productImage` file part. Response: `image` is the stored image
+            URL, in the same order. The files themselves are not part of the
+            JSON, because JSON cannot carry binary data; see the API
+            description at the top.
           items:
-            type: string
-          example: [image1.jpg, image2.jpg]
+            $ref: "#/components/schemas/ProductImage"
+        productPdf:
+          type: string
+          description: >
+            Optional. Request: a new PDF id (A-Z a-z 0-9 - _, 1-64 chars) that must
+            match the filename of the uploaded `productPdf` file part; on update
+            also the current PDF URL to keep it. Response: the stored PDF URL.
+            Omit it, and the file part, for no PDF (on update this removes the
+            current one).
+          example: product-pdf
         infoText:
           type: string
           example: "key1:1,key2:2,key3:3"
@@ -248,6 +385,20 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LimitRule"
+    ProductImage:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          description: >
+            Create: a new image id (A-Z a-z 0-9 - _, 1-64 chars) matching the filename of a file part.
+            Update: a new image id, or the URL of one of the product's current images to keep it.
+            Response: the stored image URL.
+          example: product-image-1
+        description:
+          type: string
+          example: Front view
     ProductPayload:
       type: object
       required: [category, product]

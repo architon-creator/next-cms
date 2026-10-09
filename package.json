@@ -20,6 +20,9 @@
     "prismic": "pnpm --filter cms exec prismic",
     "api:dev": "pnpm --filter api run dev",
     "api:build": "pnpm --filter api run build",
+    "java:dev": "mvn -s apps/java-api/settings-central.xml -f apps/java-api spring-boot:run",
+    "java:build": "mvn -s apps/java-api/settings-central.xml -f apps/java-api package",
+    "idp:mock": "pnpm --filter frontend run idp:mock",
     "otel:up": "docker-compose up -d",
     "otel:down": "docker-compose down"
   },
