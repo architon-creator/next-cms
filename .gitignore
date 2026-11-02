@@ -33,3 +33,4 @@ next-env.d.ts
 
 # build output (apps/*)
 apps/*/dist
+packages/cms/.locale-migration-state.json
