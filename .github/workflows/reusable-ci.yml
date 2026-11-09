@@ -65,13 +65,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "pnpm"
@@ -82,7 +82,7 @@ jobs:
       # this workflow.
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.aws_oidc_role_arn != '' && inputs.aws_region != '' }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.aws_oidc_role_arn }}
           aws-region: ${{ inputs.aws_region }}

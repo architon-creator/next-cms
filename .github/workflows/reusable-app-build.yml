@@ -83,7 +83,7 @@ jobs:
       ECR_IMAGE_URI: ${{ inputs.aws_account_id }}.dkr.ecr.${{ inputs.aws_region }}.amazonaws.com/${{ inputs.ecr_repository }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Configure AWS credentials (OIDC)
         if: ${{ inputs.push_to_ecr }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ inputs.aws_oidc_role_arn }}
           aws-region: ${{ inputs.aws_region }}
@@ -141,14 +141,14 @@ jobs:
           echo "CodeArtifact token retrieved: yes"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Amazon ECR
         if: ${{ inputs.push_to_ecr }}
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ env.APP_PATH }}/Dockerfile
@@ -191,7 +191,7 @@ jobs:
 
       - name: Upload image URI artifact
         if: ${{ inputs.push_to_ecr }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}-image-uri
           path: image_uri.txt
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload version tag artifact
         if: ${{ inputs.push_to_ecr }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.APP_NAME }}-version-tag
           path: version_tag.txt
