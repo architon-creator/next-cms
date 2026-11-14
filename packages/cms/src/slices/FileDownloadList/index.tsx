@@ -2,7 +2,7 @@ import { Content, isFilled } from "@prismicio/client";
 import { PrismicNextLink } from "@prismicio/next";
 import { SliceComponentProps } from "@prismicio/react";
 
-import { Button } from "ui";
+import { Button } from "@architon-creator/ui";
 
 export type FileDownloadListProps = SliceComponentProps<Content.FileDownloadListSlice>;
 

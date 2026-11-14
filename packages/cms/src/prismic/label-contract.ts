@@ -1,6 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
-
+// Platform-neutral: no Node built-ins here. Reading customtypes/ from disk lives
+// in src/node/label-contract-fs.ts so React Native can import this file.
 export type PrismicField =
   | {
       type: "StructuredText" | "Text" | "UID";
@@ -31,20 +30,15 @@ export type PrismicCustomTypeModel = {
   json: Record<string, Record<string, PrismicField>>;
 };
 
-export type CreateLabelContractFromCustomTypesOptions = {
-  customTypesRoot: string;
-  parentDocumentType: string;
-};
-
 /**
- * Builds the runtime label contract from Prismic custom type metadata.
+ * Builds the runtime label contract from already-loaded custom type models.
+ * Mobile can feed this a bundled JSON snapshot of the models.
  */
-export function createLabelContractFromCustomTypes<T extends Record<string, unknown>>(
-  options: CreateLabelContractFromCustomTypesOptions,
+export function createLabelContractFromModels<T extends Record<string, unknown>>(
+  models: Record<string, PrismicCustomTypeModel>,
+  parentDocumentType: string,
 ): T {
-  const models = loadCustomTypeModels(options.customTypesRoot);
-
-  const documentTypes = resolveLabelDocumentTypes(models, options.parentDocumentType);
+  const documentTypes = resolveLabelDocumentTypes(models, parentDocumentType);
 
   const contract = Object.fromEntries(
     documentTypes.flatMap((documentType) => {
@@ -59,37 +53,6 @@ export function createLabelContractFromCustomTypes<T extends Record<string, unkn
   );
 
   return contract as T;
-}
-
-/**
- * Backward-compatible alias.
- */
-export const buildLabelContractFromCustomTypes = createLabelContractFromCustomTypes;
-
-function loadCustomTypeModels(
-  customTypesRoot: string,
-): Record<string, PrismicCustomTypeModel> {
-  const modelDirectories = readdirSync(customTypesRoot, {
-    withFileTypes: true,
-  }).filter((entry) => entry.isDirectory());
-
-  const models: Record<string, PrismicCustomTypeModel> = {};
-
-  for (const directory of modelDirectories) {
-    try {
-      const modelPath = path.join(customTypesRoot, directory.name, "index.json");
-
-      const model = JSON.parse(readFileSync(modelPath, "utf8")) as PrismicCustomTypeModel;
-
-      if (model?.id && model?.json) {
-        models[model.id] = model;
-      }
-    } catch {
-      // Ignore malformed or non-model folders.
-    }
-  }
-
-  return models;
 }
 
 function resolveLabelDocumentTypes(

@@ -1,7 +1,26 @@
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
+/**
+ * Platform-neutral config. This module must stay free of Node built-ins so the
+ * core "cms" entry works in React Native/Expo as well as on the web.
+ *
+ * Values resolve in this order: explicit `configureCms()` values, then
+ * `process.env` (when a `process` exists), then an optional fallback provider
+ * (the Node entry registers one that reads monorepo .env files).
+ */
+const explicitValues: Record<string, string | undefined> = {};
+let envFallback: (() => Record<string, string>) | undefined;
 
-let cachedEnvOverrides: Record<string, string> | undefined;
+/**
+ * Sets config values explicitly (e.g. from Expo public env vars on mobile).
+ * Keys use the same names as the env vars, e.g. PRISMIC_REPOSITORY_NAME.
+ */
+export function configureCms(values: Record<string, string | undefined>) {
+  Object.assign(explicitValues, values);
+}
+
+/** Registers a lower-priority env source. Used by the "cms/node" entry. */
+export function registerEnvFallback(provider: () => Record<string, string>) {
+  envFallback = provider;
+}
 
 export const prismicConfig = {
   get repositoryName() {
@@ -55,62 +74,19 @@ export const prismicConfig = {
 } as const;
 
 export function getSharedEnvValue(key: string) {
-  return process.env[key] ?? getEnvOverrides()[key];
-}
+  const explicit = explicitValues[key];
 
-export function loadSharedEnvIntoProcessEnv() {
-  const overrides = getEnvOverrides();
-
-  for (const [key, value] of Object.entries(overrides)) {
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-}
-
-function getEnvOverrides() {
-  if (cachedEnvOverrides) {
-    return cachedEnvOverrides;
+  if (explicit !== undefined) {
+    return explicit;
   }
 
-  const cwd = process.cwd();
-  const envFilePaths = [
-    path.resolve(cwd, ".env.local"),
-    path.resolve(cwd, ".env"),
-    path.resolve(cwd, "../../.env.local"),
-    path.resolve(cwd, "../../.env"),
-  ];
-  const overrides: Record<string, string> = {};
+  if (typeof process !== "undefined" && process.env) {
+    const fromProcess = process.env[key];
 
-  for (const envFilePath of envFilePaths) {
-    if (!existsSync(envFilePath)) {
-      continue;
-    }
-
-    for (const line of readFileSync(envFilePath, "utf8").split(/\r?\n/)) {
-      const trimmedLine = line.trim();
-
-      if (!trimmedLine || trimmedLine.startsWith("#")) {
-        continue;
-      }
-
-      const separatorIndex = trimmedLine.indexOf("=");
-
-      if (separatorIndex === -1) {
-        continue;
-      }
-
-      const name = trimmedLine.slice(0, separatorIndex).trim();
-      const value = trimmedLine.slice(separatorIndex + 1).trim();
-
-      if (!name || overrides[name]) {
-        continue;
-      }
-
-      overrides[name] = value.replace(/^["']|["']$/g, "");
+    if (fromProcess !== undefined) {
+      return fromProcess;
     }
   }
 
-  cachedEnvOverrides = overrides;
-  return overrides;
+  return envFallback?.()[key];
 }

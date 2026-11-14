@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
   ChevronLink,
-} from "ui";
+} from "@architon-creator/ui";
 import { richTextLabelComponents } from "../../lib/rich-text-components";
 
 export type AccordionProps = SliceComponentProps<Content.AccordionSlice>;

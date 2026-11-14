@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Content } from "@prismicio/client";
 import { JSXMapSerializer, PrismicRichText, SliceComponentProps } from "@prismicio/react";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "ui";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@architon-creator/ui";
 
 export type FaqQuestionListProps = SliceComponentProps<Content.FaqQuestionListSlice>;
 
