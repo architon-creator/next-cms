@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "ui";
+import { Button } from "@architon-creator/ui";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import type { SessionUser } from "@/lib/session";

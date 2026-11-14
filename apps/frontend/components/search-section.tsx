@@ -4,7 +4,7 @@ import { SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
-import { Button, Card, Input } from "ui";
+import { Button, Card, Input } from "@architon-creator/ui";
 
 import { useRouter } from "@/i18n/navigation";
 import { MOCK_RESULTS } from "@/lib/mock-results";

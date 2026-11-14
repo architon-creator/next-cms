@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "cms";
+import { createClient } from "@architon-creator/cms/next";
 
 import { routing } from "@/i18n/routing";
 import { getSiteUrl } from "@/lib/site-url";

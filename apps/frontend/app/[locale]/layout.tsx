@@ -4,7 +4,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PrismicPreview } from "@prismicio/next";
 
-import { repositoryName } from "cms";
+import { repositoryName } from "@architon-creator/cms/next";
 
 import { routing } from "@/i18n/routing";
 import { getSiteUrl } from "@/lib/site-url";

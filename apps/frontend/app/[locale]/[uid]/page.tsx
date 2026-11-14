@@ -1,7 +1,8 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { BreadcrumbsProvider, createClient, PageContext, SliceRenderer } from "cms";
+import { createClient } from "@architon-creator/cms/next";
+import { BreadcrumbsProvider, PageContext, SliceRenderer } from "@architon-creator/cms/slices";
 
 import { cn } from "@/lib/utils";
 import { formatLabel } from "@/lib/format-label";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { MiniCalendar } from "ui";
+import { MiniCalendar } from "@architon-creator/ui";
 
 export function CalendarPocClient() {
   const [date, setDate] = useState<Date | undefined>(undefined);

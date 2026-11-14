@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
-import { Button, Input, Label } from "ui";
+import { Button, Input, Label } from "@architon-creator/ui";
 import { cn } from "cn";
 
 export function ContactForm() {

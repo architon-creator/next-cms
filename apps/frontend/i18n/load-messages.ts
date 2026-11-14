@@ -1,12 +1,12 @@
 import path from "node:path";
 
 import {
-  createLabelContractFromCustomTypes,
   createLabelService,
   getServerLabelSource,
   tabNameToNamespace,
   type LabelSource,
-} from "cms";
+} from "@architon-creator/cms";
+import { createLabelContractFromCustomTypes } from "@architon-creator/cms/node";
 
 import { defaultLocale, locales, type AppLocale } from "../modules/utils/locales";
 import { localMessages, type IBEMessages } from "./messages";

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { createClient } from "cms";
+import { createClient } from "@architon-creator/cms/next";
 import { Link } from "@/i18n/navigation";
 import { formatLabel } from "@/lib/format-label";
 import { SearchSection } from "@/components/search-section";
