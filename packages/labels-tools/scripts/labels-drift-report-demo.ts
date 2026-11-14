@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadSharedEnvIntoProcessEnv } from "../src/prismic/config.js";
+import { customTypesRoot, loadEnv, messagesPath } from "./paths.js";
 
 /**
  * Read-only drift report combining what admin-app's /labels UI already
@@ -39,12 +38,9 @@ type NamespaceRow = {
   prismicStatus: PrismicStatus;
 };
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const messagesPath = path.resolve(scriptDirectory, "../../../apps/frontend/messages/en.json");
-const customTypesRoot = path.resolve(scriptDirectory, "../customtypes");
 const prismicLocale = "en-us";
 
-loadSharedEnvIntoProcessEnv();
+loadEnv();
 
 main().catch((error) => {
   console.error(formatError(error));
@@ -58,7 +54,7 @@ async function main() {
     Record<string, unknown>,
   ][];
 
-  const { createPrismicClient } = await import("../src/prismic/create-client.js");
+  const { createPrismicClient } = await import("@architon-creator/cms");
   const readClient = createPrismicClient();
 
   const rows: NamespaceRow[] = [];

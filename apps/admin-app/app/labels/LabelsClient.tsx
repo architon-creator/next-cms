@@ -492,7 +492,7 @@ export default function LabelsClient() {
       <p className="text-text-dim mb-5 text-[13px] leading-relaxed max-w-[620px]">
         Turns <code>apps/frontend/messages/en.json</code> into Prismic custom types and seeds one
         document per namespace in <strong>next-js-ssr</strong>. Runs the same{" "}
-        <code>pnpm --filter cms run prismic-model-generate</code> /{" "}
+        <code>pnpm --filter labels-tools run prismic-model-generate</code> /{" "}
         <code>prismic-seed-content</code> scripts, live, without a terminal.
       </p>
 

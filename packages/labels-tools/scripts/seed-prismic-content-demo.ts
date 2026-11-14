@@ -1,14 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadSharedEnvIntoProcessEnv } from "../src/prismic/config.js";
+import { customTypesRoot, loadEnv, messagesPath } from "./paths.js";
 import { HUB_TYPE_ID } from "./generate-prismic-models-demo.js";
 
 /**
  * Local demo adaptation of the real project's seed-prismic-content.ts
  * (see ./seed-prismic-content.ts for the verbatim baseline copy) — NOT
  * the same script. The real one is hardcoded to apps/top-app/apps/ibe-app
- * message folders and a `@repo/cms/prismic` package alias, neither of
+ * message folders and a `@architon-creator/cms/prismic` package alias, neither of
  * which exist here.
  *
  * This version reads THIS repo's apps/frontend/messages/en.json (the
@@ -43,17 +42,11 @@ type PrismicCustomTypeModel = {
   json: Record<string, Record<string, { type: string; config: { label: string } }>>;
 };
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const messagesPath = path.resolve(
-  scriptDirectory,
-  "../../../apps/frontend/messages/en.json",
-);
-const customTypesRoot = path.resolve(scriptDirectory, "../customtypes");
 
 const shouldWrite = process.argv.includes("--write");
 const prismicLocale = "en-us";
 
-loadSharedEnvIntoProcessEnv();
+loadEnv();
 
 main().catch((error) => {
   console.error(formatError(error));
@@ -88,8 +81,8 @@ async function main() {
   const namespaceFilter = parseNamespaceFilter();
   const [{ createPrismicClient }, { createPrismicMigration, createPrismicWriteClient }] =
     await Promise.all([
-      import("../src/prismic/create-client.js"),
-      import("../src/prismic/write-client.js"),
+      import("@architon-creator/cms"),
+      import("@architon-creator/cms/node"),
     ]);
 
   const migration = createPrismicMigration();

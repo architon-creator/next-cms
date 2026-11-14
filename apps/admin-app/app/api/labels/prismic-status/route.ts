@@ -12,7 +12,7 @@ import { spawnAndCapture } from "@/lib/spawn-log";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const cmsDir = path.resolve(process.cwd(), "../../packages/cms");
+const cmsDir = path.resolve(process.cwd(), "../../packages/labels-tools");
 
 export type PrismicNamespaceStatus = "no-model" | "new" | "existing" | "error";
 

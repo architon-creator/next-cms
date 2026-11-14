@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { customTypesRoot, messagesPath } from "./paths.js";
 
 function isMainModule() {
   return process.argv[1]
@@ -13,7 +14,7 @@ function isMainModule() {
  * (see ./generate-prismic-models.ts for the verbatim baseline copy) — NOT
  * the same script, and deliberately kept separate: the real one is
  * hardcoded to that project's apps/top-app + apps/ibe-app message folders
- * and its `@repo/cms/prismic` package alias, neither of which exist here.
+ * and its `@architon-creator/cms/prismic` package alias, neither of which exist here.
  *
  * This version reads THIS repo's apps/frontend/messages/en.json (the
  * next-intl message file) and turns each top-level namespace
@@ -68,12 +69,7 @@ type HubModel = {
   };
 };
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const messagesPath = path.resolve(
-  scriptDirectory,
-  "../../../apps/frontend/messages/en.json",
-);
-const outputRoot = path.resolve(scriptDirectory, "../customtypes");
+const outputRoot = customTypesRoot;
 
 /**
  * Optional `--namespaces=Header,Footer` filter — narrows which

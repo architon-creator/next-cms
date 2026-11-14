@@ -2,8 +2,8 @@
 
 Turns `apps/frontend/messages/en.json` into Prismic custom types and seeds
 one document per namespace in the real `next-js-ssr` repository — a UI
-wrapper around `packages/cms/scripts/generate-prismic-models-demo.ts` and
-`seed-prismic-content-demo.ts`, the same scripts `pnpm --filter cms run
+wrapper around `packages/labels-tools/scripts/generate-prismic-models-demo.ts` and
+`seed-prismic-content-demo.ts`, the same scripts `pnpm --filter labels-tools run
 prismic-model-generate` / `prismic-seed-content` already run from a
 terminal.
 

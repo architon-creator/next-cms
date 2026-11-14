@@ -6,7 +6,7 @@ on:
   # Daily check that the labels tool's three stages (en.json -> local
   # schema -> pushed Prismic type -> seeded document) haven't drifted
   # apart since anyone last opened admin-app's /labels UI — see
-  # packages/cms/scripts/labels-drift-report-demo.ts for what "drift"
+  # packages/labels-tools/scripts/labels-drift-report-demo.ts for what "drift"
   # means here and why it's split into schema vs content drift.
   schedule:
     - cron: "0 7 * * *"
@@ -60,7 +60,7 @@ jobs:
 
       - name: Run drift report
         if: steps.guard.outputs.configured == 'true'
-        working-directory: packages/cms
+        working-directory: packages/labels-tools
         run: |
           set -o pipefail
           pnpm run --silent prismic-labels-drift-report | tee drift-report.md

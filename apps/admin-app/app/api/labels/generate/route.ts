@@ -3,12 +3,12 @@ import path from "node:path";
 import { isLabelsToolEnabled } from "@/lib/labels-guard";
 import { parseNamespaceListParam, spawnAndStream } from "@/lib/spawn-log";
 
-// Runs `pnpm run prismic-model-generate` (packages/cms/scripts/
+// Runs `pnpm run prismic-model-generate` (packages/labels-tools/scripts/
 // generate-prismic-models-demo.ts) as a child process and streams its
 // output, rather than importing that script's logic in-process — it
 // resolves its own env files relative to process.cwd() (see
 // packages/cms/src/prismic/config.ts), which is only correct when cwd is
-// packages/cms itself; spawning with cwd set there preserves that
+// packages/labels-tools itself; spawning with cwd set there preserves that
 // behavior exactly instead of risking it silently reading the wrong env
 // files under admin-app's own process.
 //
@@ -18,7 +18,7 @@ import { parseNamespaceListParam, spawnAndStream } from "@/lib/spawn-log";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const cmsDir = path.resolve(process.cwd(), "../../packages/cms");
+const cmsDir = path.resolve(process.cwd(), "../../packages/labels-tools");
 
 export async function GET(req: NextRequest) {
   if (!isLabelsToolEnabled()) {
