@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Button } from "ui";
+import { Button } from "@architon-creator/ui";
 
 export type ButtonLinkProps = SliceComponentProps<Content.ButtonLinkSlice>;
 

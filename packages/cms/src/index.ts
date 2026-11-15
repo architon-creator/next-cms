@@ -1,10 +1,15 @@
-// Pulls the generated `declare module "@prismicio/client"` augmentation (the
-// `Content` namespace the slices import) into any consumer's program. Consumers
-// compile from their own tsconfig, which only sees this package through its
-// entry point, so without this reference `Content` resolves nowhere for them.
-/// <reference path="../prismicio-types.d.ts" />
+// Platform-neutral core: label service, Prismic client factory, label contract
+// helpers. Safe for web AND React Native — no React DOM, no Next, no node:*.
+//
+//   cms/slices  → React slice components (web, depends on `ui`)
+//   cms/next    → Next.js client helpers (@prismicio/next)
+//   cms/node    → disk access: reading customtypes/, loading .env files
 
-export * from "./slices";
-export * from "./prismicio";
 export * from "./prismic/label-contract";
+export * from "./prismic/document-registry";
+export * from "./prismic/config";
+export * from "./prismic/create-client";
 export * from "./services/label-service";
+
+// Re-exported so the built .d.ts files reference a public type instead of a private chunk.
+export type { AllDocumentTypes } from "../prismicio-types";

@@ -6,7 +6,7 @@ on:
   # Daily check that the labels tool's three stages (en.json -> local
   # schema -> pushed Prismic type -> seeded document) haven't drifted
   # apart since anyone last opened admin-app's /labels UI — see
-  # packages/cms/scripts/labels-drift-report-demo.ts for what "drift"
+  # packages/labels-tools/scripts/labels-drift-report-demo.ts for what "drift"
   # means here and why it's split into schema vs content drift.
   schedule:
     - cron: "0 7 * * *"
@@ -17,10 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Read the private @architon-creator/cms package (customtypes/ ships in it).
+      # This repo must also be granted access under the package's settings
+      # (Manage Actions access) or the install below 403s.
+      packages: read
     env:
       PRISMIC_ACCESS_TOKEN: ${{ secrets.PRISMIC_ACCESS_TOKEN }}
-      # packages/cms's own .env (PRISMIC_REPOSITORY_NAME=next-js-ssr) is
-      # gitignored, so it doesn't exist in this checkout — without this,
+      # The cms repo's .env (PRISMIC_REPOSITORY_NAME=next-js-ssr) is
+      # gitignored and not in this checkout — without this,
       # prismicConfig.repositoryName silently falls back to "zipair-dev"
       # and the report would check the wrong repository. Override via a
       # repo/org Variable if this ever needs to point elsewhere.
@@ -37,9 +41,14 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
+          # Writes the user-level .npmrc auth for GitHub Packages.
+          registry-url: https://npm.pkg.github.com
+          scope: "@architon-creator"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Same graceful-skip shape as prismic-migration.yml's verify job —
       # report plainly and exit 0 rather than failing a scheduled run
@@ -60,7 +69,7 @@ jobs:
 
       - name: Run drift report
         if: steps.guard.outputs.configured == 'true'
-        working-directory: packages/cms
+        working-directory: packages/labels-tools
         run: |
           set -o pipefail
           pnpm run --silent prismic-labels-drift-report | tee drift-report.md

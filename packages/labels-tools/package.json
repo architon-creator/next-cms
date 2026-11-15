@@ -1,0 +1,20 @@
+{
+  "name": "labels-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "en.json -> Prismic custom types/seed/drift tooling. Kept out of the cms package so cms can be published without web-app coupling.",
+  "scripts": {
+    "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts",
+    "prismic-seed-content": "tsx scripts/seed-prismic-content-demo.ts",
+    "prismic-labels-status": "tsx scripts/check-labels-prismic-status-demo.ts",
+    "prismic-labels-drift-report": "tsx scripts/labels-drift-report-demo.ts"
+  },
+  "dependencies": {
+    "@architon-creator/cms": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4"
+  }
+}

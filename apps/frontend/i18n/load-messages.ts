@@ -1,19 +1,29 @@
+import { createRequire } from "node:module";
 import path from "node:path";
 
 import {
-  createLabelContractFromCustomTypes,
   createLabelService,
   getServerLabelSource,
   tabNameToNamespace,
   type LabelSource,
-} from "cms";
+} from "@architon-creator/cms";
+import { createLabelContractFromCustomTypes } from "@architon-creator/cms/node";
 
 import { defaultLocale, locales, type AppLocale } from "../modules/utils/locales";
 import { localMessages, type IBEMessages } from "./messages";
 
 export type { LabelSource };
 
-const customTypesRoot = path.resolve(process.cwd(), "../../packages/cms/customtypes");
+// customtypes/ ships inside the published cms package; resolve it from the
+// installed copy (anchored at this app) instead of a monorepo-relative path.
+const customTypesRoot = path.join(
+  path.dirname(
+    createRequire(path.join(process.cwd(), "package.json")).resolve(
+      "@architon-creator/cms/package.json",
+    ),
+  ),
+  "customtypes",
+);
 
 const labelMessagesContract = createLabelContractFromCustomTypes<IBEMessages>({
   customTypesRoot,
@@ -64,7 +74,7 @@ export async function loadMessages(locale: AppLocale): Promise<IBEMessages> {
 
   // When LABEL_SOURCE=prismic, labelService's result only ever contains
   // namespaces with a matching Prismic custom type — any namespace that's
-  // deliberately local-only (not modeled in packages/cms/customtypes, e.g.
+  // deliberately local-only (not modeled in the cms package's customtypes, e.g.
   // the stepper flow's copy) would be entirely absent, not just falling
   // back to a key placeholder. Local messages are the base for every
   // namespace; Prismic-backed namespaces are overlaid on top of it.

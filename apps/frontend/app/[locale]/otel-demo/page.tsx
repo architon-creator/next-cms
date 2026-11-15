@@ -1,7 +1,7 @@
 import { createLogger } from "otel";
 import { generateTraceparent } from "otel/trace-context";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@architon-creator/ui";
 
 import { getSiteUrl } from "@/lib/site-url";
 

@@ -2,8 +2,8 @@
 
 Turns `apps/frontend/messages/en.json` into Prismic custom types and seeds
 one document per namespace in the real `next-js-ssr` repository — a UI
-wrapper around `packages/cms/scripts/generate-prismic-models-demo.ts` and
-`seed-prismic-content-demo.ts`, the same scripts `pnpm --filter cms run
+wrapper around `packages/labels-tools/scripts/generate-prismic-models-demo.ts` and
+`seed-prismic-content-demo.ts`, the same scripts `pnpm --filter labels-tools run
 prismic-model-generate` / `prismic-seed-content` already run from a
 terminal.
 
@@ -14,7 +14,7 @@ Prismic custom type, one flat Text field per string key, plus an
 `app_labels` "hub" type with a Link field per namespace (`packages/cms/src/services/label-service.ts`
 fetches labels through this hub, not by querying each type directly).
 
-- **Generate models** — writes local files under `packages/cms/customtypes/`.
+- **Generate models** — writes local files under `customtypes/` in your checkout of the `cms` repo (`CMS_DIR`, else a sibling `../cms` next to this repo). It refuses to write into the installed package in `node_modules`.
   Only ever touches local files, never Prismic itself; safe to re-run
   anytime.
 - **Seed content** — creates/updates one singleton document per namespace
@@ -64,7 +64,7 @@ that can't be scripted around. After Generate, push the updated
 `customtypes/` folder yourself:
 
 ```
-cd packages/cms
+cd <your cms checkout>
 npx prismic login
 npx prismic push
 ```

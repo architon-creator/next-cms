@@ -1,0 +1,4 @@
+# Copy to .npmrc after extraction.
+# Local installs need a token with read:packages in NODE_AUTH_TOKEN.
+@architon-creator:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}

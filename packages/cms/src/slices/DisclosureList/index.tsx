@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
   Button,
   ChevronLink,
-} from "ui";
+} from "@architon-creator/ui";
 import { cn } from "../../lib/utils";
 
 export type DisclosureListProps = SliceComponentProps<Content.DisclosureListSlice>;

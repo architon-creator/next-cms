@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { Button, Input, Label } from "ui";
+import { Button, Input, Label } from "@architon-creator/ui";
 
 import { useRouter } from "@/i18n/navigation";
 import {

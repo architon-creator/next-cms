@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { Button, Card, CardContent, CardHeader, CardTitle } from "ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@architon-creator/ui";
 
 import { Link } from "@/i18n/navigation";
 import { DATA_STEP_ORDER, type DataStepId } from "@/lib/steps";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { generateTraceparent } from "otel/trace-context";
 
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@architon-creator/ui";
 
 import type { OtelDemoResponse } from "@/app/api/otel-demo/route";
 

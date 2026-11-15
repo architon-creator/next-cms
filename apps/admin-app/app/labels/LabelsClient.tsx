@@ -492,7 +492,7 @@ export default function LabelsClient() {
       <p className="text-text-dim mb-5 text-[13px] leading-relaxed max-w-[620px]">
         Turns <code>apps/frontend/messages/en.json</code> into Prismic custom types and seeds one
         document per namespace in <strong>next-js-ssr</strong>. Runs the same{" "}
-        <code>pnpm --filter cms run prismic-model-generate</code> /{" "}
+        <code>pnpm --filter labels-tools run prismic-model-generate</code> /{" "}
         <code>prismic-seed-content</code> scripts, live, without a terminal.
       </p>
 
@@ -511,7 +511,7 @@ export default function LabelsClient() {
               Step 1 · Prismic Custom Type Generation
             </p>
             <p className="text-text-dim text-[12.5px] max-w-[500px]">
-              Writes local custom type files under <code>packages/cms/customtypes/</code> — one
+              Writes local custom type files under <code>customtypes/</code> in your <code>cms</code> checkout (<code>CMS_DIR</code>) — one
               per namespace, plus an <code>app_labels</code> hub type. Safe to re-run anytime;
               only touches local files, never Prismic itself.
             </p>

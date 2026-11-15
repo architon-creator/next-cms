@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadSharedEnvIntoProcessEnv } from "../src/prismic/config.js";
+import { customTypesRoot, loadEnv, messagesPath } from "./paths.js";
 
 /**
  * Read-only companion to seed-prismic-content-demo.ts: for each namespace
@@ -26,12 +25,9 @@ import { loadSharedEnvIntoProcessEnv } from "../src/prismic/config.js";
 
 type PrismicStatus = "no-model" | "new" | "existing" | "error";
 
-const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const messagesPath = path.resolve(scriptDirectory, "../../../apps/frontend/messages/en.json");
-const customTypesRoot = path.resolve(scriptDirectory, "../customtypes");
 const prismicLocale = "en-us";
 
-loadSharedEnvIntoProcessEnv();
+loadEnv();
 
 main().catch((error) => {
   console.error(formatError(error));
@@ -40,7 +36,7 @@ main().catch((error) => {
 
 async function main() {
   const messages = JSON.parse(readFileSync(messagesPath, "utf8")) as Record<string, unknown>;
-  const { createPrismicClient } = await import("../src/prismic/create-client.js");
+  const { createPrismicClient } = await import("@architon-creator/cms");
   const readClient = createPrismicClient();
 
   const statuses: Record<string, PrismicStatus> = {};

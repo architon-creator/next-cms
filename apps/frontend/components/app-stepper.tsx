@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { Stepper, type StepperStep } from "ui";
+import { Stepper, type StepperStep } from "@architon-creator/ui";
 
 import { useAppSelector } from "@/store/hooks";
 import { STEP_ORDER } from "@/lib/steps";

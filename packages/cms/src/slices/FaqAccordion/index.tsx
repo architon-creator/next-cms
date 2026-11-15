@@ -2,7 +2,7 @@
 
 import type { Content } from "@prismicio/client";
 import { PrismicRichText, type SliceComponentProps } from "@prismicio/react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "ui";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@architon-creator/ui";
 import { usePathname, useRouter } from "next/navigation";
 import type { FC } from "react";
 import { useFaqTopic } from "../../lib/faq-topic-context";

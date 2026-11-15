@@ -1,16 +1,13 @@
 {
-  "name": "cms",
+  "name": "@architon-creator/cms",
   "version": "0.1.0",
-  "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "types": "prismic-ts-codegen",
-    "prismic-model-generate": "tsx scripts/generate-prismic-models-demo.ts",
-    "prismic-seed-content": "tsx scripts/seed-prismic-content-demo.ts",
-    "prismic-labels-status": "tsx scripts/check-labels-prismic-status-demo.ts",
-    "prismic-labels-drift-report": "tsx scripts/labels-drift-report-demo.ts"
+    "build": "tsup",
+    "prepack": "pnpm run build"
   },
   "peerDependencies": {
     "react": "^19.0.0"
@@ -19,9 +16,9 @@
     "@prismicio/client": "^7.22.0",
     "@prismicio/next": "^2.3.1",
     "@prismicio/react": "^3.4.1",
+    "@architon-creator/ui": "workspace:*",
     "cn": "^0.2.6",
-    "lucide-react": "^1.42.0",
-    "ui": "workspace:*"
+    "lucide-react": "^1.42.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",
@@ -29,7 +26,58 @@
     "next": "^16.3.5",
     "prismic": "^1.16.0",
     "prismic-ts-codegen": "^0.1.20",
-    "tsx": "^4.19.2",
+    "tsup": "^9.0.0",
     "typescript": "^5.5.4"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./slices": "./src/slices.ts",
+    "./next": "./src/next.ts",
+    "./node": "./src/node.ts",
+    "./customtypes/*": "./customtypes/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "customtypes"
+  ],
+  "sideEffects": [
+    "./src/node/env-files.ts",
+    "./dist/node.*"
+  ],
+  "publishConfig": {
+    "access": "restricted",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
+      },
+      "./slices": {
+        "types": "./dist/slices.d.ts",
+        "import": "./dist/slices.mjs",
+        "require": "./dist/slices.js"
+      },
+      "./next": {
+        "types": "./dist/next.d.ts",
+        "import": "./dist/next.mjs",
+        "require": "./dist/next.js"
+      },
+      "./node": {
+        "types": "./dist/node.d.ts",
+        "import": "./dist/node.mjs",
+        "require": "./dist/node.js"
+      },
+      "./customtypes/*": "./customtypes/*",
+      "./package.json": "./package.json"
+    },
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/architon-creator/cms.git"
   }
 }

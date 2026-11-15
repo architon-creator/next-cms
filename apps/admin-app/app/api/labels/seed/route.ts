@@ -18,7 +18,7 @@ import { parseNamespaceListParam, spawnAndStream } from "@/lib/spawn-log";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const cmsDir = path.resolve(process.cwd(), "../../packages/cms");
+const cmsDir = path.resolve(process.cwd(), "../../packages/labels-tools");
 
 export async function GET(req: NextRequest) {
   if (!isLabelsToolEnabled()) {

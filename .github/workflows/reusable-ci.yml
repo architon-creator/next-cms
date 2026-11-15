@@ -143,7 +143,7 @@ jobs:
       # not something app_path selects on its own — always checked here
       # regardless of which app triggered the run.
       - name: Type check shared cms package
-        run: pnpm --filter cms run typecheck
+        run: pnpm --filter @architon-creator/cms run typecheck
 
       - name: Run tests with coverage
         if: ${{ inputs.run_tests }}
