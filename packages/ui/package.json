@@ -13,9 +13,9 @@
   "dependencies": {
     "@prismicio/next": "^2.3.1",
     "class-variance-authority": "^0.7.1",
-    "cn": "^0.2.6",
-    "lucide-react": "^1.42.0",
-    "radix-ui": "^1.6.7"
+    "cn": "^0.5.2",
+    "lucide-react": "^1.72.0",
+    "radix-ui": "^1.8.1"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

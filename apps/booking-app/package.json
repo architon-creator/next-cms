@@ -10,12 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^2.3.0",
+    "@reduxjs/toolkit": "^2.14.0",
     "app-state": "workspace:*",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-redux": "^9.1.2",
+    "react-redux": "^9.3.1",
     "redux-persist": "^6.0.0"
   },
   "devDependencies": {
