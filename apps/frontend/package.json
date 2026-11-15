@@ -13,7 +13,7 @@
     "prismic-model-generate": "pnpm --filter cms run prismic-model-generate"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
+    "@hookform/resolvers": "^5.9.1",
     "@prismicio/client": "^7.22.0",
     "@prismicio/next": "^2.3.1",
     "@prismicio/react": "^3.4.1",
