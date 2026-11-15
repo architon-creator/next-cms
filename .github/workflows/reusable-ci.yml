@@ -56,6 +56,10 @@ jobs:
     # header comment for the full story.)
     permissions:
       contents: read
+      # Read the private @architon-creator/ui and @architon-creator/cms packages.
+      # This repo must also be listed under each package's "Manage Actions
+      # access" setting, or the install below fails with 401/403.
+      packages: read
 
     # Secrets can't be referenced directly in step `if:` conditions, so this
     # mirrors it into a job-level env var first — the documented workaround
@@ -106,6 +110,14 @@ jobs:
           echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:_authToken=${CODEARTIFACT_AUTH_TOKEN}" >> ~/.npmrc
           echo "@nexuz:registry=https://${REGISTRY_HOST}/${REGISTRY_PATH}" >> ~/.npmrc
           echo "//${REGISTRY_HOST}/${REGISTRY_PATH}:always-auth=true" >> ~/.npmrc
+
+      # User-level ~/.npmrc (same place the CodeArtifact step writes): pnpm
+      # ignores env-var auth in a committed project .npmrc, so the token goes
+      # here. GITHUB_TOKEN is scoped to this run and needs no extra secret.
+      - name: Configure npm for GitHub Packages
+        shell: bash
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       # --frozen-lockfile (not --no-frozen-lockfile): fails fast if
       # pnpm-lock.yaml is out of sync with package.json, rather than silently
