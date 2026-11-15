@@ -10,7 +10,7 @@
     "prismic-labels-drift-report": "tsx scripts/labels-drift-report-demo.ts"
   },
   "dependencies": {
-    "@architon-creator/cms": "workspace:*"
+    "@architon-creator/cms": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",

@@ -125,11 +125,11 @@ importers:
   apps/frontend:
     dependencies:
       '@architon-creator/cms':
-        specifier: workspace:*
-        version: link:../../packages/cms
+        specifier: ^0.2.0
+        version: 0.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@architon-creator/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
+        specifier: ^0.2.0
+        version: 0.2.0(@prismicio/client@7.22.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.10.0(react-hook-form@7.87.0(react@19.3.0))
@@ -292,8 +292,8 @@ importers:
   packages/labels-tools:
     dependencies:
       '@architon-creator/cms':
-        specifier: workspace:*
-        version: link:../cms
+        specifier: ^0.2.0
+        version: 0.2.0(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@types/node':
         specifier: ^22.13.0
@@ -400,6 +400,16 @@ packages:
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
     engines: {node: '>=10'}
+
+  '@architon-creator/cms@0.2.0':
+    resolution: {integrity: sha512-en1bqNL5pS74tVRA9o7rNsP11A+uVhwNKIyexQwWobbC/+qELz7VVp3NAYWi372XkoLk0Mr8cE4zDn6VBxWi1Q==, tarball: https://npm.pkg.github.com/download/@architon-creator/cms/0.2.0/cd67ce4f0368eb7fbee4704cbc399c5902605481}
+    peerDependencies:
+      react: 19.3.0
+
+  '@architon-creator/ui@0.2.0':
+    resolution: {integrity: sha512-iIk/+7B9ieNqImdxO0VSZn85rvLLLzqUYHFJASdLm+MFD1svA9vqkrwuPgsDLIzGW+pA3xoR5+fbLSNZ7ZOGLw==, tarball: https://npm.pkg.github.com/download/@architon-creator/ui/0.2.0/e5a446b86cca954625e1c3c12b4f41850661fce0}
+    peerDependencies:
+      react: 19.3.0
 
   '@asamuzakjp/css-color@6.0.7':
     resolution: {integrity: sha512-vC/bk1Lz7Tn/EfU9/apOTBk80/8dyGyWMowPoV1tJ52muDGsDqt2HPT2klrFUiY60MQmQv9q8yIht15JnBgDGw==}
@@ -1517,6 +1527,7 @@ packages:
   '@opentelemetry/propagator-jaeger@2.11.0':
     resolution: {integrity: sha512-RUOqgoIqXOPQTOhpBrs07Y8sBlxVoLY5Fka6ueZ0prW+k6fWQsba/nHDY4gm+gmfuwtRqbX5Y9YKhDvktjbIqQ==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Package no longer supported. See https://github.com/open-telemetry/opentelemetry-js/pull/7077
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -1588,6 +1599,7 @@ packages:
   '@opentelemetry/sdk-trace-node@2.11.0':
     resolution: {integrity: sha512-CuvCMJmZxswhNLlM2LfuLOW3h3fZujA4hsG4B+Sz4dX2zvaXO8Ng74cnDHWD64gLszTlhiG3c0iNUjj4g+0/sA==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -6448,6 +6460,66 @@ snapshots:
   '@adobe/css-tools@4.5.0': {}
 
   '@alloc/quick-lru@5.3.0': {}
+
+  '@architon-creator/cms@0.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@architon-creator/ui': 0.2.0(@prismicio/client@7.22.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@prismicio/client': 7.22.0
+      '@prismicio/next': 2.3.1(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@prismicio/react': 3.4.1(@prismicio/client@7.22.0)(react@19.3.0)
+      cn: 0.2.6
+      lucide-react: 1.42.0(react@19.3.0)
+      react: 19.3.0
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - next
+      - react-dom
+
+  '@architon-creator/cms@0.2.0(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@architon-creator/ui': 0.2.0(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@prismicio/client': 7.22.0
+      '@prismicio/next': 2.3.1(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@prismicio/react': 3.4.1(@prismicio/client@7.22.0)(react@19.3.0)
+      cn: 0.2.6
+      lucide-react: 1.42.0(react@19.3.0)
+      react: 19.3.0
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - next
+      - react-dom
+
+  '@architon-creator/ui@0.2.0(@prismicio/client@7.22.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@prismicio/next': 2.3.1(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      class-variance-authority: 0.7.1
+      cn: 0.2.6
+      lucide-react: 1.42.0(react@19.3.0)
+      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+    transitivePeerDependencies:
+      - '@prismicio/client'
+      - '@types/react'
+      - '@types/react-dom'
+      - next
+      - react-dom
+
+  '@architon-creator/ui@0.2.0(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@prismicio/next': 2.3.1(@prismicio/client@7.22.0)(next@16.3.5(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      class-variance-authority: 0.7.1
+      cn: 0.2.6
+      lucide-react: 1.42.0(react@19.3.0)
+      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+    transitivePeerDependencies:
+      - '@prismicio/client'
+      - '@types/react'
+      - '@types/react-dom'
+      - next
+      - react-dom
 
   '@asamuzakjp/css-color@6.0.7':
     dependencies:
