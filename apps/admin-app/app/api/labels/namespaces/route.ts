@@ -7,7 +7,12 @@ import { isLabelsToolEnabled } from "@/lib/labels-guard";
 // so the UI can list namespaces before running either script rather than
 // requiring a run just to see what's there.
 const messagesPath = path.resolve(process.cwd(), "../../apps/frontend/messages/en.json");
-const customTypesRoot = path.resolve(process.cwd(), "../../packages/cms/customtypes");
+// cms lives in its own repo: CMS_DIR, else a sibling "cms" checkout next to this repo
+// (same default as packages/labels-tools/scripts/paths.ts).
+const customTypesRoot = path.resolve(
+  process.env.CMS_DIR ?? path.resolve(process.cwd(), "../../../cms"),
+  "customtypes",
+);
 
 export type NamespaceStatus = "new" | "changed" | "up-to-date";
 

@@ -511,7 +511,7 @@ export default function LabelsClient() {
               Step 1 · Prismic Custom Type Generation
             </p>
             <p className="text-text-dim text-[12.5px] max-w-[500px]">
-              Writes local custom type files under <code>packages/cms/customtypes/</code> — one
+              Writes local custom type files under <code>customtypes/</code> in your <code>cms</code> checkout (<code>CMS_DIR</code>) — one
               per namespace, plus an <code>app_labels</code> hub type. Safe to re-run anytime;
               only touches local files, never Prismic itself.
             </p>

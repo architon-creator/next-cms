@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { customTypesRoot, messagesPath } from "./paths.js";
+import { assertCustomTypesWritable, customTypesRoot, messagesPath } from "./paths.js";
 
 function isMainModule() {
   return process.argv[1]
@@ -94,6 +94,7 @@ function parseNamespaceFilter(): Set<string> | null {
 }
 
 function main() {
+  assertCustomTypesWritable();
   const messages = JSON.parse(readFileSync(messagesPath, "utf8")) as Record<
     string,
     unknown
