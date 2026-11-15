@@ -1,15 +1,18 @@
 "use client";
 
 import { SearchX } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { Button, Card, Input } from "ui";
+import { APP_KEYS, clearApps } from "app-state";
 
 import { useRouter } from "@/i18n/navigation";
 import { MOCK_RESULTS } from "@/lib/mock-results";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { startNewFlow } from "@/store/slices/progress-slice";
+import { setSearchQuery } from "@/store/slices/search-slice";
+import { persistor } from "@/store/store";
 
 function initials(name: string) {
   return name
@@ -25,11 +28,14 @@ export function SearchSection() {
   const tResult = useTranslations("ResultCard");
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [query, setQuery] = useState("");
+  const locale = useLocale();
+  // The search text lives in the store (not local state) so it is kept when the user
+  // moves to the booking app and comes back.
+  const query = useAppSelector((state) => state.search.query);
   const [hasSearched, setHasSearched] = useState(false);
   const [results, setResults] = useState(MOCK_RESULTS);
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalized = query.trim().toLowerCase();
     setResults(
@@ -38,6 +44,17 @@ export function SearchSection() {
         : MOCK_RESULTS,
     );
     setHasSearched(true);
+
+    // Next page = the booking app. Delete its previous data (saved copy + live store if
+    // it is open in another tab) while KEEPING this search form: clearApps never touches
+    // the caller. The booking app is a separate Next build under the same origin, so this
+    // must be a full page load; next-intl's router.push is client-side navigation inside
+    // THIS app and cannot land there.
+    clearApps([APP_KEYS.booking]);
+    // redux-persist writes asynchronously: flush so the latest search text is saved
+    // before the page unloads.
+    await persistor.flush();
+    window.location.assign(`/booking/${locale}`);
   }
 
   function handleSelect() {
@@ -57,7 +74,7 @@ export function SearchSection() {
         <Input
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => dispatch(setSearchQuery(event.target.value))}
           placeholder={t("heading")}
           aria-label={t("heading")}
           className="h-11 flex-1 text-base"

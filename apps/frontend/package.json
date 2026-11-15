@@ -18,6 +18,7 @@
     "@prismicio/next": "^2.3.1",
     "@prismicio/react": "^3.4.1",
     "@reduxjs/toolkit": "^2.3.0",
+    "app-state": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "cms": "workspace:*",
     "cn": "^0.2.6",

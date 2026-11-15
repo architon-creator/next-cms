@@ -8,5 +8,6 @@ export const config = {
   // Runs on every path except API routes, Next internals, and anything
   // that looks like a static file (has a dot in its last segment, e.g.
   // favicon.ico) — those must never get a locale prefix rewritten onto them.
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // "booking" belongs to the second app (served under this origin), not a page here.
+  matcher: ["/((?!api|_next|_vercel|booking|.*\\..*).*)"],
 };
