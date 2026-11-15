@@ -1,0 +1,27 @@
+{
+  "name": "booking-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Second app for the cross-app store reset demo. Served under /booking on the same origin as apps/frontend.",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.3.0",
+    "app-state": "workspace:*",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-redux": "^9.1.2",
+    "redux-persist": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.5.4"
+  }
+}
